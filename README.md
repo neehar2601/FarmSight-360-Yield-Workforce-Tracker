@@ -19,9 +19,9 @@ This project aims to develop a comprehensive cloud-based, loosely coupled, three
 
 - **Deployment:** Cloud infrastructure (AWS / Azure / GCP)
 - **Architecture Type:** Loosely coupled, three-tier design
-  - **Presentation Tier** â€“ Responsive web interface (HTML5, CSS3, JavaScript, PWA capabilities)
-  - **Application Tier** â€“ Backend logic, APIs, and microservices
-  - **Data Tier** â€“ Database (SQL/NoSQL hybrid), data lake for analytics
+  - **Presentation Tier**  Responsive web interface (HTML5, CSS3, JavaScript, PWA capabilities
+  - **Application Tier**  Backend logic, APIs, and microservices
+  - **Data Tier**  Database (SQL/NoSQL hybrid), data lake for analytics
 - **API-Based Modules** for future mobile integration and third-party integrations
 - **Microservices Architecture** for scalability and maintainability
 - **Load Balancing** and auto-scaling capabilities
