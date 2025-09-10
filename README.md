@@ -1,5 +1,4 @@
 # FarmSight-360: Yield & Workforce Tracker
-## Complete Requirements Document (Enhanced Version)
 
 **Version:** 2.1  
 **Date:** September 2025  
