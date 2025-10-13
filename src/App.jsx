@@ -120,20 +120,44 @@ const DataProvider = ({ children }) => {
         });
     };
 
-    const updateLoanBalance = (workerId, advance, repayment) => {
-        setData(prev => ({
-            ...prev,
-            workers: prev.workers.map(w => {
-                if (w.id === workerId) {
-                    const newLoanBalance = w.loanBalance + advance - repayment;
-                    return { ...w, loanBalance: newLoanBalance };
-                }
-                return w;
-            })
-        }));
+    const confirmWorkerPayment = ({ workerId, workerName, payout, advance, repayment }) => {
+        setData(prev => {
+            const newWorkers = prev.workers.map(w => (w.id === workerId ? { ...w, loanBalance: w.loanBalance + advance - repayment } : w));
+            const newTransaction = { id: Date.now(), type: 'Expense', description: `Weekly Payout: ${workerName}`, amount: -payout };
+            const newFinancials = {
+                ...prev.financials,
+                summary: { ...prev.financials.summary, expenses: prev.financials.summary.expenses + payout, profit: prev.financials.summary.profit - payout },
+                recentTransactions: [newTransaction, ...prev.financials.recentTransactions],
+            };
+            return { ...prev, workers: newWorkers, financials: newFinancials };
+        });
+    };
+
+    const adjustLoanBalance = ({ workerId, workerName, advance, repayment }) => {
+        setData(prev => {
+            const newWorkers = prev.workers.map(w => (w.id === workerId ? { ...w, loanBalance: w.loanBalance + advance - repayment } : w));
+            let newFinancials = { ...prev.financials };
+            const newTransactions = [];
+
+            if (advance > 0) {
+                const advanceTransaction = { id: Date.now(), type: 'Expense', description: `Advance to ${workerName}`, amount: -advance };
+                newTransactions.push(advanceTransaction);
+                newFinancials.summary.expenses += advance;
+                newFinancials.summary.profit -= advance;
+            }
+            if (repayment > 0) {
+                const repaymentTransaction = { id: Date.now() + 1, type: 'Revenue', description: `Loan Repayment from ${workerName}`, amount: repayment };
+                newTransactions.push(repaymentTransaction);
+                newFinancials.summary.revenue += repayment;
+                newFinancials.summary.profit += repayment;
+            }
+            newFinancials.recentTransactions = [...newTransactions, ...prev.financials.recentTransactions];
+
+            return { ...prev, workers: newWorkers, financials: newFinancials };
+        });
     };
     
-    const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, updateLoanBalance, currentDate: MOCK_CURRENT_DATE };
+    const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, currentDate: MOCK_CURRENT_DATE };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 
@@ -160,6 +184,7 @@ const RevenueIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8
 const ExpenseIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>;
 const ProfitIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>;
 const EditIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>;
+const LoanIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m8-4h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2z" /></svg>;
 
 // --- MODAL COMPONENTS ---
 const YieldModal = ({ isOpen, onClose, onSave, cropOptions }) => {
@@ -194,27 +219,68 @@ const EditWorkerModal = ({ isOpen, onClose, onSave, worker }) => {
     const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
     return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-6">Edit Worker Details</h2><form onSubmit={handleSubmit}><div className="space-y-4"><div><label className="block text-sm font-medium">Name</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" required /></div><div><label className="block text-sm font-medium">Role</label><input type="text" name="role" value={formData.role || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" required /></div><div><label className="block text-sm font-medium">Salary per Day (₹)</label><input type="number" name="perDaySalary" value={formData.perDaySalary || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" required /></div><div><label className="block text-sm font-medium">Contact</label><input type="text" name="contact" value={formData.contact || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" /></div></div><div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button><button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md">Save Changes</button></div></form></div></div>);
 };
+const LoanAdjustmentModal = ({ isOpen, onClose, onSave, worker }) => {
+    const [advance, setAdvance] = useState('');
+    const [repayment, setRepayment] = useState('');
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setAdvance('');
+            setRepayment('');
+            setError('');
+        }
+    }, [isOpen]);
+
+    if (!isOpen || !worker) return null;
+
+    const handleSave = () => {
+        const advanceAmount = parseInt(advance, 10) || 0;
+        const repaymentAmount = parseInt(repayment, 10) || 0;
+
+        if (repaymentAmount > worker.loanBalance) {
+            setError(`Repayment cannot exceed outstanding loan of ₹${worker.loanBalance.toLocaleString('en-IN')}`);
+            return;
+        }
+        if(advanceAmount > 0 && repaymentAmount > 0) {
+            setError('Please enter either an advance or a repayment, not both.');
+            return;
+        }
+
+        onSave({ workerId: worker.id, workerName: worker.name, advance: advanceAmount, repayment: repaymentAmount });
+    };
+    
+    return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-2">Adjust Loan for {worker.name}</h2><p className="text-sm text-gray-500 mb-6">Current Outstanding Loan: ₹{worker.loanBalance.toLocaleString('en-IN')}</p><div className="space-y-4"><div><label className="block text-sm font-medium">Give Advance (₹)</label><input type="number" placeholder="Enter advance amount" value={advance} onChange={e => {setAdvance(e.target.value); setError('');}} className="mt-1 block w-full rounded-md border-gray-300" /></div><div><label className="block text-sm font-medium">Record Repayment (₹)</label><input type="number" placeholder="Enter repayment amount" value={repayment} onChange={e => {setRepayment(e.target.value); setError('');}} className="mt-1 block w-full rounded-md border-gray-300" /></div></div>{error && <p className="text-red-500 text-sm mt-4">{error}</p>}<div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button><button type="button" onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md">Confirm Adjustment</button></div></div></div>);
+};
 
 
 // --- FEATURE MODULES (SUB-COMPONENTS FOR WORKERS) ---
-const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPayment }) => {
+const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPayment, onAdjustLoan }) => {
     const [adjustments, setAdjustments] = useState({});
+    const [confirmedPayments, setConfirmedPayments] = useState({});
 
-    const calculateDaysPresent = (workerId) => {
-        let count = 0;
-        const workerAttendance = attendance[workerId] || {};
-        const sunday = 0;
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(currentDate);
-            date.setDate(currentDate.getDate() - i);
-            if (date.getDay() === sunday) continue; // Skip Sunday
-            const dateStr = formatDate(date);
-            const status = workerAttendance[dateStr];
-            if (status === 'P') count += 1;
-            if (status === 'H') count += 0.5;
-        }
-        return count;
-    };
+    useEffect(() => {
+        if (currentDate.getDay() === 1) setConfirmedPayments({});
+    }, [currentDate]);
+
+    const workerPaymentData = useMemo(() => {
+        const calculateDaysPresent = (workerId) => {
+            let count = 0;
+            const workerAttendance = attendance[workerId] || {};
+            const sunday = 0;
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentDate);
+                date.setDate(currentDate.getDate() - i);
+                if (date.getDay() === sunday) continue;
+                const dateStr = formatDate(date);
+                const status = workerAttendance[dateStr];
+                if (status === 'P') count += 1;
+                if (status === 'H') count += 0.5;
+            }
+            return count;
+        };
+        return workers.map(w => ({ ...w, daysPresent: calculateDaysPresent(w.id), baseSalary: w.perDaySalary * calculateDaysPresent(w.id) }));
+    }, [workers, attendance, currentDate]);
 
     const handleAdjustmentChange = (workerId, field, value) => {
         const numericValue = value === '' ? '' : parseInt(value, 10);
@@ -223,19 +289,17 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
         }
     };
 
-    const handleConfirmPayment = (workerId) => {
-        const worker = workers.find(w => w.id === workerId);
-        if(!worker) return;
-        const advance = adjustments[workerId]?.advance || 0;
-        const repayment = adjustments[workerId]?.repayment || 0;
-
+    const handleConfirmPayment = (worker) => {
+        const advance = adjustments[worker.id]?.advance || 0;
+        const repayment = adjustments[worker.id]?.repayment || 0;
+        const finalPayout = worker.baseSalary + advance - repayment;
         if (repayment > worker.loanBalance) {
             alert(`Repayment cannot exceed the outstanding loan of ₹${worker.loanBalance.toLocaleString('en-IN')}`);
             return;
         }
-
-        onConfirmPayment(workerId, advance, repayment);
-        setAdjustments(prev => ({...prev, [workerId]: { advance: '', repayment: '' }}));
+        onConfirmPayment({ workerId: worker.id, workerName: worker.name, payout: finalPayout, advance, repayment });
+        setAdjustments(prev => ({...prev, [worker.id]: { advance: '', repayment: '' }}));
+        setConfirmedPayments(prev => ({ ...prev, [worker.id]: true }));
     };
 
     return (
@@ -243,22 +307,26 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
             <table className="w-full text-left text-sm">
                 <thead><tr className="bg-gray-100"><th className="p-3">Worker</th><th className="p-3">Loan (₹)</th><th className="p-3">Weekly Base Salary (₹)</th><th className="p-3">Adjustments (₹)</th><th className="p-3 font-bold">Payout (₹)</th><th className="p-3">Actions</th></tr></thead>
                 <tbody>
-                    {workers.map(w => {
-                        const daysPresent = calculateDaysPresent(w.id);
-                        const baseSalary = w.perDaySalary * daysPresent;
+                    {workerPaymentData.map(w => {
                         const advance = adjustments[w.id]?.advance || 0;
                         const repayment = adjustments[w.id]?.repayment || 0;
-                        const finalPayout = baseSalary + advance - repayment;
+                        const finalPayout = w.baseSalary + advance - repayment;
+                        const isConfirmed = confirmedPayments[w.id];
                         return (
                             <tr key={w.id} className="border-b">
                                 <td className="p-3 font-medium">{w.name}<span className="block text-xs text-gray-500">{w.role}</span></td>
-                                <td className={`p-3 font-semibold ${w.loanBalance > 0 ? 'text-red-600' : 'text-gray-700'}`}>{w.loanBalance.toLocaleString('en-IN')}</td>
-                                <td className="p-3">{baseSalary.toLocaleString('en-IN')}<span className="text-xs text-gray-500"> ({daysPresent} days)</span></td>
-                                <td className="p-3"><div className="flex space-x-2"><input type="number" placeholder="Advance" value={adjustments[w.id]?.advance || ''} onChange={(e) => handleAdjustmentChange(w.id, 'advance', e.target.value)} className="w-24 p-1 border rounded" /><input type="number" placeholder="Repay" value={adjustments[w.id]?.repayment || ''} onChange={(e) => handleAdjustmentChange(w.id, 'repayment', e.target.value)} className="w-24 p-1 border rounded" /></div></td>
+                                <td className={`p-3 font-semibold ${w.loanBalance > 0 ? 'text-red-600' : 'text-gray-700'}`}>
+                                    <div className="flex items-center space-x-2">
+                                        <span>{w.loanBalance.toLocaleString('en-IN')}</span>
+                                        <button onClick={() => onAdjustLoan(w)} className="text-gray-500 hover:text-gray-700"><LoanIcon /></button>
+                                    </div>
+                                </td>
+                                <td className="p-3">{w.baseSalary.toLocaleString('en-IN')}<span className="text-xs text-gray-500"> ({w.daysPresent} days)</span></td>
+                                <td className="p-3"><div className="flex space-x-2"><input type="number" placeholder="Advance" value={adjustments[w.id]?.advance || ''} onChange={(e) => handleAdjustmentChange(w.id, 'advance', e.target.value)} disabled={isConfirmed} className="w-24 p-1 border rounded disabled:bg-gray-100" /><input type="number" placeholder="Repay" value={adjustments[w.id]?.repayment || ''} onChange={(e) => handleAdjustmentChange(w.id, 'repayment', e.target.value)} disabled={isConfirmed} className="w-24 p-1 border rounded disabled:bg-gray-100" /></div></td>
                                 <td className="p-3 font-bold text-lg text-blue-600">{finalPayout.toLocaleString('en-IN')}</td>
                                 <td className="p-3 flex items-center space-x-2">
                                     <button onClick={() => onEdit(w)} className="text-blue-600 hover:text-blue-800"><EditIcon /></button>
-                                    <button onClick={() => handleConfirmPayment(w.id)} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700">Confirm</button>
+                                    <button onClick={() => handleConfirmPayment(w)} disabled={isConfirmed} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{isConfirmed ? 'Paid' : 'Confirm'}</button>
                                 </td>
                             </tr>
                         );
@@ -321,14 +389,29 @@ const FertiliserManagement = () => {
     return (<Card title="Fertiliser Inventory"><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Name</th><th className="p-3">Stock</th></tr></thead><tbody>{fertilisers.map(f => (<tr key={f.id} className="border-b"><td className="p-3">{f.name}</td><td className="p-3 font-medium">{f.stock} {f.unit}</td></tr>))}</tbody></table></div></Card>);
 };
 const WorkerManagement = () => {
-    const { workers, attendance, updateWorkerDetails, markAttendance, updateLoanBalance, currentDate, isLoading } = useData();
+    const { workers, attendance, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, currentDate, isLoading } = useData();
     const [view, setView] = useState('payments');
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
     const [selectedWorker, setSelectedWorker] = useState(null);
-    const handleEditClick = (worker) => { setSelectedWorker(worker); setIsModalOpen(true); };
-    const handleSaveWorker = (updatedWorker) => { updateWorkerDetails(updatedWorker); setIsModalOpen(false); };
+
+    const handleEditClick = (worker) => { setSelectedWorker(worker); setIsEditModalOpen(true); };
+    const handleSaveWorker = (updatedWorker) => { updateWorkerDetails(updatedWorker); setIsEditModalOpen(false); };
+    
+    const handleAdjustLoanClick = (worker) => { setSelectedWorker(worker); setIsLoanModalOpen(true); };
+    const handleSaveLoanAdjustment = (adjustmentData) => { adjustLoanBalance(adjustmentData); setIsLoanModalOpen(false); };
+
     if (isLoading) return <Spinner />;
-    return (<><EditWorkerModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveWorker} worker={selectedWorker} /><div className="mb-4 border-b border-gray-200"><nav className="-mb-px flex space-x-6"><button onClick={() => setView('payments')} className={`py-3 px-1 border-b-2 font-medium ${view === 'payments' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Weekly Payments</button><button onClick={() => setView('daily')} className={`py-3 px-1 border-b-2 font-medium ${view === 'daily' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Daily Attendance</button><button onClick={() => setView('monthly')} className={`py-3 px-1 border-b-2 font-medium ${view === 'monthly' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Monthly View</button></nav></div><Card title={{'payments': 'Weekly Worker Payments', 'daily': "Today's Attendance", 'monthly': 'Monthly Attendance View'}[view]}>{view === 'payments' && <WorkerPayments workers={workers} attendance={attendance} onEdit={handleEditClick} currentDate={currentDate} onConfirmPayment={updateLoanBalance} />}{view === 'daily' && <DailyAttendance workers={workers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}{view === 'monthly' && <MonthlyAttendance workers={workers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}</Card></>);
+    return (<>
+        <EditWorkerModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleSaveWorker} worker={selectedWorker} />
+        <LoanAdjustmentModal isOpen={isLoanModalOpen} onClose={() => setIsLoanModalOpen(false)} onSave={handleSaveLoanAdjustment} worker={selectedWorker} />
+        <div className="mb-4 border-b border-gray-200"><nav className="-mb-px flex space-x-6"><button onClick={() => setView('payments')} className={`py-3 px-1 border-b-2 font-medium ${view === 'payments' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Weekly Payments</button><button onClick={() => setView('daily')} className={`py-3 px-1 border-b-2 font-medium ${view === 'daily' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Daily Attendance</button><button onClick={() => setView('monthly')} className={`py-3 px-1 border-b-2 font-medium ${view === 'monthly' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Monthly View</button></nav></div>
+        <Card title={{'payments': 'Weekly Worker Payments', 'daily': "Today's Attendance", 'monthly': 'Monthly Attendance View'}[view]}>
+            {view === 'payments' && <WorkerPayments workers={workers} attendance={attendance} onEdit={handleEditClick} currentDate={currentDate} onConfirmPayment={confirmWorkerPayment} onAdjustLoan={handleAdjustLoanClick} />}
+            {view === 'daily' && <DailyAttendance workers={workers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}
+            {view === 'monthly' && <MonthlyAttendance workers={workers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}
+        </Card>
+    </>);
 };
 
 
