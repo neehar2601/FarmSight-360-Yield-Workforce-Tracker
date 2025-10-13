@@ -27,3 +27,25 @@ This project aims to develop a comprehensive cloud-based, loosely coupled, three
 - **Load Balancing** and auto-scaling capabilities
 - **Content Delivery Network (CDN)** for optimal performance
 ---
+## 🚀 How to Run the Application
+
+Follow the steps below to set up and run the application locally:
+
+```bash
+# Clone the repository
+git clone https://github.com/neehar2601/FarmSight-360-Yield-Workforce-Tracker
+
+# Navigate to the project directory
+cd <project-folder>
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+```
+###Once the browser starts:
+
+```bash
+http://localhost:5173
+```
