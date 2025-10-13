@@ -1,16 +1,51 @@
-# React + Vite
+# FarmSight-360: Yield & Workforce Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 1. Overview
 
-Currently, two official plugins are available:
+### Purpose
+This project aims to develop a comprehensive cloud-based, loosely coupled, three-tier web application to help farmers and agriculturists manage all aspects of farm operations, including yield tracking, financial management, worker attendance, fertiliser usage, weather data, equipment management, and compliance tracking. A mobile application will be developed in future phases.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Objectives
+- Centralize agricultural data storage and access across all farm operations
+- Enable multi-produce management with separate and aggregated reporting
+- Integrate weather forecasts, historical trends, and predictive analytics for informed decision-making
+- Provide secure, scalable, cloud-based architecture with comprehensive farm management capabilities
+- Support data-driven farming decisions through advanced analytics and reporting
+- Ensure compliance with agricultural regulations and food safety standards
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 2. System Architecture
 
-## Expanding the ESLint configuration
+- **Deployment:** Cloud infrastructure (AWS / Azure / GCP)
+- **Architecture Type:** Loosely coupled, three-tier design
+  - **Presentation Tier**  Responsive web interface (HTML5, CSS3, JavaScript, PWA capabilities
+  - **Application Tier**  Backend logic, APIs, and microservices
+  - **Data Tier**  Database (SQL/NoSQL hybrid), data lake for analytics
+- **API-Based Modules** for future mobile integration and third-party integrations
+- **Microservices Architecture** for scalability and maintainability
+- **Load Balancing** and auto-scaling capabilities
+- **Content Delivery Network (CDN)** for optimal performance
+---
+## 3. 🚀 How to Run the Application
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Follow the steps below to set up and run the application locally:
+
+```bash
+# Clone the repository
+git clone https://github.com/neehar2601/FarmSight-360-Yield-Workforce-Tracker
+
+# Navigate to the project directory
+cd <project-folder>
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+```
+### Once the browser starts:
+
+```bash
+http://localhost:5173
+```

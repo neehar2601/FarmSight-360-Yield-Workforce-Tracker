@@ -1,0 +1,50 @@
+# This file defines the GitHub Actions workflow.
+# It should be placed in the ".github/workflows" directory of your project.
+
+name: React CI Checks
+
+# Controls when the action will run. 
+# This workflow runs on pushes to the main branch and on pull requests targeting the main branch.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # This workflow contains a single job called "build-and-test"
+  build-and-test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # We'll test against a specific version of Node.js
+        node-version: [18.x]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # 1. Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Sets up the specified version of Node.js
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm' # Use npm's cache to speed up dependency installation
+
+      # 3. Installs project dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Runs the linter to check for code quality and style issues
+      # This step will fail if the linter finds any errors.
+      - name: Run linter
+        run: npm run lint
+
+      # 5. Runs the build process to ensure the app compiles without errors
+      # This is a good way to catch syntax errors and other issues.
+      - name: Build project
+        run: npm run build
