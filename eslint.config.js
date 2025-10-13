@@ -1,11 +1,12 @@
 // This is the modern ESLint configuration file (flat config).
 // It replaces the need for older formats like .eslintrc.js and command-line flags like --ext.
+// This version uses CommonJS syntax (require/module.exports) to ensure compatibility.
 
-import globals from "globals";
-import js from "@eslint/js";
-import pluginReact from "eslint-plugin-react";
+const globals = require("globals");
+const js = require("@eslint/js");
+const pluginReact = require("eslint-plugin-react");
 
-export default [
+module.exports = [
   // Global configuration settings
   {
     // Apply these settings to all relevant files
@@ -60,3 +61,4 @@ export default [
     }
   },
 ];
+
