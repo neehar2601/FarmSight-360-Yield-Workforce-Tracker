@@ -7,7 +7,7 @@ name: React CI Checks
 # This workflow runs on pushes to the main branch and on pull requests targeting the main branch.
 on:
   push:
-    branches: [ main ]
+    branches: [ main, standalone ]
   pull_request:
     branches: [ main ]
 
