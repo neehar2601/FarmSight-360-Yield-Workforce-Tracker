@@ -29,15 +29,15 @@ const mockDatabase = {
         '101': { '2025-10-01': 'P', '2025-10-02': 'P', '2025-10-03': 'H', '2025-10-04': 'A', '2025-10-06': 'P', '2025-10-07': 'P', '2025-10-08': 'P', '2025-10-09': 'P', '2025-10-10': 'P', '2025-10-11': 'A', '2025-10-13': 'P' },
         '102': { '2025-10-01': 'P', '2025-10-02': 'P', '2025-10-03': 'P', '2025-10-04': 'P', '2025-10-06': 'H', '2025-10-07': 'P', '2025-10-08': 'P', '2025-10-09': 'P', '2025-10-10': 'P', '2025-10-11': 'P', '2025-10-13': 'H' },
         '103': { '2025-10-01': 'A', '2025-10-02': 'A', '2025-10-03': 'A', '2025-10-04': 'A', '2025-10-06': 'P', '2025-10-07': 'P', '2025-10-08': 'P', '2025-10-09': 'H', '2025-10-10': 'P', '2025-10-11': 'A', '2025-10-13': 'P' },
-        '104': { '2025-10-13': 'A'},
+        '104': { '2025-10-13': 'A' },
     },
     financials: {
         summary: { revenue: 4000, expenses: 45000, profit: -41000 },
-        recentTransactions: [ { id: 1, type: 'Revenue', description: 'Sale of Tomatoes (Grade A)', amount: 4000 } ]
+        recentTransactions: [{ id: 1, type: 'Revenue', description: 'Sale of Tomatoes (Grade A)', amount: 4000 }]
     },
-    fertilisers: [ { id: 1, name: 'Urea', stock: 50, unit: 'bags' }, { id: 2, name: 'DAP', stock: 35, unit: 'bags' }, ],
-    yieldChartData: [ { name: 'May', Tomatoes: 4000, Potatoes: 2400 }, { name: 'Jun', Tomatoes: 3000, Potatoes: 1398 }, { name: 'Jul', Tomatoes: 2000, Potatoes: 9800 }, { name: 'Aug', Tomatoes: 2780, Potatoes: 3908 }, { name: 'Sep', Tomatoes: 1890, Potatoes: 4800 }, ],
-    financialChartData: [ { name: 'May', revenue: 50000, expenses: 30000 }, { name: 'Jun', revenue: 65000, expenses: 40000 }, { name: 'Jul', revenue: 90000, expenses: 55000 }, { name: 'Aug', revenue: 75000, expenses: 50000 }, { name: 'Sep', revenue: 98800, expenses: 45000 }, ]
+    fertilisers: [{ id: 1, name: 'Urea', stock: 50, unit: 'bags' }, { id: 2, name: 'DAP', stock: 35, unit: 'bags' },],
+    yieldChartData: [{ name: 'May', Tomatoes: 4000, Potatoes: 2400 }, { name: 'Jun', Tomatoes: 3000, Potatoes: 1398 }, { name: 'Jul', Tomatoes: 2000, Potatoes: 9800 }, { name: 'Aug', Tomatoes: 2780, Potatoes: 3908 }, { name: 'Sep', Tomatoes: 1890, Potatoes: 4800 },],
+    financialChartData: [{ name: 'May', revenue: 50000, expenses: 30000 }, { name: 'Jun', revenue: 65000, expenses: 40000 }, { name: 'Jul', revenue: 90000, expenses: 55000 }, { name: 'Aug', revenue: 75000, expenses: 50000 }, { name: 'Sep', revenue: 98800, expenses: 45000 },]
 };
 
 // --- DATA UTILITIES & HELPERS ---
@@ -55,7 +55,7 @@ const aggregateInventory = (yields, sales) => {
             inventoryMap.set(key, { ...inventoryMap.get(key), quantity: currentQty - s.quantity });
         }
     });
-    return Array.from(inventoryMap.values()).sort((a,b) => a.crop.localeCompare(b.crop) || a.grade.localeCompare(b.grade));
+    return Array.from(inventoryMap.values()).sort((a, b) => a.crop.localeCompare(b.crop) || a.grade.localeCompare(b.grade));
 };
 
 const formatDate = (date) => date.toISOString().split('T')[0];
@@ -83,16 +83,16 @@ const DataProvider = ({ children }) => {
         });
         setIsLoading(false);
     }, []);
-    
+
     const addYield = (yieldData) => {
-       setData(prev => {
-            const newYields = [{...yieldData, id: Date.now()}, ...prev.yields];
+        setData(prev => {
+            const newYields = [{ ...yieldData, id: Date.now() }, ...prev.yields];
             const newInventory = aggregateInventory(newYields, prev.sales);
             const newCropOptions = prev.cropOptions.includes(yieldData.crop) ? prev.cropOptions : [...prev.cropOptions, yieldData.crop];
             return { ...prev, yields: newYields, inventory: newInventory, cropOptions: newCropOptions };
         });
     };
-    
+
     const addSale = (saleData) => {
         setData(prev => {
             const newSales = [{ ...saleData, id: Date.now() }, ...prev.sales];
@@ -156,7 +156,7 @@ const DataProvider = ({ children }) => {
             return { ...prev, workers: newWorkers, financials: newFinancials };
         });
     };
-    
+
     const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, currentDate: MOCK_CURRENT_DATE };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
@@ -174,16 +174,16 @@ const useAuth = () => useContext(AuthContext);
 const Spinner = () => <div className="flex justify-center items-center h-full"><div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-600"></div></div>;
 const Card = ({ title, children, className = "", titleActions = null }) => (<div className={`bg-white rounded-xl shadow-md p-6 ${className}`}><div className="flex justify-between items-center mb-4"><h3 className="text-xl font-semibold text-gray-700">{title}</h3><div>{titleActions}</div></div>{children}</div>);
 const StatCard = ({ title, value, icon }) => (<div className="bg-white rounded-xl shadow-md p-4 flex items-center"><div className="p-3 bg-green-100 rounded-full mr-4">{icon}</div><div><p className="text-sm text-gray-500">{title}</p><p className="text-2xl font-bold text-gray-800">{value}</p></div></div>);
-const DashboardIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>;
-const YieldIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
-const WorkerIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
-const FinancialIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
-const FertiliserIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547a2 2 0 00-.547 1.806l.443 2.216a2 2 0 002.164 1.743h10.398a2 2 0 002.164-1.743l.443-2.216a2 2 0 00-.547-1.806z" /></svg>;
-const InventoryIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7s0 0 0 0M12 11s0 0 0 0m-8 4s0 0 0 0m16 0s0 0 0 0" /><path strokeLinecap="round" strokeLinejoin="round" d="M4 11s0 0 0 0m16 0s0 0 0 0m-8-4c4.418 0 8 1.79 8 4M4 7c0 2.21 3.582 4 8 4" /></svg>;
-const RevenueIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /></svg>;
-const ExpenseIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>;
-const ProfitIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>;
-const EditIcon=()=><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>;
+const DashboardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>;
+const YieldIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+const WorkerIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+const FinancialIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
+const FertiliserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547a2 2 0 00-.547 1.806l.443 2.216a2 2 0 002.164 1.743h10.398a2 2 0 002.164-1.743l.443-2.216a2 2 0 00-.547-1.806z" /></svg>;
+const InventoryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7s0 0 0 0M12 11s0 0 0 0m-8 4s0 0 0 0m16 0s0 0 0 0" /><path strokeLinecap="round" strokeLinejoin="round" d="M4 11s0 0 0 0m16 0s0 0 0 0m-8-4c4.418 0 8 1.79 8 4M4 7c0 2.21 3.582 4 8 4" /></svg>;
+const RevenueIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" /></svg>;
+const ExpenseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>;
+const ProfitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>;
+const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>;
 const LoanIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m8-4h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2z" /></svg>;
 
 // --- MODAL COMPONENTS ---
@@ -202,7 +202,7 @@ const SaleModal = ({ isOpen, onClose, onSave, itemToSell }) => {
     if (!isOpen) return null;
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({...prev, [name]: value}));
+        setFormData(prev => ({ ...prev, [name]: value }));
         if (name === 'quantity' && (parseInt(value, 10) > itemToSell.quantity || parseInt(value, 10) <= 0)) {
             setError(`Quantity must be between 1 and ${itemToSell.quantity}`);
         } else { setError(''); }
@@ -242,15 +242,15 @@ const LoanAdjustmentModal = ({ isOpen, onClose, onSave, worker }) => {
             setError(`Repayment cannot exceed outstanding loan of ₹${worker.loanBalance.toLocaleString('en-IN')}`);
             return;
         }
-        if(advanceAmount > 0 && repaymentAmount > 0) {
+        if (advanceAmount > 0 && repaymentAmount > 0) {
             setError('Please enter either an advance or a repayment, not both.');
             return;
         }
 
         onSave({ workerId: worker.id, workerName: worker.name, advance: advanceAmount, repayment: repaymentAmount });
     };
-    
-    return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-2">Adjust Loan for {worker.name}</h2><p className="text-sm text-gray-500 mb-6">Current Outstanding Loan: ₹{worker.loanBalance.toLocaleString('en-IN')}</p><div className="space-y-4"><div><label className="block text-sm font-medium">Give Advance (₹)</label><input type="number" placeholder="Enter advance amount" value={advance} onChange={e => {setAdvance(e.target.value); setError('');}} className="mt-1 block w-full rounded-md border-gray-300" /></div><div><label className="block text-sm font-medium">Record Repayment (₹)</label><input type="number" placeholder="Enter repayment amount" value={repayment} onChange={e => {setRepayment(e.target.value); setError('');}} className="mt-1 block w-full rounded-md border-gray-300" /></div></div>{error && <p className="text-red-500 text-sm mt-4">{error}</p>}<div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button><button type="button" onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md">Confirm Adjustment</button></div></div></div>);
+
+    return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-2">Adjust Loan for {worker.name}</h2><p className="text-sm text-gray-500 mb-6">Current Outstanding Loan: ₹{worker.loanBalance.toLocaleString('en-IN')}</p><div className="space-y-4"><div><label className="block text-sm font-medium">Give Advance (₹)</label><input type="number" placeholder="Enter advance amount" value={advance} onChange={e => { setAdvance(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div><div><label className="block text-sm font-medium">Record Repayment (₹)</label><input type="number" placeholder="Enter repayment amount" value={repayment} onChange={e => { setRepayment(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div></div>{error && <p className="text-red-500 text-sm mt-4">{error}</p>}<div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button><button type="button" onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md">Confirm Adjustment</button></div></div></div>);
 };
 
 
@@ -285,7 +285,7 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
     const handleAdjustmentChange = (workerId, field, value) => {
         const numericValue = value === '' ? '' : parseInt(value, 10);
         if (!isNaN(numericValue) || value === '') {
-            setAdjustments(prev => ({...prev, [workerId]: {...prev[workerId], [field]: numericValue }}));
+            setAdjustments(prev => ({ ...prev, [workerId]: { ...prev[workerId], [field]: numericValue } }));
         }
     };
 
@@ -298,7 +298,7 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
             return;
         }
         onConfirmPayment({ workerId: worker.id, workerName: worker.name, payout: finalPayout, advance, repayment });
-        setAdjustments(prev => ({...prev, [worker.id]: { advance: '', repayment: '' }}));
+        setAdjustments(prev => ({ ...prev, [worker.id]: { advance: '', repayment: '' } }));
         setConfirmedPayments(prev => ({ ...prev, [worker.id]: true }));
     };
 
@@ -338,14 +338,14 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
 };
 const DailyAttendance = ({ workers, attendance, onMark, currentDate }) => {
     const todayStr = formatDate(currentDate);
-    return (<div><h4 className="text-lg font-semibold mb-3">Mark Attendance for {currentDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h4><div className="space-y-2">{workers.map(worker => (<div key={worker.id} className="grid grid-cols-5 items-center bg-gray-50 p-2 rounded-md"><span className="font-medium col-span-2">{worker.name}</span><div className="col-span-3 flex justify-around">{['P', 'H', 'A'].map(status => (<label key={status} className="flex items-center space-x-2 cursor-pointer"><input type="radio" name={`attendance-${worker.id}`} value={status} checked={(attendance[worker.id]?.[todayStr] || '') === status} onChange={() => onMark(worker.id, todayStr, status)} className="form-radio h-4 w-4 text-green-600" /><span>{{'P': 'Present', 'H': 'Half Day', 'A': 'Absent'}[status]}</span></label>))}</div></div>))}</div></div>);
+    return (<div><h4 className="text-lg font-semibold mb-3">Mark Attendance for {currentDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h4><div className="space-y-2">{workers.map(worker => (<div key={worker.id} className="grid grid-cols-5 items-center bg-gray-50 p-2 rounded-md"><span className="font-medium col-span-2">{worker.name}</span><div className="col-span-3 flex justify-around">{['P', 'H', 'A'].map(status => (<label key={status} className="flex items-center space-x-2 cursor-pointer"><input type="radio" name={`attendance-${worker.id}`} value={status} checked={(attendance[worker.id]?.[todayStr] || '') === status} onChange={() => onMark(worker.id, todayStr, status)} className="form-radio h-4 w-4 text-green-600" /><span>{{ 'P': 'Present', 'H': 'Half Day', 'A': 'Absent' }[status]}</span></label>))}</div></div>))}</div></div>);
 };
 const MonthlyAttendance = ({ workers, attendance, onMark, currentDate }) => {
     const [displayMonth, setDisplayMonth] = useState(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
     const daysInMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0).getDate();
     const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-    const getStatusStyle = (status) => ({'P': 'bg-green-500 text-white', 'H': 'bg-yellow-400 text-white', 'A': 'bg-red-500 text-white'}[status] || 'bg-gray-200');
-    return (<div><div className="flex justify-between items-center mb-4"><button onClick={() => setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1))} className="px-3 py-1 bg-gray-200 rounded">&lt; Prev</button><h4 className="text-lg font-semibold">{displayMonth.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</h4><button onClick={() => setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1))} className="px-3 py-1 bg-gray-200 rounded">Next &gt;</button></div><div className="overflow-x-auto"><table className="w-full text-center text-sm border-collapse"><thead><tr className="bg-gray-100"><th className="p-2 border">Worker</th>{daysArray.map(day => <th key={day} className="p-2 border w-10">{day}</th>)}</tr></thead><tbody>{workers.map(worker => (<tr key={worker.id}><td className="p-2 border text-left font-medium">{worker.name}</td>{daysArray.map(day => {const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day); const dateStr = formatDate(date); const status = attendance[worker.id]?.[dateStr]; const isEditable = date <= currentDate; return (<td key={day} className={`p-0 border`}>{isEditable ? (<select value={status || 'U'} onChange={(e) => onMark(worker.id, dateStr, e.target.value)} className={`w-full h-full text-center border-0 focus:ring-0 ${getStatusStyle(status)}`}><option value="U" disabled hidden></option><option value="P">P</option><option value="H">H</option><option value="A">A</option></select>) : (<div className="p-2 bg-gray-100"></div>)}</td>)})}</tr>))}</tbody></table></div></div>);
+    const getStatusStyle = (status) => ({ 'P': 'bg-green-500 text-white', 'H': 'bg-yellow-400 text-white', 'A': 'bg-red-500 text-white' }[status] || 'bg-gray-200');
+    return (<div><div className="flex justify-between items-center mb-4"><button onClick={() => setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1))} className="px-3 py-1 bg-gray-200 rounded">&lt; Prev</button><h4 className="text-lg font-semibold">{displayMonth.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</h4><button onClick={() => setDisplayMonth(new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1))} className="px-3 py-1 bg-gray-200 rounded">Next &gt;</button></div><div className="overflow-x-auto"><table className="w-full text-center text-sm border-collapse"><thead><tr className="bg-gray-100"><th className="p-2 border">Worker</th>{daysArray.map(day => <th key={day} className="p-2 border w-10">{day}</th>)}</tr></thead><tbody>{workers.map(worker => (<tr key={worker.id}><td className="p-2 border text-left font-medium">{worker.name}</td>{daysArray.map(day => { const date = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), day); const dateStr = formatDate(date); const status = attendance[worker.id]?.[dateStr]; const isEditable = date <= currentDate; return (<td key={day} className={`p-0 border`}>{isEditable ? (<select value={status || 'U'} onChange={(e) => onMark(worker.id, dateStr, e.target.value)} className={`w-full h-full text-center border-0 focus:ring-0 ${getStatusStyle(status)}`}><option value="U" disabled hidden></option><option value="P">P</option><option value="H">H</option><option value="A">A</option></select>) : (<div className="p-2 bg-gray-100"></div>)}</td>) })}</tr>))}</tbody></table></div></div>);
 };
 
 
@@ -361,22 +361,22 @@ const YieldTracking = () => {
     const [selectedYear, setSelectedYear] = useState('All');
     const [selectedSeason, setSelectedSeason] = useState('All');
     const availableYears = useMemo(() => ['All', ...new Set(yields.map(y => new Date(y.date).getFullYear()))].sort(), [yields]);
-    const filteredYields = useMemo(() => {return yields.filter(y => {const date = new Date(y.date); const year = date.getFullYear(); const month = date.getMonth() + 1; const yearMatch = selectedYear === 'All' || year === parseInt(selectedYear); if (!yearMatch) return false; if (selectedSeason === 'All') return true; if (selectedSeason === 'Kharif' && month >= 6 && month <= 10) return true; if (selectedSeason === 'Rabi' && (month >= 11 || month <= 4)) return true; return false;});}, [yields, selectedYear, selectedSeason]);
-    const groupedYields = useMemo(() => {return filteredYields.reduce((acc, item) => {if (!acc[item.crop]) acc[item.crop] = []; acc[item.crop].push(item); return acc;}, {});}, [filteredYields]);
+    const filteredYields = useMemo(() => { return yields.filter(y => { const date = new Date(y.date); const year = date.getFullYear(); const month = date.getMonth() + 1; const yearMatch = selectedYear === 'All' || year === parseInt(selectedYear); if (!yearMatch) return false; if (selectedSeason === 'All') return true; if (selectedSeason === 'Kharif' && month >= 6 && month <= 10) return true; if (selectedSeason === 'Rabi' && (month >= 11 || month <= 4)) return true; return false; }); }, [yields, selectedYear, selectedSeason]);
+    const groupedYields = useMemo(() => { return filteredYields.reduce((acc, item) => { if (!acc[item.crop]) acc[item.crop] = []; acc[item.crop].push(item); return acc; }, {}); }, [filteredYields]);
     const handleSaveYield = (yieldData) => { addYield(yieldData); setIsModalOpen(false); };
     if (isLoading) return <Spinner />;
-    return (<><YieldModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveYield} cropOptions={cropOptions} /><Card title="Yield Harvest Records" titleActions={<div className="flex items-center space-x-2"><select value={selectedSeason} onChange={e => setSelectedSeason(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm"><option value="All">All Seasons</option><option value="Kharif">Kharif (Jun-Oct)</option><option value="Rabi">Rabi (Nov-Apr)</option></select><select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm">{availableYears.map(y => <option key={y} value={y}>{y}</option>)}</select><button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md">Add Harvest</button></div>}><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Date</th><th className="p-3">Crop</th><th className="p-3">Quantity</th><th className="p-3">Grade</th></tr></thead><tbody>{Object.entries(groupedYields).map(([crop, yields]) => (yields.map((y, index) => (<tr key={y.id} className="border-b"><td className="p-3">{y.date}</td><td className="p-3 font-medium">{index === 0 ? crop : ''}</td><td className="p-3">{y.quantity} {y.unit}</td><td className="p-3"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${y.grade === 'A' ? 'bg-green-200 text-green-800' : y.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{y.grade}</span></td></tr>))))}</tbody></table></div></Card></>);
+    return (<><YieldModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveYield} cropOptions={cropOptions} /><Card title="Yield Harvest Records" titleActions={<div className="flex items-center space-x-2"><select value={selectedSeason} onChange={e => setSelectedSeason(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm"><option value="All">All Seasons</option><option value="Kharif">Kharif (Jun-Oct)</option><option value="Rabi">Rabi (Nov-Apr)</option></select><select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm">{availableYears.map(y => <option key={y} value={y}>{y}</option>)}</select><button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md">Add Harvest</button></div>}><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Date</th><th className="p-3">Quantity</th><th className="p-3">Grade</th></tr></thead><tbody>{Object.entries(groupedYields).map(([crop, yields]) => (<React.Fragment key={crop}><tr className="bg-green-50"><td colSpan="3" className="p-3 font-bold text-green-800">{crop}</td></tr>{yields.map((y) => (<tr key={y.id} className="border-b"><td className="p-3 pl-6">{y.date}</td><td className="p-3">{y.quantity} {y.unit}</td><td className="p-3"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${y.grade === 'A' ? 'bg-green-200 text-green-800' : y.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{y.grade}</span></td></tr>))}</React.Fragment>))}</tbody></table></div></Card></>);
 };
 const InventoryAndSales = () => {
     const { inventory, sales, addSale, isLoading } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [itemToSell, setItemToSell] = useState(null);
-    const groupedInventory = useMemo(() => {return inventory.reduce((acc, item) => {if (!acc[item.crop]) acc[item.crop] = []; acc[item.crop].push(item); return acc;}, {});}, [inventory]);
-    const groupedSales = useMemo(() => {return sales.reduce((acc, item) => {if (!acc[item.crop]) acc[item.crop] = []; acc[item.crop].push(item); return acc;}, {});}, [sales]);
+    const groupedInventory = useMemo(() => { return inventory.reduce((acc, item) => { if (!acc[item.crop]) acc[item.crop] = []; acc[item.crop].push(item); return acc; }, {}); }, [inventory]);
+    const groupedSales = useMemo(() => { return sales.reduce((acc, item) => { if (!acc[item.crop]) acc[item.crop] = []; acc[item.crop].push(item); return acc; }, {}); }, [sales]);
     const handleOpenModal = (item) => { setItemToSell(item); setIsModalOpen(true); };
     const handleSaveSale = (saleData) => { addSale(saleData); setIsModalOpen(false); };
     if (isLoading) return <Spinner />;
-    return (<><SaleModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveSale} itemToSell={itemToSell} /><div className="space-y-6"><Card title="Current Crop Inventory"><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Crop</th><th className="p-3">Grade</th><th className="p-3">Available Quantity</th><th className="p-3">Actions</th></tr></thead><tbody>{Object.entries(groupedInventory).map(([crop, grades]) => (grades.map((item, index) => (<tr key={`${item.crop}-${item.grade}`} className="border-b"><td className="p-3 font-medium">{index === 0 ? crop : ''}</td><td className="p-3"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${item.grade === 'A' ? 'bg-green-200 text-green-800' : item.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{item.grade}</span></td><td className="p-3">{item.quantity} {item.unit}</td><td className="p-3"><button onClick={() => handleOpenModal(item)} disabled={item.quantity <= 0} className="px-3 py-1 text-sm bg-blue-600 text-white rounded disabled:bg-gray-400">Record Sale</button></td></tr>))))}</tbody></table></div></Card><Card title="Recent Sales Log"><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Date</th><th className="p-3">Crop</th><th className="p-3">Grade</th><th className="p-3">Quantity</th><th className="p-3">Revenue</th></tr></thead><tbody>{Object.entries(groupedSales).map(([crop, salesList]) => (salesList.map((s, index) => (<tr key={s.id} className="border-b"><td className="p-3">{s.date}</td><td className="p-3 font-medium">{index === 0 ? crop : ''}</td><td className="p-3">{s.grade}</td><td className="p-3">{s.quantity} {s.unit}</td><td className="p-3 text-green-600 font-semibold">+₹{s.revenue.toLocaleString('en-IN')}</td></tr>))))}</tbody></table></div></Card></div></>);
+    return (<><SaleModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveSale} itemToSell={itemToSell} /><div className="space-y-6"><Card title="Current Crop Inventory"><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Grade</th><th className="p-3">Available Quantity</th><th className="p-3">Actions</th></tr></thead><tbody>{Object.entries(groupedInventory).map(([crop, grades]) => (<React.Fragment key={crop}><tr className="bg-green-50"><td colSpan="3" className="p-3 font-bold text-green-800">{crop}</td></tr>{grades.map((item) => (<tr key={`${item.crop}-${item.grade}`} className="border-b"><td className="p-3 pl-6"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${item.grade === 'A' ? 'bg-green-200 text-green-800' : item.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{item.grade}</span></td><td className="p-3">{item.quantity} {item.unit}</td><td className="p-3"><button onClick={() => handleOpenModal(item)} disabled={item.quantity <= 0} className="px-3 py-1 text-sm bg-blue-600 text-white rounded disabled:bg-gray-400">Record Sale</button></td></tr>))}</React.Fragment>))}</tbody></table></div></Card><Card title="Recent Sales Log"><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Date</th><th className="p-3">Grade</th><th className="p-3">Quantity</th><th className="p-3">Revenue</th></tr></thead><tbody>{Object.entries(groupedSales).map(([crop, salesList]) => (<React.Fragment key={crop}><tr className="bg-green-50"><td colSpan="4" className="p-3 font-bold text-green-800">{crop}</td></tr>{salesList.map((s) => (<tr key={s.id} className="border-b"><td className="p-3 pl-6">{s.date}</td><td className="p-3">{s.grade}</td><td className="p-3">{s.quantity} {s.unit}</td><td className="p-3 text-green-600 font-semibold">+₹{s.revenue.toLocaleString('en-IN')}</td></tr>))}</React.Fragment>))}</tbody></table></div></Card></div></>);
 };
 const FinancialTracking = () => {
     const { financials, isLoading } = useData();
@@ -397,7 +397,7 @@ const WorkerManagement = () => {
 
     const handleEditClick = (worker) => { setSelectedWorker(worker); setIsEditModalOpen(true); };
     const handleSaveWorker = (updatedWorker) => { updateWorkerDetails(updatedWorker); setIsEditModalOpen(false); };
-    
+
     const handleAdjustLoanClick = (worker) => { setSelectedWorker(worker); setIsLoanModalOpen(true); };
     const handleSaveLoanAdjustment = (adjustmentData) => { adjustLoanBalance(adjustmentData); setIsLoanModalOpen(false); };
 
@@ -406,7 +406,7 @@ const WorkerManagement = () => {
         <EditWorkerModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleSaveWorker} worker={selectedWorker} />
         <LoanAdjustmentModal isOpen={isLoanModalOpen} onClose={() => setIsLoanModalOpen(false)} onSave={handleSaveLoanAdjustment} worker={selectedWorker} />
         <div className="mb-4 border-b border-gray-200"><nav className="-mb-px flex space-x-6"><button onClick={() => setView('payments')} className={`py-3 px-1 border-b-2 font-medium ${view === 'payments' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Weekly Payments</button><button onClick={() => setView('daily')} className={`py-3 px-1 border-b-2 font-medium ${view === 'daily' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Daily Attendance</button><button onClick={() => setView('monthly')} className={`py-3 px-1 border-b-2 font-medium ${view === 'monthly' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Monthly View</button></nav></div>
-        <Card title={{'payments': 'Weekly Worker Payments', 'daily': "Today's Attendance", 'monthly': 'Monthly Attendance View'}[view]}>
+        <Card title={{ 'payments': 'Weekly Worker Payments', 'daily': "Today's Attendance", 'monthly': 'Monthly Attendance View' }[view]}>
             {view === 'payments' && <WorkerPayments workers={workers} attendance={attendance} onEdit={handleEditClick} currentDate={currentDate} onConfirmPayment={confirmWorkerPayment} onAdjustLoan={handleAdjustLoanClick} />}
             {view === 'daily' && <DailyAttendance workers={workers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}
             {view === 'monthly' && <MonthlyAttendance workers={workers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}
@@ -418,14 +418,14 @@ const WorkerManagement = () => {
 // --- LAYOUT & APP ROUTING ---
 const NavLink = ({ to, icon, children, currentPath }) => { const isActive = (currentPath === '/' && to === '/') || (currentPath === to); return (<a href={to} className={`flex items-center px-4 py-3 text-lg rounded-lg ${isActive ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700'}`}>{icon}<span className="ml-4">{children}</span></a>); }
 const Sidebar = ({ isSidebarOpen, currentPath }) => (<aside className={`bg-green-800 text-white w-64 space-y-2 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30`}><div className="px-4 mb-8 text-center"><h1 className="text-3xl font-bold">FarmSight 360</h1><p className="text-sm text-green-200">Yield & Workforce Tracker</p></div><nav><NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink><NavLink to="/yields" icon={<YieldIcon />} currentPath={currentPath}>Yield Records</NavLink><NavLink to="/inventory" icon={<InventoryIcon />} currentPath={currentPath}>Inventory & Sales</NavLink><NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink><NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Financials</NavLink><NavLink to="/fertilisers" icon={<FertiliserIcon />} currentPath={currentPath}>Fertilisers</NavLink></nav></aside>);
-const Header = ({ toggleSidebar }) => { const { user } = useAuth(); return (<header className="bg-white shadow-sm p-4 flex justify-between items-center z-10"><button onClick={toggleSidebar} className="text-gray-500 focus:outline-none md:hidden"><svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button><div className="text-2xl font-bold text-gray-700 hidden md:block">Welcome, {user ? user.name : 'Guest'}!</div>{user && (<div className="flex items-center"><div className="text-right mr-4"><p className="font-semibold">{user.name}</p><p className="text-sm text-gray-500">{user.role}</p></div><img className="h-12 w-12 rounded-full" src={`https://i.pravatar.cc/150?u=${user.name}`} alt="User Avatar" /></div>)}</header>);};
+const Header = ({ toggleSidebar }) => { const { user } = useAuth(); return (<header className="bg-white shadow-sm p-4 flex justify-between items-center z-10"><button onClick={toggleSidebar} className="text-gray-500 focus:outline-none md:hidden"><svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button><div className="text-2xl font-bold text-gray-700 hidden md:block">Welcome, {user ? user.name : 'Guest'}!</div>{user && (<div className="flex items-center"><div className="text-right mr-4"><p className="font-semibold">{user.name}</p><p className="text-sm text-gray-500">{user.role}</p></div><img className="h-12 w-12 rounded-full" src={`https://i.pravatar.cc/150?u=${user.name}`} alt="User Avatar" /></div>)}</header>); };
 
 const routes = { '/': Dashboard, '/yields': YieldTracking, '/workers': WorkerManagement, '/financials': FinancialTracking, '/fertilisers': FertiliserManagement, '/inventory': InventoryAndSales };
 
 export default function App() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [currentPath, setCurrentPath] = useState(window.location.pathname);
-    useEffect(() => { const onLocationChange = () => setCurrentPath(window.location.pathname); window.addEventListener('popstate', onLocationChange); const handleLinkClick = (e) => {if (e.target.tagName === 'A' && e.target.href.startsWith(window.location.origin) && e.target.target !== '_blank') { e.preventDefault(); window.history.pushState({}, '', e.target.href); onLocationChange();}}; window.addEventListener('click', handleLinkClick); return () => { window.removeEventListener('popstate', onLocationChange); window.removeEventListener('click', handleLinkClick); };}, []);
+    useEffect(() => { const onLocationChange = () => setCurrentPath(window.location.pathname); window.addEventListener('popstate', onLocationChange); const handleLinkClick = (e) => { if (e.target.tagName === 'A' && e.target.href.startsWith(window.location.origin) && e.target.target !== '_blank') { e.preventDefault(); window.history.pushState({}, '', e.target.href); onLocationChange(); } }; window.addEventListener('click', handleLinkClick); return () => { window.removeEventListener('popstate', onLocationChange); window.removeEventListener('click', handleLinkClick); }; }, []);
     const Page = routes[currentPath] || routes['/'];
     return (
         <AuthProvider>
