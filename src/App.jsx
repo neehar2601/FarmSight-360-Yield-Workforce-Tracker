@@ -35,6 +35,14 @@ const mockDatabase = {
         recentTransactions: [{ id: 1, type: 'Revenue', description: 'Sale of Tomatoes (Grade A)', amount: 4000 }]
     },
     fertilisers: [{ id: 1, name: 'Urea', stock: 50, unit: 'bags' }, { id: 2, name: 'DAP', stock: 35, unit: 'bags' },],
+    pesticides: [
+        { id: 1, name: 'Neem Oil', stock: 10, unit: 'L' },
+        { id: 2, name: 'Lambda', stock: 5, unit: 'L' },
+    ],
+    equipments: [
+        { id: 1, name: 'Sprayer', stock: 2, unit: 'units' },
+        { id: 2, name: 'Spade', stock: 5, unit: 'units' },
+    ],
     yieldChartData: [{ name: 'May', Tomatoes: 4000, Potatoes: 2400 }, { name: 'Jun', Tomatoes: 3000, Potatoes: 1398 }, { name: 'Jul', Tomatoes: 2000, Potatoes: 9800 }, { name: 'Aug', Tomatoes: 2780, Potatoes: 3908 }, { name: 'Sep', Tomatoes: 1890, Potatoes: 4800 },],
     financialChartData: [{ name: 'May', revenue: 50000, expenses: 30000 }, { name: 'Jun', revenue: 65000, expenses: 40000 }, { name: 'Jul', revenue: 90000, expenses: 55000 }, { name: 'Aug', revenue: 75000, expenses: 50000 }, { name: 'Sep', revenue: 98800, expenses: 45000 },]
 };
@@ -65,7 +73,7 @@ const DataContext = createContext(null);
 
 const DataProvider = ({ children }) => {
     const [data, setData] = useState({
-        yields: [], cropOptions: [], workers: [], financials: null, fertilisers: [], sales: [], inventory: [], attendance: {}
+        yields: [], cropOptions: [], workers: [], financials: null, fertilisers: [], pesticides: [], equipments: [], sales: [], inventory: [], attendance: {}
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -156,7 +164,21 @@ const DataProvider = ({ children }) => {
         });
     };
 
-    const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, currentDate: MOCK_CURRENT_DATE };
+    const updateResource = (type, item) => {
+        setData(prev => {
+            // if item has id, it's an update, else add
+            const list = prev[type];
+            let newList;
+            if (item.id) {
+                newList = list.map(i => i.id === item.id ? item : i);
+            } else {
+                newList = [...list, { ...item, id: Date.now() }];
+            }
+            return { ...prev, [type]: newList };
+        });
+    };
+
+    const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, updateResource, currentDate: MOCK_CURRENT_DATE };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 
@@ -250,6 +272,39 @@ const LoanAdjustmentModal = ({ isOpen, onClose, onSave, worker }) => {
     };
 
     return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-2">Adjust Loan for {worker.name}</h2><p className="text-sm text-gray-500 mb-6">Current Outstanding Loan: ₹{worker.loanBalance.toLocaleString('en-IN')}</p><div className="space-y-4"><div><label className="block text-sm font-medium">Give Advance (₹)</label><input type="number" placeholder="Enter advance amount" value={advance} onChange={e => { setAdvance(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div><div><label className="block text-sm font-medium">Record Repayment (₹)</label><input type="number" placeholder="Enter repayment amount" value={repayment} onChange={e => { setRepayment(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div></div>{error && <p className="text-red-500 text-sm mt-4">{error}</p>}<div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button><button type="button" onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md">Confirm Adjustment</button></div></div></div>);
+};
+
+const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
+    if (!isOpen) return null;
+    const [formData, setFormData] = useState({ name: '', stock: 0, unit: '' });
+
+    useEffect(() => {
+        if (item) setFormData(item);
+        else setFormData({ name: '', stock: 0, unit: '' });
+    }, [item, isOpen]);
+
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave({ ...formData, stock: Number(formData.stock) });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-96">
+                <h2 className="text-xl font-bold mb-4">{item ? 'Edit' : 'Add'} Resource</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div><label className="block text-sm font-medium">Name</label><input name="name" className="w-full border p-2 rounded" value={formData.name} onChange={handleChange} required /></div>
+                    <div><label className="block text-sm font-medium">Stock</label><input type="number" name="stock" className="w-full border p-2 rounded" value={formData.stock} onChange={handleChange} required /></div>
+                    <div><label className="block text-sm font-medium">Unit</label><input name="unit" className="w-full border p-2 rounded" value={formData.unit} onChange={handleChange} required /></div>
+                    <div className="mt-6 flex justify-end space-x-3">
+                        <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
 
@@ -494,10 +549,71 @@ const FinancialTracking = () => {
     if (isLoading || !financials) return <Spinner />;
     return (<Card title="Financial Transactions"><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Description</th><th className="p-3">Type</th><th className="p-3">Amount</th></tr></thead><tbody>{financials.recentTransactions.map(t => (<tr key={t.id} className="border-b"><td className="p-3">{t.description}</td><td className="p-3">{t.type}</td><td className={`p-3 font-semibold ${t.type === 'Revenue' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'Revenue' ? '+' : ''}₹{Math.abs(t.amount).toLocaleString('en-IN')}</td></tr>))}</tbody></table></div></Card>);
 };
-const FertiliserManagement = () => {
-    const { fertilisers, isLoading } = useData();
+const ResourceInventory = () => {
+    const { fertilisers, pesticides, equipments, updateResource, isLoading } = useData();
+    const [activeTab, setActiveTab] = useState('fertilisers');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState(null);
+
     if (isLoading) return <Spinner />;
-    return (<Card title="Fertiliser Inventory"><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Name</th><th className="p-3">Stock</th></tr></thead><tbody>{fertilisers.map(f => (<tr key={f.id} className="border-b"><td className="p-3">{f.name}</td><td className="p-3 font-medium">{f.stock} {f.unit}</td></tr>))}</tbody></table></div></Card>);
+
+    const getCurrentList = () => {
+        switch (activeTab) {
+            case 'fertilisers': return fertilisers;
+            case 'pesticides': return pesticides;
+            case 'equipments': return equipments;
+            default: return [];
+        }
+    };
+
+    const handleOpenModal = (item = null) => { setEditingItem(item); setIsModalOpen(true); };
+    const handleSave = (item) => {
+        updateResource(activeTab, item);
+        setIsModalOpen(false);
+    };
+
+    return (
+        <>
+            <ResourceModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} item={editingItem} />
+            <Card title="Farm Resources">
+                <div className="flex space-x-2 mb-4">
+                    {['fertilisers', 'pesticides', 'equipments'].map(tab => (
+                        <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg capitalize ${activeTab === tab ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex justify-end mb-4">
+                    <button onClick={() => handleOpenModal()} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center">
+                        <span className="mr-2">+</span> Add Item
+                    </button>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-gray-100">
+                                <th className="p-3">Name</th>
+                                <th className="p-3">Stock</th>
+                                <th className="p-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {getCurrentList().map(item => (
+                                <tr key={item.id} className="border-b">
+                                    <td className="p-3">{item.name}</td>
+                                    <td className="p-3 font-medium">{item.stock} {item.unit}</td>
+                                    <td className="p-3">
+                                        <button onClick={() => handleOpenModal(item)} className="text-blue-600 hover:text-blue-800"><EditIcon /></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {getCurrentList().length === 0 && <p className="text-center p-4 text-gray-500">No items found.</p>}
+                </div>
+            </Card>
+        </>
+    );
 };
 const WorkerManagement = () => {
     const { workers, attendance, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, currentDate, isLoading } = useData();
@@ -528,10 +644,10 @@ const WorkerManagement = () => {
 
 // --- LAYOUT & APP ROUTING ---
 const NavLink = ({ to, icon, children, currentPath }) => { const isActive = (currentPath === '/' && to === '/') || (currentPath === to); return (<a href={to} className={`flex items-center px-4 py-3 text-lg rounded-lg ${isActive ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700'}`}>{icon}<span className="ml-4">{children}</span></a>); }
-const Sidebar = ({ isSidebarOpen, currentPath }) => (<aside className={`bg-green-800 text-white w-64 space-y-2 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30`}><div className="px-4 mb-8 text-center"><h1 className="text-3xl font-bold">FarmSight 360</h1><p className="text-sm text-green-200">Yield & Workforce Tracker</p></div><nav><NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink><NavLink to="/yields" icon={<YieldIcon />} currentPath={currentPath}>Yield Records</NavLink><NavLink to="/inventory" icon={<InventoryIcon />} currentPath={currentPath}>Inventory & Sales</NavLink><NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink><NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Financials</NavLink><NavLink to="/fertilisers" icon={<FertiliserIcon />} currentPath={currentPath}>Fertilisers</NavLink></nav></aside>);
+const Sidebar = ({ isSidebarOpen, currentPath }) => (<aside className={`bg-green-800 text-white w-64 space-y-2 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30`}><div className="px-4 mb-8 text-center"><h1 className="text-3xl font-bold">FarmSight 360</h1><p className="text-sm text-green-200">Yield & Workforce Tracker</p></div><nav><NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink><NavLink to="/yields" icon={<YieldIcon />} currentPath={currentPath}>Yield Records</NavLink><NavLink to="/inventory" icon={<InventoryIcon />} currentPath={currentPath}>Inventory & Sales</NavLink><NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink><NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Financials</NavLink><NavLink to="/resources" icon={<FertiliserIcon />} currentPath={currentPath}>Farm Resources</NavLink></nav></aside>);
 const Header = ({ toggleSidebar }) => { const { user } = useAuth(); return (<header className="bg-white shadow-sm p-4 flex justify-between items-center z-10"><button onClick={toggleSidebar} className="text-gray-500 focus:outline-none md:hidden"><svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button><div className="text-2xl font-bold text-gray-700 hidden md:block">Welcome, {user ? user.name : 'Guest'}!</div>{user && (<div className="flex items-center"><div className="text-right mr-4"><p className="font-semibold">{user.name}</p><p className="text-sm text-gray-500">{user.role}</p></div><img className="h-12 w-12 rounded-full" src={`https://i.pravatar.cc/150?u=${user.name}`} alt="User Avatar" /></div>)}</header>); };
 
-const routes = { '/': Dashboard, '/yields': YieldTracking, '/workers': WorkerManagement, '/financials': FinancialTracking, '/fertilisers': FertiliserManagement, '/inventory': InventoryAndSales };
+const routes = { '/': Dashboard, '/yields': YieldTracking, '/workers': WorkerManagement, '/financials': FinancialTracking, '/resources': ResourceInventory, '/inventory': InventoryAndSales };
 
 export default function App() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
