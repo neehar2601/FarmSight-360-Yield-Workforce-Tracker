@@ -75,18 +75,44 @@ const DataProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales);
-        const initialRevenue = mockDatabase.sales.reduce((acc, sale) => acc + sale.revenue, 0);
-        setData({
-            ...mockDatabase,
-            inventory: initialInventory,
-            financials: {
-                ...mockDatabase.financials,
-                summary: { ...mockDatabase.financials.summary, revenue: initialRevenue, profit: initialRevenue - mockDatabase.financials.summary.expenses }
+        const savedData = localStorage.getItem('farmSightData');
+        if (savedData) {
+            try {
+                setData(JSON.parse(savedData));
+            } catch (e) {
+                console.error("Failed to load saved data", e);
+                // Fallback to mock data if parse fails
+                const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales);
+                const initialRevenue = mockDatabase.sales.reduce((acc, sale) => acc + sale.revenue, 0);
+                setData({
+                    ...mockDatabase,
+                    inventory: initialInventory,
+                    financials: {
+                        ...mockDatabase.financials,
+                        summary: { ...mockDatabase.financials.summary, revenue: initialRevenue, profit: initialRevenue - mockDatabase.financials.summary.expenses }
+                    }
+                });
             }
-        });
+        } else {
+            const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales);
+            const initialRevenue = mockDatabase.sales.reduce((acc, sale) => acc + sale.revenue, 0);
+            setData({
+                ...mockDatabase,
+                inventory: initialInventory,
+                financials: {
+                    ...mockDatabase.financials,
+                    summary: { ...mockDatabase.financials.summary, revenue: initialRevenue, profit: initialRevenue - mockDatabase.financials.summary.expenses }
+                }
+            });
+        }
         setIsLoading(false);
     }, []);
+
+    useEffect(() => {
+        if (!isLoading) {
+            localStorage.setItem('farmSightData', JSON.stringify(data));
+        }
+    }, [data, isLoading]);
 
     const addYield = (yieldData) => {
         setData(prev => {
