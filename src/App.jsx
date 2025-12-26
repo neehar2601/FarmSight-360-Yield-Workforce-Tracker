@@ -34,15 +34,12 @@ const mockDatabase = {
         summary: { revenue: 4000, expenses: 45000, profit: -41000 },
         recentTransactions: [{ id: 1, type: 'Revenue', description: 'Sale of Tomatoes (Grade A)', amount: 4000 }]
     },
-    fertilisers: [{ id: 1, name: 'Urea', stock: 50, unit: 'bags' }, { id: 2, name: 'DAP', stock: 35, unit: 'bags' },],
-    pesticides: [
-        { id: 1, name: 'Neem Oil', stock: 10, unit: 'L' },
-        { id: 2, name: 'Lambda', stock: 5, unit: 'L' },
-    ],
-    equipments: [
-        { id: 1, name: 'Sprayer', stock: 2, unit: 'units' },
-        { id: 2, name: 'Spade', stock: 5, unit: 'units' },
-    ],
+    resources: {
+        'Fertilisers': [{ id: 1, name: 'Urea', stock: 50, unit: 'bags' }, { id: 2, name: 'DAP', stock: 35, unit: 'bags' }],
+        'Pesticides': [{ id: 1, name: 'Neem Oil', stock: 10, unit: 'L' }, { id: 2, name: 'Lambda', stock: 5, unit: 'L' }],
+        'Equipments': [{ id: 1, name: 'Sprayer', stock: 2, unit: 'units' }, { id: 2, name: 'Spade', stock: 5, unit: 'units' }],
+        'Vehicles': [{ id: 1, name: 'Tractor', stock: 1, unit: 'pcs' }],
+    },
     yieldChartData: [{ name: 'May', Tomatoes: 4000, Potatoes: 2400 }, { name: 'Jun', Tomatoes: 3000, Potatoes: 1398 }, { name: 'Jul', Tomatoes: 2000, Potatoes: 9800 }, { name: 'Aug', Tomatoes: 2780, Potatoes: 3908 }, { name: 'Sep', Tomatoes: 1890, Potatoes: 4800 },],
     financialChartData: [{ name: 'May', revenue: 50000, expenses: 30000 }, { name: 'Jun', revenue: 65000, expenses: 40000 }, { name: 'Jul', revenue: 90000, expenses: 55000 }, { name: 'Aug', revenue: 75000, expenses: 50000 }, { name: 'Sep', revenue: 98800, expenses: 45000 },]
 };
@@ -73,7 +70,7 @@ const DataContext = createContext(null);
 
 const DataProvider = ({ children }) => {
     const [data, setData] = useState({
-        yields: [], cropOptions: [], workers: [], financials: null, fertilisers: [], pesticides: [], equipments: [], sales: [], inventory: [], attendance: {}
+        yields: [], cropOptions: [], workers: [], financials: null, resources: {}, sales: [], inventory: [], attendance: {}
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -164,21 +161,27 @@ const DataProvider = ({ children }) => {
         });
     };
 
-    const updateResource = (type, item) => {
+    const updateResource = (category, item) => {
         setData(prev => {
-            // if item has id, it's an update, else add
-            const list = prev[type];
+            const list = prev.resources[category] || [];
             let newList;
             if (item.id) {
                 newList = list.map(i => i.id === item.id ? item : i);
             } else {
                 newList = [...list, { ...item, id: Date.now() }];
             }
-            return { ...prev, [type]: newList };
+            return { ...prev, resources: { ...prev.resources, [category]: newList } };
         });
     };
 
-    const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, updateResource, currentDate: MOCK_CURRENT_DATE };
+    const addResourceCategory = (categoryName) => {
+        setData(prev => {
+            if (prev.resources[categoryName]) return prev;
+            return { ...prev, resources: { ...prev.resources, [categoryName]: [] } };
+        });
+    };
+
+    const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, updateResource, addResourceCategory, currentDate: MOCK_CURRENT_DATE };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 
@@ -550,20 +553,24 @@ const FinancialTracking = () => {
     return (<Card title="Financial Transactions"><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Description</th><th className="p-3">Type</th><th className="p-3">Amount</th></tr></thead><tbody>{financials.recentTransactions.map(t => (<tr key={t.id} className="border-b"><td className="p-3">{t.description}</td><td className="p-3">{t.type}</td><td className={`p-3 font-semibold ${t.type === 'Revenue' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'Revenue' ? '+' : ''}₹{Math.abs(t.amount).toLocaleString('en-IN')}</td></tr>))}</tbody></table></div></Card>);
 };
 const ResourceInventory = () => {
-    const { fertilisers, pesticides, equipments, updateResource, isLoading } = useData();
-    const [activeTab, setActiveTab] = useState('fertilisers');
+    const { resources, updateResource, addResourceCategory, isLoading } = useData();
+    const [activeTab, setActiveTab] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
+    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+
+    useEffect(() => {
+        if (!activeTab && resources && Object.keys(resources).length > 0) {
+            setActiveTab(Object.keys(resources)[0]);
+        }
+    }, [resources, activeTab]);
 
     if (isLoading) return <Spinner />;
 
     const getCurrentList = () => {
-        switch (activeTab) {
-            case 'fertilisers': return fertilisers;
-            case 'pesticides': return pesticides;
-            case 'equipments': return equipments;
-            default: return [];
-        }
+        if (!activeTab || !resources[activeTab]) return [];
+        return resources[activeTab];
     };
 
     const handleOpenModal = (item = null) => { setEditingItem(item); setIsModalOpen(true); };
@@ -572,45 +579,89 @@ const ResourceInventory = () => {
         setIsModalOpen(false);
     };
 
+    const handleAddCategory = (e) => {
+        e.preventDefault();
+        if (newCategoryName.trim()) {
+            addResourceCategory(newCategoryName.trim());
+            setActiveTab(newCategoryName.trim());
+            setNewCategoryName('');
+            setIsCategoryModalOpen(false);
+        }
+    };
+
     return (
         <>
             <ResourceModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} item={editingItem} />
+
+            {/* Simple Modal for Adding Category */}
+            {isCategoryModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg w-80">
+                        <h2 className="text-xl font-bold mb-4">Add New Category</h2>
+                        <form onSubmit={handleAddCategory}>
+                            <input
+                                className="w-full border p-2 rounded mb-4"
+                                placeholder="Category Name (e.g. Seeds)"
+                                value={newCategoryName}
+                                onChange={e => setNewCategoryName(e.target.value)}
+                                autoFocus
+                            />
+                            <div className="flex justify-end space-x-2">
+                                <button type="button" onClick={() => setIsCategoryModalOpen(false)} className="px-3 py-1 border rounded">Cancel</button>
+                                <button type="submit" className="px-3 py-1 bg-green-600 text-white rounded">Add</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             <Card title="Farm Resources">
-                <div className="flex space-x-2 mb-4">
-                    {['fertilisers', 'pesticides', 'equipments'].map(tab => (
+                <div className="flex flex-wrap gap-2 mb-4">
+                    {Object.keys(resources).map(tab => (
                         <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg capitalize ${activeTab === tab ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
                             {tab}
                         </button>
                     ))}
-                </div>
-                <div className="flex justify-end mb-4">
-                    <button onClick={() => handleOpenModal()} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center">
-                        <span className="mr-2">+</span> Add Item
+                    <button onClick={() => setIsCategoryModalOpen(true)} className="px-3 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-bold border border-gray-300">
+                        +
                     </button>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="p-3">Name</th>
-                                <th className="p-3">Stock</th>
-                                <th className="p-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {getCurrentList().map(item => (
-                                <tr key={item.id} className="border-b">
-                                    <td className="p-3">{item.name}</td>
-                                    <td className="p-3 font-medium">{item.stock} {item.unit}</td>
-                                    <td className="p-3">
-                                        <button onClick={() => handleOpenModal(item)} className="text-blue-600 hover:text-blue-800"><EditIcon /></button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {getCurrentList().length === 0 && <p className="text-center p-4 text-gray-500">No items found.</p>}
-                </div>
+
+                {activeTab ? (
+                    <>
+                        <div className="flex justify-between items-center mb-4 bg-gray-50 p-3 rounded">
+                            <h4 className="text-lg font-semibold text-gray-700">{activeTab} Inventory</h4>
+                            <button onClick={() => handleOpenModal()} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center">
+                                <span className="mr-2">+</span> Add {activeTab} Item
+                            </button>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-gray-100">
+                                        <th className="p-3">Name</th>
+                                        <th className="p-3">Stock</th>
+                                        <th className="p-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {getCurrentList().map(item => (
+                                        <tr key={item.id} className="border-b">
+                                            <td className="p-3">{item.name}</td>
+                                            <td className="p-3 font-medium">{item.stock} {item.unit}</td>
+                                            <td className="p-3">
+                                                <button onClick={() => handleOpenModal(item)} className="text-blue-600 hover:text-blue-800"><EditIcon /></button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {getCurrentList().length === 0 && <p className="text-center p-4 text-gray-500">No items found in {activeTab}.</p>}
+                        </div>
+                    </>
+                ) : (
+                    <p className="text-center text-gray-500 py-10">No categories found. Add a category to start.</p>
+                )}
             </Card>
         </>
     );
