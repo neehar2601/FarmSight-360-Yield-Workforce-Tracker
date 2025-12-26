@@ -163,14 +163,48 @@ const DataProvider = ({ children }) => {
 
     const updateResource = (category, item) => {
         setData(prev => {
+            // Extract price for transaction, keep other fields for storage
+            const { pricePerUnit, ...itemToStore } = item;
+            const price = parseFloat(pricePerUnit) || 0;
+
             const list = prev.resources[category] || [];
             let newList;
-            if (item.id) {
-                newList = list.map(i => i.id === item.id ? item : i);
+            let quantityAdded = 0;
+
+            // Check if item exists to calculate stock difference
+            if (itemToStore.id) {
+                const oldItem = list.find(i => i.id === itemToStore.id);
+                if (oldItem) {
+                    quantityAdded = itemToStore.stock - oldItem.stock;
+                }
+                newList = list.map(i => i.id === itemToStore.id ? itemToStore : i);
             } else {
-                newList = [...list, { ...item, id: Date.now() }];
+                quantityAdded = itemToStore.stock;
+                newList = [...list, { ...itemToStore, id: Date.now() }];
             }
-            return { ...prev, resources: { ...prev.resources, [category]: newList } };
+
+            // Handle Financials
+            let newFinancials = prev.financials;
+            if (quantityAdded > 0 && price > 0) {
+                const cost = quantityAdded * price;
+                const newTransaction = {
+                    id: Date.now(),
+                    type: 'Expense',
+                    description: `Purchase of ${category} - ${itemToStore.name} (${quantityAdded} ${itemToStore.unit})`,
+                    amount: -cost
+                };
+                newFinancials = {
+                    ...prev.financials,
+                    summary: {
+                        ...prev.financials.summary,
+                        expenses: prev.financials.summary.expenses + cost,
+                        profit: prev.financials.summary.profit - cost
+                    },
+                    recentTransactions: [newTransaction, ...prev.financials.recentTransactions]
+                };
+            }
+
+            return { ...prev, resources: { ...prev.resources, [category]: newList }, financials: newFinancials };
         });
     };
 
@@ -279,11 +313,11 @@ const LoanAdjustmentModal = ({ isOpen, onClose, onSave, worker }) => {
 
 const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
     if (!isOpen) return null;
-    const [formData, setFormData] = useState({ name: '', stock: 0, unit: '' });
+    const [formData, setFormData] = useState({ name: '', stock: 0, unit: '', pricePerUnit: '' });
 
     useEffect(() => {
-        if (item) setFormData(item);
-        else setFormData({ name: '', stock: 0, unit: '' });
+        if (item) setFormData({ ...item, pricePerUnit: '' }); // Reset price on edit
+        else setFormData({ name: '', stock: 0, unit: '', pricePerUnit: '' });
     }, [item, isOpen]);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -300,6 +334,11 @@ const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
                     <div><label className="block text-sm font-medium">Name</label><input name="name" className="w-full border p-2 rounded" value={formData.name} onChange={handleChange} required /></div>
                     <div><label className="block text-sm font-medium">Stock</label><input type="number" name="stock" className="w-full border p-2 rounded" value={formData.stock} onChange={handleChange} required /></div>
                     <div><label className="block text-sm font-medium">Unit</label><input name="unit" className="w-full border p-2 rounded" value={formData.unit} onChange={handleChange} required /></div>
+                    <div className="pt-2 border-t mt-2">
+                        <label className="block text-sm font-medium text-gray-700">Price per Unit (₹) <span className="text-xs font-normal text-gray-500">(Optional - for Tracking Expenses)</span></label>
+                        <input type="number" name="pricePerUnit" className="w-full border p-2 rounded" value={formData.pricePerUnit} onChange={handleChange} placeholder="e.g. 50" />
+                        <p className="text-xs text-gray-500 mt-1">Leave empty if you don't want to record an expense transaction.</p>
+                    </div>
                     <div className="mt-6 flex justify-end space-x-3">
                         <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
                         <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
