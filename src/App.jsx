@@ -152,16 +152,30 @@ const DataProvider = ({ children }) => {
         });
     };
 
-    const confirmWorkerPayment = ({ workerId, workerName, payout, advance, repayment }) => {
+    const confirmWorkerPayment = ({ workerId, workerName, payout, advance, repayment, bonus = 0 }) => {
         setData(prev => {
             const newWorkers = prev.workers.map(w => (w.id === workerId ? { ...w, loanBalance: w.loanBalance + advance - repayment } : w));
-            const newTransaction = { id: Date.now(), type: 'Expense', description: `Weekly Payout: ${workerName}`, amount: -payout };
+            const newTransaction = { id: Date.now(), type: 'Expense', description: `Weekly Payout: ${workerName}${bonus > 0 ? ` (incl. ₹${bonus} bonus)` : ''}`, amount: -payout };
+
+            // Mark all mid-week transactions for this worker this week as settled
+            const weekStart = new Date(MOCK_CURRENT_DATE);
+            weekStart.setDate(weekStart.getDate() - 6);
+            const weekStartStr = formatDate(weekStart);
+            const currentDateStr = formatDate(MOCK_CURRENT_DATE);
+
+            const updatedTransactions = (prev.workerTransactions || []).map(t => {
+                if (t.workerId === workerId && t.date >= weekStartStr && t.date <= currentDateStr && !t.settled) {
+                    return { ...t, settled: true, settledDate: currentDateStr };
+                }
+                return t;
+            });
+
             const newFinancials = {
                 ...prev.financials,
                 summary: { ...prev.financials.summary, expenses: prev.financials.summary.expenses + payout, profit: prev.financials.summary.profit - payout },
                 recentTransactions: [newTransaction, ...prev.financials.recentTransactions],
             };
-            return { ...prev, workers: newWorkers, financials: newFinancials };
+            return { ...prev, workers: newWorkers, financials: newFinancials, workerTransactions: updatedTransactions };
         });
     };
 
@@ -260,14 +274,25 @@ const DataProvider = ({ children }) => {
         });
     };
 
-    const getWeeklyTransactions = (workerId, currentDate) => {
+    const getWeekIdentifier = (date) => {
+        const d = new Date(date);
+        const weekStart = new Date(d);
+        weekStart.setDate(d.getDate() - 6);
+        return formatDate(weekStart);
+    };
+
+    const getWeeklyTransactions = (workerId, currentDate, unsettledOnly = false) => {
         const weekStart = new Date(currentDate);
         weekStart.setDate(weekStart.getDate() - 6); // Last 7 days including today
         const weekStartStr = formatDate(weekStart);
         const currentDateStr = formatDate(currentDate);
 
         return (data.workerTransactions || []).filter(t => {
-            return t.workerId === workerId && t.date >= weekStartStr && t.date <= currentDateStr;
+            const inDateRange = t.workerId === workerId && t.date >= weekStartStr && t.date <= currentDateStr;
+            if (unsettledOnly) {
+                return inDateRange && !t.settled;
+            }
+            return inDateRange;
         });
     };
 
@@ -451,8 +476,8 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
             const daysPresent = calculateDaysPresent(w.id);
             const baseSalary = w.perDaySalary * daysPresent;
 
-            // Calculate weekly transactions
-            const weeklyTransactions = getWeeklyTransactions(w.id, currentDate);
+            // Calculate weekly transactions - only unsettled ones
+            const weeklyTransactions = getWeeklyTransactions(w.id, currentDate, true);
             const weeklyAdvances = weeklyTransactions.filter(t => t.type === 'advance').reduce((sum, t) => sum + t.amount, 0);
             const weeklyRepayments = weeklyTransactions.filter(t => t.type === 'repayment').reduce((sum, t) => sum + t.amount, 0);
             const weeklyNetAdjustment = weeklyAdvances - weeklyRepayments;
@@ -479,13 +504,14 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
     const handleConfirmPayment = (worker) => {
         const advance = adjustments[worker.id]?.advance || 0;
         const repayment = adjustments[worker.id]?.repayment || 0;
-        const finalPayout = worker.baseSalary + worker.weeklyNetAdjustment + advance - repayment;
+        const bonus = adjustments[worker.id]?.bonus || 0;
+        const finalPayout = worker.baseSalary + worker.weeklyNetAdjustment + advance - repayment + bonus;
         if (repayment > worker.loanBalance) {
             alert(`Repayment cannot exceed the outstanding loan of ₹${worker.loanBalance.toLocaleString('en-IN')}`);
             return;
         }
-        onConfirmPayment({ workerId: worker.id, workerName: worker.name, payout: finalPayout, advance, repayment });
-        setAdjustments(prev => ({ ...prev, [worker.id]: { advance: '', repayment: '' } }));
+        onConfirmPayment({ workerId: worker.id, workerName: worker.name, payout: finalPayout, advance, repayment, bonus });
+        setAdjustments(prev => ({ ...prev, [worker.id]: { advance: '', repayment: '', bonus: '' } }));
         setConfirmedPayments(prev => ({ ...prev, [worker.id]: true }));
     };
 
@@ -501,7 +527,8 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
                     {workerPaymentData.map(w => {
                         const advance = adjustments[w.id]?.advance || 0;
                         const repayment = adjustments[w.id]?.repayment || 0;
-                        const finalPayout = w.baseSalary + w.weeklyNetAdjustment + advance - repayment;
+                        const bonus = adjustments[w.id]?.bonus || 0;
+                        const finalPayout = w.baseSalary + w.weeklyNetAdjustment + advance - repayment + bonus;
                         const isConfirmed = confirmedPayments[w.id];
                         const isExpanded = expandedWorkers[w.id];
                         const hasWeeklyActivity = w.weeklyTransactions.length > 0;
@@ -532,7 +559,7 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
                                             <span className="text-xs text-gray-400">No activity</span>
                                         )}
                                     </td>
-                                    <td className="p-3"><div className="flex space-x-2"><input type="number" placeholder="Advance" value={adjustments[w.id]?.advance || ''} onChange={(e) => handleAdjustmentChange(w.id, 'advance', e.target.value)} disabled={isConfirmed} className="w-24 p-1 border rounded disabled:bg-gray-100" /><input type="number" placeholder="Repay" value={adjustments[w.id]?.repayment || ''} onChange={(e) => handleAdjustmentChange(w.id, 'repayment', e.target.value)} disabled={isConfirmed} className="w-24 p-1 border rounded disabled:bg-gray-100" /></div></td>
+                                    <td className="p-3"><div className="flex flex-col space-y-1"><div className="flex space-x-1"><input type="number" placeholder="Advance" value={adjustments[w.id]?.advance || ''} onChange={(e) => handleAdjustmentChange(w.id, 'advance', e.target.value)} disabled={isConfirmed} className="w-20 p-1 border rounded text-xs disabled:bg-gray-100" /><input type="number" placeholder="Repay" value={adjustments[w.id]?.repayment || ''} onChange={(e) => handleAdjustmentChange(w.id, 'repayment', e.target.value)} disabled={isConfirmed} className="w-20 p-1 border rounded text-xs disabled:bg-gray-100" /></div><input type="number" placeholder="Bonus" value={adjustments[w.id]?.bonus || ''} onChange={(e) => handleAdjustmentChange(w.id, 'bonus', e.target.value)} disabled={isConfirmed} className="w-full p-1 border rounded text-xs disabled:bg-gray-100 bg-yellow-50 border-yellow-300" /></div></td>
                                     <td className="p-3 font-bold text-lg text-blue-600">{finalPayout.toLocaleString('en-IN')}</td>
                                     <td className="p-3 flex items-center space-x-2">
                                         <button onClick={() => onEdit(w)} className="text-blue-600 hover:text-blue-800"><EditIcon /></button>
