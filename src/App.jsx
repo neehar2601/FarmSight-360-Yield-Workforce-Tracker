@@ -75,18 +75,44 @@ const DataProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales);
-        const initialRevenue = mockDatabase.sales.reduce((acc, sale) => acc + sale.revenue, 0);
-        setData({
-            ...mockDatabase,
-            inventory: initialInventory,
-            financials: {
-                ...mockDatabase.financials,
-                summary: { ...mockDatabase.financials.summary, revenue: initialRevenue, profit: initialRevenue - mockDatabase.financials.summary.expenses }
+        const savedData = localStorage.getItem('farmSightData');
+        if (savedData) {
+            try {
+                setData(JSON.parse(savedData));
+            } catch (e) {
+                console.error("Failed to load saved data", e);
+                // Fallback to mock data if parse fails
+                const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales);
+                const initialRevenue = mockDatabase.sales.reduce((acc, sale) => acc + sale.revenue, 0);
+                setData({
+                    ...mockDatabase,
+                    inventory: initialInventory,
+                    financials: {
+                        ...mockDatabase.financials,
+                        summary: { ...mockDatabase.financials.summary, revenue: initialRevenue, profit: initialRevenue - mockDatabase.financials.summary.expenses }
+                    }
+                });
             }
-        });
+        } else {
+            const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales);
+            const initialRevenue = mockDatabase.sales.reduce((acc, sale) => acc + sale.revenue, 0);
+            setData({
+                ...mockDatabase,
+                inventory: initialInventory,
+                financials: {
+                    ...mockDatabase.financials,
+                    summary: { ...mockDatabase.financials.summary, revenue: initialRevenue, profit: initialRevenue - mockDatabase.financials.summary.expenses }
+                }
+            });
+        }
         setIsLoading(false);
     }, []);
+
+    useEffect(() => {
+        if (!isLoading) {
+            localStorage.setItem('farmSightData', JSON.stringify(data));
+        }
+    }, [data, isLoading]);
 
     const addYield = (yieldData) => {
         setData(prev => {
@@ -163,14 +189,48 @@ const DataProvider = ({ children }) => {
 
     const updateResource = (category, item) => {
         setData(prev => {
+            // Extract price for transaction, keep other fields for storage
+            const { pricePerUnit, ...itemToStore } = item;
+            const price = parseFloat(pricePerUnit) || 0;
+
             const list = prev.resources[category] || [];
             let newList;
-            if (item.id) {
-                newList = list.map(i => i.id === item.id ? item : i);
+            let quantityAdded = 0;
+
+            // Check if item exists to calculate stock difference
+            if (itemToStore.id) {
+                const oldItem = list.find(i => i.id === itemToStore.id);
+                if (oldItem) {
+                    quantityAdded = itemToStore.stock - oldItem.stock;
+                }
+                newList = list.map(i => i.id === itemToStore.id ? itemToStore : i);
             } else {
-                newList = [...list, { ...item, id: Date.now() }];
+                quantityAdded = itemToStore.stock;
+                newList = [...list, { ...itemToStore, id: Date.now() }];
             }
-            return { ...prev, resources: { ...prev.resources, [category]: newList } };
+
+            // Handle Financials
+            let newFinancials = prev.financials;
+            if (quantityAdded > 0 && price > 0) {
+                const cost = quantityAdded * price;
+                const newTransaction = {
+                    id: Date.now(),
+                    type: 'Expense',
+                    description: `Purchase of ${category} - ${itemToStore.name} (${quantityAdded} ${itemToStore.unit})`,
+                    amount: -cost
+                };
+                newFinancials = {
+                    ...prev.financials,
+                    summary: {
+                        ...prev.financials.summary,
+                        expenses: prev.financials.summary.expenses + cost,
+                        profit: prev.financials.summary.profit - cost
+                    },
+                    recentTransactions: [newTransaction, ...prev.financials.recentTransactions]
+                };
+            }
+
+            return { ...prev, resources: { ...prev.resources, [category]: newList }, financials: newFinancials };
         });
     };
 
@@ -279,11 +339,11 @@ const LoanAdjustmentModal = ({ isOpen, onClose, onSave, worker }) => {
 
 const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
     if (!isOpen) return null;
-    const [formData, setFormData] = useState({ name: '', stock: 0, unit: '' });
+    const [formData, setFormData] = useState({ name: '', stock: 0, unit: '', pricePerUnit: '' });
 
     useEffect(() => {
-        if (item) setFormData(item);
-        else setFormData({ name: '', stock: 0, unit: '' });
+        if (item) setFormData({ ...item, pricePerUnit: '' }); // Reset price on edit
+        else setFormData({ name: '', stock: 0, unit: '', pricePerUnit: '' });
     }, [item, isOpen]);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -300,6 +360,11 @@ const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
                     <div><label className="block text-sm font-medium">Name</label><input name="name" className="w-full border p-2 rounded" value={formData.name} onChange={handleChange} required /></div>
                     <div><label className="block text-sm font-medium">Stock</label><input type="number" name="stock" className="w-full border p-2 rounded" value={formData.stock} onChange={handleChange} required /></div>
                     <div><label className="block text-sm font-medium">Unit</label><input name="unit" className="w-full border p-2 rounded" value={formData.unit} onChange={handleChange} required /></div>
+                    <div className="pt-2 border-t mt-2">
+                        <label className="block text-sm font-medium text-gray-700">Price per Unit (₹) <span className="text-xs font-normal text-gray-500">(Optional - for Tracking Expenses)</span></label>
+                        <input type="number" name="pricePerUnit" className="w-full border p-2 rounded" value={formData.pricePerUnit} onChange={handleChange} placeholder="e.g. 50" />
+                        <p className="text-xs text-gray-500 mt-1">Leave empty if you don't want to record an expense transaction.</p>
+                    </div>
                     <div className="mt-6 flex justify-end space-x-3">
                         <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
                         <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
@@ -412,55 +477,29 @@ const Dashboard = () => {
     if (isLoading || !financials) return <Spinner />;
     return (<div className="space-y-6"><div className="grid grid-cols-1 md:grid-cols-3 gap-6"><StatCard title="Total Revenue" value={`₹${financials.summary.revenue.toLocaleString('en-IN')}`} icon={<RevenueIcon />} /><StatCard title="Total Expenses" value={`₹${financials.summary.expenses.toLocaleString('en-IN')}`} icon={<ExpenseIcon />} /><StatCard title="Net Profit" value={`₹${financials.summary.profit.toLocaleString('en-IN')}`} icon={<ProfitIcon />} /></div><div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><Card title="Yield Performance"><ResponsiveContainer width="100%" height={300}><BarChart data={yieldChartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Bar dataKey="Tomatoes" fill="#8884d8" /><Bar dataKey="Potatoes" fill="#82ca9d" /></BarChart></ResponsiveContainer></Card><Card title="Financial Overview"><ResponsiveContainer width="100%" height={300}><LineChart data={financialChartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey="revenue" stroke="#8884d8" /><Line type="monotone" dataKey="expenses" stroke="#82ca9d" /></LineChart></ResponsiveContainer></Card></div></div>);
 };
-const YieldTracking = () => {
-    const { yields, cropOptions, addYield, isLoading } = useData();
-    const [isModalOpen, setIsModalOpen] = useState(false);
+const CropManagement = () => {
+    const { yields, cropOptions, addYield, inventory, sales, addSale, isLoading } = useData();
+    const [activeTab, setActiveTab] = useState('harvests');
+    const [isYieldModalOpen, setIsYieldModalOpen] = useState(false);
+    const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+    const [itemToSell, setItemToSell] = useState(null);
     const [selectedYear, setSelectedYear] = useState('All');
     const [selectedSeason, setSelectedSeason] = useState('All');
+
     const availableYears = useMemo(() => ['All', ...new Set(yields.map(y => new Date(y.date).getFullYear()))].sort(), [yields]);
     const filteredYields = useMemo(() => { return yields.filter(y => { const date = new Date(y.date); const year = date.getFullYear(); const month = date.getMonth() + 1; const yearMatch = selectedYear === 'All' || year === parseInt(selectedYear); if (!yearMatch) return false; if (selectedSeason === 'All') return true; if (selectedSeason === 'Kharif' && month >= 6 && month <= 10) return true; if (selectedSeason === 'Rabi' && (month >= 11 || month <= 4)) return true; return false; }); }, [yields, selectedYear, selectedSeason]);
 
     const groupedYields = useMemo(() => {
         return filteredYields.reduce((acc, item) => {
-            if (!acc[item.crop]) {
-                acc[item.crop] = [];
-            }
+            if (!acc[item.crop]) acc[item.crop] = [];
             acc[item.crop].push(item);
             return acc;
         }, {});
     }, [filteredYields]);
 
-    const handleSaveYield = (yieldData) => { addYield(yieldData); setIsModalOpen(false); };
-    if (isLoading) return <Spinner />;
-    return (<><YieldModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveYield} cropOptions={cropOptions} /><Card title="Yield Harvest Records" titleActions={<div className="flex items-center space-x-2"><select value={selectedSeason} onChange={e => setSelectedSeason(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm"><option value="All">All Seasons</option><option value="Kharif">Kharif (Jun-Oct)</option><option value="Rabi">Rabi (Nov-Apr)</option></select><select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm">{availableYears.map(y => <option key={y} value={y}>{y}</option>)}</select><button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md">Add Harvest</button></div>}><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Date</th><th className="p-3">Quantity</th><th className="p-3">Grade</th></tr></thead><tbody>
-        {Object.entries(groupedYields).map(([crop, yieldsList]) => (
-            <React.Fragment key={crop}>
-                <tr className="bg-green-50">
-                    <td colSpan="3" className="p-3 font-bold text-green-800">{crop}</td>
-                </tr>
-                {yieldsList.map((y) => (
-                    <tr key={y.id} className="border-b">
-                        <td className="p-3">{y.date}</td>
-                        <td className="p-3">{y.quantity} {y.unit}</td>
-                        <td className="p-3">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${y.grade === 'A' ? 'bg-green-200 text-green-800' : y.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{y.grade}</span>
-                        </td>
-                    </tr>
-                ))}
-            </React.Fragment>
-        ))}
-    </tbody></table></div></Card></>);
-};
-const InventoryAndSales = () => {
-    const { inventory, sales, addSale, isLoading } = useData();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [itemToSell, setItemToSell] = useState(null);
-
     const groupedInventory = useMemo(() => {
         return inventory.reduce((acc, item) => {
-            if (!acc[item.crop]) {
-                acc[item.crop] = [];
-            }
+            if (!acc[item.crop]) acc[item.crop] = [];
             acc[item.crop].push(item);
             return acc;
         }, {});
@@ -468,85 +507,164 @@ const InventoryAndSales = () => {
 
     const groupedSales = useMemo(() => {
         return sales.reduce((acc, item) => {
-            if (!acc[item.crop]) {
-                acc[item.crop] = [];
-            }
+            if (!acc[item.crop]) acc[item.crop] = [];
             acc[item.crop].push(item);
             return acc;
         }, {});
     }, [sales]);
 
-    const handleOpenModal = (item) => { setItemToSell(item); setIsModalOpen(true); };
-    const handleSaveSale = (saleData) => { addSale(saleData); setIsModalOpen(false); };
+    const handleSaveYield = (yieldData) => { addYield(yieldData); setIsYieldModalOpen(false); };
+    const handleOpenSaleModal = (item) => { setItemToSell(item); setIsSaleModalOpen(true); };
+    const handleSaveSale = (saleData) => { addSale(saleData); setIsSaleModalOpen(false); };
+
     if (isLoading) return <Spinner />;
-    return (<><SaleModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveSale} itemToSell={itemToSell} />
-        <div className="space-y-6">
-            <Card title="Current Crop Inventory">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="p-3">Grade</th>
-                                <th className="p-3">Available Quantity</th>
-                                <th className="p-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(groupedInventory).map(([crop, grades]) => (
-                                <React.Fragment key={crop}>
-                                    <tr className="bg-blue-50">
-                                        <td colSpan="3" className="p-3 font-bold text-blue-800">{crop}</td>
-                                    </tr>
-                                    {grades.map((item) => (
-                                        <tr key={`${item.crop}-${item.grade}`} className="border-b">
-                                            <td className="p-3">
-                                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${item.grade === 'A' ? 'bg-green-200 text-green-800' : item.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{item.grade}</span>
-                                            </td>
-                                            <td className="p-3">{item.quantity} {item.unit}</td>
-                                            <td className="p-3">
-                                                <button onClick={() => handleOpenModal(item)} disabled={item.quantity <= 0} className="px-3 py-1 text-sm bg-blue-600 text-white rounded disabled:bg-gray-400">Record Sale</button>
-                                            </td>
+
+    return (
+        <>
+            <YieldModal isOpen={isYieldModalOpen} onClose={() => setIsYieldModalOpen(false)} onSave={handleSaveYield} cropOptions={cropOptions} />
+            <SaleModal isOpen={isSaleModalOpen} onClose={() => setIsSaleModalOpen(false)} onSave={handleSaveSale} itemToSell={itemToSell} />
+
+            {/* Tab Navigation */}
+            <div className="mb-6 border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8">
+                    <button onClick={() => setActiveTab('harvests')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'harvests' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        🌾 Harvest Records
+                    </button>
+                    <button onClick={() => setActiveTab('inventory')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'inventory' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        📦 Current Inventory
+                    </button>
+                    <button onClick={() => setActiveTab('sales')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'sales' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        💰 Sales Log
+                    </button>
+                </nav>
+            </div>
+
+            {/* Harvests Tab */}
+            {activeTab === 'harvests' && (
+                <Card title="Yield Harvest Records" titleActions={
+                    <div className="flex items-center space-x-2">
+                        <select value={selectedSeason} onChange={e => setSelectedSeason(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm">
+                            <option value="All">All Seasons</option>
+                            <option value="Kharif">Kharif (Jun-Oct)</option>
+                            <option value="Rabi">Rabi (Nov-Apr)</option>
+                        </select>
+                        <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm">
+                            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                        <button onClick={() => setIsYieldModalOpen(true)} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
+                            Add Harvest
+                        </button>
+                    </div>
+                }>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="p-3">Date</th>
+                                    <th className="p-3">Quantity</th>
+                                    <th className="p-3">Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(groupedYields).map(([crop, yieldsList]) => (
+                                    <React.Fragment key={crop}>
+                                        <tr className="bg-green-50">
+                                            <td colSpan="3" className="p-3 font-bold text-green-800">{crop}</td>
                                         </tr>
-                                    ))}
-                                </React.Fragment>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
-            <Card title="Recent Sales Log">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="p-3">Date</th>
-                                <th className="p-3">Grade</th>
-                                <th className="p-3">Quantity</th>
-                                <th className="p-3">Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(groupedSales).map(([crop, salesList]) => (
-                                <React.Fragment key={crop}>
-                                    <tr className="bg-gray-50">
-                                        <td colSpan="4" className="p-3 font-bold text-gray-700">{crop}</td>
-                                    </tr>
-                                    {salesList.map((s) => (
-                                        <tr key={s.id} className="border-b">
-                                            <td className="p-3">{s.date}</td>
-                                            <td className="p-3">{s.grade}</td>
-                                            <td className="p-3">{s.quantity} {s.unit}</td>
-                                            <td className="p-3 text-green-600 font-semibold">+₹{s.revenue.toLocaleString('en-IN')}</td>
+                                        {yieldsList.map((y) => (
+                                            <tr key={y.id} className="border-b">
+                                                <td className="p-3">{y.date}</td>
+                                                <td className="p-3">{y.quantity} {y.unit}</td>
+                                                <td className="p-3">
+                                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${y.grade === 'A' ? 'bg-green-200 text-green-800' : y.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{y.grade}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            )}
+
+            {/* Inventory Tab */}
+            {activeTab === 'inventory' && (
+                <Card title="Current Crop Inventory">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="p-3">Grade</th>
+                                    <th className="p-3">Available Quantity</th>
+                                    <th className="p-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(groupedInventory).map(([crop, grades]) => (
+                                    <React.Fragment key={crop}>
+                                        <tr className="bg-blue-50">
+                                            <td colSpan="3" className="p-3 font-bold text-blue-800">{crop}</td>
                                         </tr>
-                                    ))}
-                                </React.Fragment>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
-        </div></>);
+                                        {grades.map((item) => (
+                                            <tr key={`${item.crop}-${item.grade}`} className="border-b">
+                                                <td className="p-3">
+                                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${item.grade === 'A' ? 'bg-green-200 text-green-800' : item.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{item.grade}</span>
+                                                </td>
+                                                <td className="p-3">{item.quantity} {item.unit}</td>
+                                                <td className="p-3">
+                                                    <button onClick={() => handleOpenSaleModal(item)} disabled={item.quantity <= 0} className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400">
+                                                        Record Sale
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            )}
+
+            {/* Sales Tab */}
+            {activeTab === 'sales' && (
+                <Card title="Recent Sales Log">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="p-3">Date</th>
+                                    <th className="p-3">Grade</th>
+                                    <th className="p-3">Quantity</th>
+                                    <th className="p-3">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(groupedSales).map(([crop, salesList]) => (
+                                    <React.Fragment key={crop}>
+                                        <tr className="bg-gray-50">
+                                            <td colSpan="4" className="p-3 font-bold text-gray-700">{crop}</td>
+                                        </tr>
+                                        {salesList.map((s) => (
+                                            <tr key={s.id} className="border-b">
+                                                <td className="p-3">{s.date}</td>
+                                                <td className="p-3">{s.grade}</td>
+                                                <td className="p-3">{s.quantity} {s.unit}</td>
+                                                <td className="p-3 text-green-600 font-semibold">+₹{s.revenue.toLocaleString('en-IN')}</td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            )}
+        </>
+    );
 };
+
 const FinancialTracking = () => {
     const { financials, isLoading } = useData();
     if (isLoading || !financials) return <Spinner />;
@@ -695,10 +813,10 @@ const WorkerManagement = () => {
 
 // --- LAYOUT & APP ROUTING ---
 const NavLink = ({ to, icon, children, currentPath }) => { const isActive = (currentPath === '/' && to === '/') || (currentPath === to); return (<a href={to} className={`flex items-center px-4 py-3 text-lg rounded-lg ${isActive ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700'}`}>{icon}<span className="ml-4">{children}</span></a>); }
-const Sidebar = ({ isSidebarOpen, currentPath }) => (<aside className={`bg-green-800 text-white w-64 space-y-2 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30`}><div className="px-4 mb-8 text-center"><h1 className="text-3xl font-bold">FarmSight 360</h1><p className="text-sm text-green-200">Yield & Workforce Tracker</p></div><nav><NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink><NavLink to="/yields" icon={<YieldIcon />} currentPath={currentPath}>Yield Records</NavLink><NavLink to="/inventory" icon={<InventoryIcon />} currentPath={currentPath}>Inventory & Sales</NavLink><NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink><NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Financials</NavLink><NavLink to="/resources" icon={<FertiliserIcon />} currentPath={currentPath}>Farm Resources</NavLink></nav></aside>);
+const Sidebar = ({ isSidebarOpen, currentPath }) => (<aside className={`bg-green-800 text-white w-64 space-y-2 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30`}><div className="px-4 mb-8 text-center"><h1 className="text-3xl font-bold">FarmSight 360</h1><p className="text-sm text-green-200">Yield & Workforce Tracker</p></div><nav><NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink><NavLink to="/crops" icon={<YieldIcon />} currentPath={currentPath}>Crop Management</NavLink><NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink><NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Financials</NavLink><NavLink to="/resources" icon={<FertiliserIcon />} currentPath={currentPath}>Farm Resources</NavLink></nav></aside>);
 const Header = ({ toggleSidebar }) => { const { user } = useAuth(); return (<header className="bg-white shadow-sm p-4 flex justify-between items-center z-10"><button onClick={toggleSidebar} className="text-gray-500 focus:outline-none md:hidden"><svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button><div className="text-2xl font-bold text-gray-700 hidden md:block">Welcome, {user ? user.name : 'Guest'}!</div>{user && (<div className="flex items-center"><div className="text-right mr-4"><p className="font-semibold">{user.name}</p><p className="text-sm text-gray-500">{user.role}</p></div><img className="h-12 w-12 rounded-full" src={`https://i.pravatar.cc/150?u=${user.name}`} alt="User Avatar" /></div>)}</header>); };
 
-const routes = { '/': Dashboard, '/yields': YieldTracking, '/workers': WorkerManagement, '/financials': FinancialTracking, '/resources': ResourceInventory, '/inventory': InventoryAndSales };
+const routes = { '/': Dashboard, '/crops': CropManagement, '/workers': WorkerManagement, '/financials': FinancialTracking, '/resources': ResourceInventory };
 
 export default function App() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
