@@ -18,11 +18,11 @@ const mockDatabase = {
     ],
     cropOptions: ['Tomatoes', 'Potatoes', 'Onions', 'Spinach', 'Wheat', 'Sugarcane', 'Cotton'],
     workers: [
-        { id: 101, name: 'Ramesh Kumar', role: 'Field Supervisor', perDaySalary: 800, loanBalance: 2000, contact: '9876543210' },
-        { id: 102, name: 'Sunita Devi', role: 'Harvester', perDaySalary: 600, loanBalance: 0, contact: '9876543211' },
-        { id: 103, name: 'Amit Singh', role: 'Irrigation Specialist', perDaySalary: 750, loanBalance: 500, contact: '9876543212' },
-        { id: 104, name: 'Priya Sharma', role: 'Harvester', perDaySalary: 600, loanBalance: 3500, contact: '9876543213' },
-        { id: 105, name: 'Vikram Choudhary', role: 'Tractor Operator', perDaySalary: 900, loanBalance: 0, contact: '9876543214' },
+        { id: 101, name: 'Ramesh Kumar', role: 'Field Supervisor', perDaySalary: 800, loanBalance: 2000, contact: '9876543210', lastSettlementDate: null },
+        { id: 102, name: 'Sunita Devi', role: 'Harvester', perDaySalary: 600, loanBalance: 0, contact: '9876543211', lastSettlementDate: null },
+        { id: 103, name: 'Amit Singh', role: 'Irrigation Specialist', perDaySalary: 750, loanBalance: 500, contact: '9876543212', lastSettlementDate: null },
+        { id: 104, name: 'Priya Sharma', role: 'Harvester', perDaySalary: 600, loanBalance: 3500, contact: '9876543213', lastSettlementDate: null },
+        { id: 105, name: 'Vikram Choudhary', role: 'Tractor Operator', perDaySalary: 900, loanBalance: 0, contact: '9876543214', lastSettlementDate: null },
     ],
     attendance: {
         '101': { '2025-10-01': 'P', '2025-10-02': 'P', '2025-10-03': 'H', '2025-10-04': 'A', '2025-10-06': 'P', '2025-10-07': 'P', '2025-10-08': 'P', '2025-10-09': 'P', '2025-10-10': 'P', '2025-10-11': 'A', '2025-10-13': 'P' },
@@ -154,14 +154,14 @@ const DataProvider = ({ children }) => {
 
     const confirmWorkerPayment = ({ workerId, workerName, payout, advance, repayment, bonus = 0 }) => {
         setData(prev => {
-            const newWorkers = prev.workers.map(w => (w.id === workerId ? { ...w, loanBalance: w.loanBalance + advance - repayment } : w));
+            const currentDateStr = formatDate(MOCK_CURRENT_DATE);
+            const newWorkers = prev.workers.map(w => (w.id === workerId ? { ...w, loanBalance: w.loanBalance + advance - repayment, lastSettlementDate: currentDateStr } : w));
             const newTransaction = { id: Date.now(), type: 'Expense', description: `Weekly Payout: ${workerName}${bonus > 0 ? ` (incl. ₹${bonus} bonus)` : ''}`, amount: -payout };
 
             // Mark all mid-week transactions for this worker this week as settled
             const weekStart = new Date(MOCK_CURRENT_DATE);
             weekStart.setDate(weekStart.getDate() - 6);
             const weekStartStr = formatDate(weekStart);
-            const currentDateStr = formatDate(MOCK_CURRENT_DATE);
 
             const updatedTransactions = (prev.workerTransactions || []).map(t => {
                 if (t.workerId === workerId && t.date >= weekStartStr && t.date <= currentDateStr && !t.settled) {
@@ -456,15 +456,24 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
     }, [currentDate]);
 
     const workerPaymentData = useMemo(() => {
-        const calculateDaysPresent = (workerId) => {
+        const calculateDaysPresent = (worker) => {
             let count = 0;
-            const workerAttendance = attendance[workerId] || {};
+            const workerAttendance = attendance[worker.id] || {};
             const sunday = 0;
+
+            // Only count days after last settlement (compare as strings)
+            const lastSettlementStr = worker.lastSettlementDate;
+
             for (let i = 0; i < 7; i++) {
                 const date = new Date(currentDate);
                 date.setDate(currentDate.getDate() - i);
                 if (date.getDay() === sunday) continue;
+
                 const dateStr = formatDate(date);
+
+                // Skip dates on or before settlement date
+                if (lastSettlementStr && dateStr <= lastSettlementStr) continue;
+
                 const status = workerAttendance[dateStr];
                 if (status === 'P') count += 1;
                 if (status === 'H') count += 0.5;
@@ -473,7 +482,7 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
         };
 
         return workers.map(w => {
-            const daysPresent = calculateDaysPresent(w.id);
+            const daysPresent = calculateDaysPresent(w);
             const baseSalary = w.perDaySalary * daysPresent;
 
             // Calculate weekly transactions - only unsettled ones
