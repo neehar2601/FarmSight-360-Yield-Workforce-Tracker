@@ -70,7 +70,7 @@ const DataContext = createContext(null);
 
 const DataProvider = ({ children }) => {
     const [data, setData] = useState({
-        yields: [], cropOptions: [], workers: [], financials: null, resources: {}, sales: [], inventory: [], attendance: {}
+        yields: [], cropOptions: [], workers: [], financials: null, resources: {}, sales: [], inventory: [], attendance: {}, workerTransactions: []
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -87,6 +87,7 @@ const DataProvider = ({ children }) => {
                 setData({
                     ...mockDatabase,
                     inventory: initialInventory,
+                    workerTransactions: [],
                     financials: {
                         ...mockDatabase.financials,
                         summary: { ...mockDatabase.financials.summary, revenue: initialRevenue, profit: initialRevenue - mockDatabase.financials.summary.expenses }
@@ -99,6 +100,7 @@ const DataProvider = ({ children }) => {
             setData({
                 ...mockDatabase,
                 inventory: initialInventory,
+                workerTransactions: [],
                 financials: {
                     ...mockDatabase.financials,
                     summary: { ...mockDatabase.financials.summary, revenue: initialRevenue, profit: initialRevenue - mockDatabase.financials.summary.expenses }
@@ -168,22 +170,46 @@ const DataProvider = ({ children }) => {
             const newWorkers = prev.workers.map(w => (w.id === workerId ? { ...w, loanBalance: w.loanBalance + advance - repayment } : w));
             let newFinancials = { ...prev.financials };
             const newTransactions = [];
+            const newWorkerTransactions = [...(prev.workerTransactions || [])];
+            const currentDate = formatDate(MOCK_CURRENT_DATE);
 
             if (advance > 0) {
                 const advanceTransaction = { id: Date.now(), type: 'Expense', description: `Advance to ${workerName}`, amount: -advance };
                 newTransactions.push(advanceTransaction);
                 newFinancials.summary.expenses += advance;
                 newFinancials.summary.profit -= advance;
+
+                // Record worker transaction
+                newWorkerTransactions.push({
+                    id: Date.now(),
+                    workerId,
+                    workerName,
+                    date: currentDate,
+                    type: 'advance',
+                    amount: advance,
+                    description: 'Mid-week advance'
+                });
             }
             if (repayment > 0) {
                 const repaymentTransaction = { id: Date.now() + 1, type: 'Revenue', description: `Loan Repayment from ${workerName}`, amount: repayment };
                 newTransactions.push(repaymentTransaction);
                 newFinancials.summary.revenue += repayment;
                 newFinancials.summary.profit += repayment;
+
+                // Record worker transaction
+                newWorkerTransactions.push({
+                    id: Date.now() + 1,
+                    workerId,
+                    workerName,
+                    date: currentDate,
+                    type: 'repayment',
+                    amount: repayment,
+                    description: 'Mid-week repayment'
+                });
             }
             newFinancials.recentTransactions = [...newTransactions, ...prev.financials.recentTransactions];
 
-            return { ...prev, workers: newWorkers, financials: newFinancials };
+            return { ...prev, workers: newWorkers, financials: newFinancials, workerTransactions: newWorkerTransactions };
         });
     };
 
@@ -234,6 +260,17 @@ const DataProvider = ({ children }) => {
         });
     };
 
+    const getWeeklyTransactions = (workerId, currentDate) => {
+        const weekStart = new Date(currentDate);
+        weekStart.setDate(weekStart.getDate() - 6); // Last 7 days including today
+        const weekStartStr = formatDate(weekStart);
+        const currentDateStr = formatDate(currentDate);
+
+        return (data.workerTransactions || []).filter(t => {
+            return t.workerId === workerId && t.date >= weekStartStr && t.date <= currentDateStr;
+        });
+    };
+
     const addResourceCategory = (categoryName) => {
         setData(prev => {
             if (prev.resources[categoryName]) return prev;
@@ -241,7 +278,7 @@ const DataProvider = ({ children }) => {
         });
     };
 
-    const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, updateResource, addResourceCategory, currentDate: MOCK_CURRENT_DATE };
+    const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, updateResource, addResourceCategory, getWeeklyTransactions, currentDate: MOCK_CURRENT_DATE };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 
@@ -330,11 +367,17 @@ const LoanAdjustmentModal = ({ isOpen, onClose, onSave, worker }) => {
             setError('Please enter either an advance or a repayment, not both.');
             return;
         }
+        if (advanceAmount === 0 && repaymentAmount === 0) {
+            setError('Please enter an amount.');
+            return;
+        }
 
         onSave({ workerId: worker.id, workerName: worker.name, advance: advanceAmount, repayment: repaymentAmount });
     };
 
-    return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-2">Adjust Loan for {worker.name}</h2><p className="text-sm text-gray-500 mb-6">Current Outstanding Loan: ₹{worker.loanBalance.toLocaleString('en-IN')}</p><div className="space-y-4"><div><label className="block text-sm font-medium">Give Advance (₹)</label><input type="number" placeholder="Enter advance amount" value={advance} onChange={e => { setAdvance(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div><div><label className="block text-sm font-medium">Record Repayment (₹)</label><input type="number" placeholder="Enter repayment amount" value={repayment} onChange={e => { setRepayment(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div></div>{error && <p className="text-red-500 text-sm mt-4">{error}</p>}<div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button><button type="button" onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md">Confirm Adjustment</button></div></div></div>);
+    const currentDateStr = MOCK_CURRENT_DATE.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-2">Adjust Loan for {worker.name}</h2><p className="text-sm text-gray-500 mb-6">Current Outstanding Loan: ₹{worker.loanBalance.toLocaleString('en-IN')}</p><div className="space-y-4"><div><label className="block text-sm font-medium">Give Advance (₹)</label><input type="number" placeholder="Enter advance amount" value={advance} onChange={e => { setAdvance(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div><div><label className="block text-sm font-medium">Record Repayment (₹)</label><input type="number" placeholder="Enter repayment amount" value={repayment} onChange={e => { setRepayment(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div></div><div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md"><p className="text-xs text-blue-800"><strong>📅 Transaction Date:</strong> {currentDateStr}</p><p className="text-xs text-blue-700 mt-2">ℹ️ This mid-week transaction will be automatically included in the next weekly settlement.</p></div>{error && <p className="text-red-500 text-sm mt-4">{error}</p>}<div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button><button type="button" onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Confirm Adjustment</button></div></div></div>);
 };
 
 const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
@@ -378,8 +421,10 @@ const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
 
 // --- FEATURE MODULES (SUB-COMPONENTS FOR WORKERS) ---
 const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPayment, onAdjustLoan }) => {
+    const { getWeeklyTransactions } = useData();
     const [adjustments, setAdjustments] = useState({});
     const [confirmedPayments, setConfirmedPayments] = useState({});
+    const [expandedWorkers, setExpandedWorkers] = useState({});
 
     useEffect(() => {
         if (currentDate.getDay() === 1) setConfirmedPayments({});
@@ -401,8 +446,28 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
             }
             return count;
         };
-        return workers.map(w => ({ ...w, daysPresent: calculateDaysPresent(w.id), baseSalary: w.perDaySalary * calculateDaysPresent(w.id) }));
-    }, [workers, attendance, currentDate]);
+
+        return workers.map(w => {
+            const daysPresent = calculateDaysPresent(w.id);
+            const baseSalary = w.perDaySalary * daysPresent;
+
+            // Calculate weekly transactions
+            const weeklyTransactions = getWeeklyTransactions(w.id, currentDate);
+            const weeklyAdvances = weeklyTransactions.filter(t => t.type === 'advance').reduce((sum, t) => sum + t.amount, 0);
+            const weeklyRepayments = weeklyTransactions.filter(t => t.type === 'repayment').reduce((sum, t) => sum + t.amount, 0);
+            const weeklyNetAdjustment = weeklyAdvances - weeklyRepayments;
+
+            return {
+                ...w,
+                daysPresent,
+                baseSalary,
+                weeklyTransactions,
+                weeklyAdvances,
+                weeklyRepayments,
+                weeklyNetAdjustment
+            };
+        });
+    }, [workers, attendance, currentDate, getWeeklyTransactions]);
 
     const handleAdjustmentChange = (workerId, field, value) => {
         const numericValue = value === '' ? '' : parseInt(value, 10);
@@ -414,7 +479,7 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
     const handleConfirmPayment = (worker) => {
         const advance = adjustments[worker.id]?.advance || 0;
         const repayment = adjustments[worker.id]?.repayment || 0;
-        const finalPayout = worker.baseSalary + advance - repayment;
+        const finalPayout = worker.baseSalary + worker.weeklyNetAdjustment + advance - repayment;
         if (repayment > worker.loanBalance) {
             alert(`Repayment cannot exceed the outstanding loan of ₹${worker.loanBalance.toLocaleString('en-IN')}`);
             return;
@@ -424,33 +489,88 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
         setConfirmedPayments(prev => ({ ...prev, [worker.id]: true }));
     };
 
+    const toggleExpanded = (workerId) => {
+        setExpandedWorkers(prev => ({ ...prev, [workerId]: !prev[workerId] }));
+    };
+
     return (
         <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-                <thead><tr className="bg-gray-100"><th className="p-3">Worker</th><th className="p-3">Loan (₹)</th><th className="p-3">Weekly Base Salary (₹)</th><th className="p-3">Adjustments (₹)</th><th className="p-3 font-bold">Payout (₹)</th><th className="p-3">Actions</th></tr></thead>
+                <thead><tr className="bg-gray-100"><th className="p-3">Worker</th><th className="p-3">Loan (₹)</th><th className="p-3">Weekly Base Salary (₹)</th><th className="p-3">Week Activity</th><th className="p-3">Adjustments (₹)</th><th className="p-3 font-bold">Payout (₹)</th><th className="p-3">Actions</th></tr></thead>
                 <tbody>
                     {workerPaymentData.map(w => {
                         const advance = adjustments[w.id]?.advance || 0;
                         const repayment = adjustments[w.id]?.repayment || 0;
-                        const finalPayout = w.baseSalary + advance - repayment;
+                        const finalPayout = w.baseSalary + w.weeklyNetAdjustment + advance - repayment;
                         const isConfirmed = confirmedPayments[w.id];
+                        const isExpanded = expandedWorkers[w.id];
+                        const hasWeeklyActivity = w.weeklyTransactions.length > 0;
+
                         return (
-                            <tr key={w.id} className="border-b">
-                                <td className="p-3 font-medium">{w.name}<span className="block text-xs text-gray-500">{w.role}</span></td>
-                                <td className={`p-3 font-semibold ${w.loanBalance > 0 ? 'text-red-600' : 'text-gray-700'}`}>
-                                    <div className="flex items-center space-x-2">
-                                        <span>{w.loanBalance.toLocaleString('en-IN')}</span>
-                                        <button onClick={() => onAdjustLoan(w)} className="text-gray-500 hover:text-gray-700" title="Adjust Loan/Advance"><LoanIcon /></button>
-                                    </div>
-                                </td>
-                                <td className="p-3">{w.baseSalary.toLocaleString('en-IN')}<span className="text-xs text-gray-500"> ({w.daysPresent} days)</span></td>
-                                <td className="p-3"><div className="flex space-x-2"><input type="number" placeholder="Advance" value={adjustments[w.id]?.advance || ''} onChange={(e) => handleAdjustmentChange(w.id, 'advance', e.target.value)} disabled={isConfirmed} className="w-24 p-1 border rounded disabled:bg-gray-100" /><input type="number" placeholder="Repay" value={adjustments[w.id]?.repayment || ''} onChange={(e) => handleAdjustmentChange(w.id, 'repayment', e.target.value)} disabled={isConfirmed} className="w-24 p-1 border rounded disabled:bg-gray-100" /></div></td>
-                                <td className="p-3 font-bold text-lg text-blue-600">{finalPayout.toLocaleString('en-IN')}</td>
-                                <td className="p-3 flex items-center space-x-2">
-                                    <button onClick={() => onEdit(w)} className="text-blue-600 hover:text-blue-800"><EditIcon /></button>
-                                    <button onClick={() => handleConfirmPayment(w)} disabled={isConfirmed} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{isConfirmed ? 'Paid' : 'Confirm'}</button>
-                                </td>
-                            </tr>
+                            <React.Fragment key={w.id}>
+                                <tr className="border-b">
+                                    <td className="p-3 font-medium">{w.name}<span className="block text-xs text-gray-500">{w.role}</span></td>
+                                    <td className={`p-3 font-semibold ${w.loanBalance > 0 ? 'text-red-600' : 'text-gray-700'}`}>
+                                        <div className="flex items-center space-x-2">
+                                            <span>{w.loanBalance.toLocaleString('en-IN')}</span>
+                                            <button onClick={() => onAdjustLoan(w)} className="text-blue-600 hover:text-blue-800" title="Record Mid-Week Advance/Repayment (Available Anytime)"><LoanIcon /></button>
+                                        </div>
+                                    </td>
+                                    <td className="p-3">{w.baseSalary.toLocaleString('en-IN')}<span className="text-xs text-gray-500"> ({w.daysPresent} days)</span></td>
+                                    <td className="p-3">
+                                        {hasWeeklyActivity ? (
+                                            <div>
+                                                <button onClick={() => toggleExpanded(w.id)} className="text-blue-600 hover:text-blue-800 text-xs flex items-center">
+                                                    <span className="mr-1">{isExpanded ? '▼' : '▶'}</span>
+                                                    {w.weeklyTransactions.length} transaction(s)
+                                                </button>
+                                                <div className={`text-xs mt-1 ${w.weeklyNetAdjustment > 0 ? 'text-orange-600' : w.weeklyNetAdjustment < 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                                                    Net: {w.weeklyNetAdjustment > 0 ? '+' : ''}{w.weeklyNetAdjustment.toLocaleString('en-IN')}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">No activity</span>
+                                        )}
+                                    </td>
+                                    <td className="p-3"><div className="flex space-x-2"><input type="number" placeholder="Advance" value={adjustments[w.id]?.advance || ''} onChange={(e) => handleAdjustmentChange(w.id, 'advance', e.target.value)} disabled={isConfirmed} className="w-24 p-1 border rounded disabled:bg-gray-100" /><input type="number" placeholder="Repay" value={adjustments[w.id]?.repayment || ''} onChange={(e) => handleAdjustmentChange(w.id, 'repayment', e.target.value)} disabled={isConfirmed} className="w-24 p-1 border rounded disabled:bg-gray-100" /></div></td>
+                                    <td className="p-3 font-bold text-lg text-blue-600">{finalPayout.toLocaleString('en-IN')}</td>
+                                    <td className="p-3 flex items-center space-x-2">
+                                        <button onClick={() => onEdit(w)} className="text-blue-600 hover:text-blue-800"><EditIcon /></button>
+                                        <button onClick={() => handleConfirmPayment(w)} disabled={isConfirmed} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{isConfirmed ? 'Paid' : 'Confirm'}</button>
+                                    </td>
+                                </tr>
+                                {isConfirmed && (
+                                    <tr>
+                                        <td colSpan="7" className="p-2 bg-green-50 border-l-4 border-green-500">
+                                            <p className="text-xs text-green-800">
+                                                ✅ <strong>Weekly payment confirmed.</strong> You can still record mid-week advances/repayments using the 💳 button. They will be included in next week's settlement.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                )}
+                                {isExpanded && hasWeeklyActivity && (
+                                    <tr>
+                                        <td colSpan="7" className="p-3 bg-gray-50">
+                                            <div className="ml-8">
+                                                <h5 className="text-xs font-semibold text-gray-700 mb-2">📊 This Week's Transactions:</h5>
+                                                <div className="space-y-1">
+                                                    {w.weeklyTransactions.map(t => (
+                                                        <div key={t.id} className="text-xs flex justify-between items-center py-1 border-b border-gray-200">
+                                                            <span className="text-gray-600">{t.date}</span>
+                                                            <span className={`font-medium ${t.type === 'advance' ? 'text-orange-600' : 'text-green-600'}`}>
+                                                                {t.type === 'advance' ? 'Advance' : 'Repayment'}: {t.type === 'advance' ? '+' : '-'}₹{t.amount.toLocaleString('en-IN')}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="mt-2 text-xs text-gray-600 italic">
+                                                    ℹ️ These transactions are automatically included in the final payout above.
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
                         );
                     })}
                 </tbody>
