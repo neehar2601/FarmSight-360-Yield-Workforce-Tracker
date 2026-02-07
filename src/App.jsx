@@ -6,23 +6,35 @@ const MOCK_CURRENT_DATE = new Date('2025-10-13T12:00:00Z');
 
 const mockDatabase = {
     user: { name: 'Saanvi Patel', role: 'Farm Owner' },
+    // User-defined crop grades (flexible strings instead of enum)
     yields: [
-        { id: 1, date: '2025-09-10', crop: 'Tomatoes', quantity: 550, unit: 'kg', grade: 'A' },
-        { id: 2, date: '2025-08-09', crop: 'Potatoes', quantity: 1200, unit: 'kg', grade: 'B' },
-        { id: 3, date: '2025-07-09', crop: 'Onions', quantity: 800, unit: 'kg', grade: 'A' },
-        { id: 4, date: '2025-06-08', crop: 'Tomatoes', quantity: 520, unit: 'kg', grade: 'B' },
-        { id: 5, date: '2025-02-07', crop: 'Spinach', quantity: 150, unit: 'kg', grade: 'C' },
+        { id: 1, date: '2025-09-10', crop: 'Tomatoes', quantity: 550, unit: 'kg', grade: 'Premium' },
+        { id: 2, date: '2025-08-09', crop: 'Potatoes', quantity: 1200, unit: 'kg', grade: 'Standard' },
+        { id: 3, date: '2025-07-09', crop: 'Onions', quantity: 800, unit: 'kg', grade: 'Export Quality' },
+        { id: 4, date: '2025-06-08', crop: 'Tomatoes', quantity: 520, unit: 'kg', grade: 'Standard' },
+        { id: 5, date: '2025-02-07', crop: 'Spinach', quantity: 150, unit: 'kg', grade: 'Organic Premium' },
+        { id: 6, date: '2025-09-15', crop: 'Wheat', quantity: 2000, unit: 'kg', grade: 'Grade A' },
     ],
     sales: [
-        { id: 1, date: '2025-09-11', crop: 'Tomatoes', quantity: 100, unit: 'kg', grade: 'A', revenue: 4000 },
+        { id: 1, date: '2025-09-11', crop: 'Tomatoes', quantity: 100, unit: 'kg', grade: 'Premium', revenue: 4000, isMiscellaneous: false },
+        { id: 2, date: '2025-09-12', crop: null, quantity: 5, unit: 'kg', grade: null, revenue: 2500, isMiscellaneous: true, partyName: 'Local Nursery', description: 'Tomato Seeds' },
     ],
     cropOptions: ['Tomatoes', 'Potatoes', 'Onions', 'Spinach', 'Wheat', 'Sugarcane', 'Cotton'],
+    // Farm Crops - Cultivation Planning
+    farmCrops: [
+        { id: 1, crop: 'Tomatoes', area: 2.5, areaUnit: 'acres', plantCount: 5000, plantingDate: '2025-08-01', expectedHarvestDate: '2025-11-15', notes: 'Hybrid variety - Better Boy', isActive: true },
+        { id: 2, crop: 'Potatoes', area: 3.0, areaUnit: 'acres', plantCount: 8000, plantingDate: '2025-07-15', expectedHarvestDate: '2025-10-30', notes: 'Kufri Jyoti variety', isActive: true },
+        { id: 3, crop: 'Onions', area: 1.5, areaUnit: 'acres', plantCount: 3000, plantingDate: '2025-09-01', expectedHarvestDate: '2025-12-20', notes: 'Red onion variety', isActive: true },
+        { id: 4, crop: 'Wheat', area: 5.0, areaUnit: 'acres', plantCount: 12000, plantingDate: '2025-11-01', expectedHarvestDate: '2026-03-15', notes: 'Rabi season crop', isActive: true },
+    ],
+    // Workers with skills and seasonal status (active/inactive)
     workers: [
-        { id: 101, name: 'Ramesh Kumar', role: 'Field Supervisor', perDaySalary: 800, loanBalance: 2000, contact: '9876543210', lastSettlementDate: null },
-        { id: 102, name: 'Sunita Devi', role: 'Harvester', perDaySalary: 600, loanBalance: 0, contact: '9876543211', lastSettlementDate: null },
-        { id: 103, name: 'Amit Singh', role: 'Irrigation Specialist', perDaySalary: 750, loanBalance: 500, contact: '9876543212', lastSettlementDate: null },
-        { id: 104, name: 'Priya Sharma', role: 'Harvester', perDaySalary: 600, loanBalance: 3500, contact: '9876543213', lastSettlementDate: null },
-        { id: 105, name: 'Vikram Choudhary', role: 'Tractor Operator', perDaySalary: 900, loanBalance: 0, contact: '9876543214', lastSettlementDate: null },
+        { id: 101, name: 'Ramesh Kumar', role: 'Field Supervisor', perDaySalary: 800, loanBalance: 2000, contact: '9876543210', lastSettlementDate: null, skills: 'Team Management, Crop Planning, Pest Control', isActive: true, lastActiveDate: null, seasonalNotes: '' },
+        { id: 102, name: 'Sunita Devi', role: 'Harvester', perDaySalary: 600, loanBalance: 0, contact: '9876543211', lastSettlementDate: null, skills: 'Harvesting, Sorting, Packaging', isActive: true, lastActiveDate: null, seasonalNotes: '' },
+        { id: 103, name: 'Amit Singh', role: 'Irrigation Specialist', perDaySalary: 750, loanBalance: 500, contact: '9876543212', lastSettlementDate: null, skills: 'Drip Irrigation, Pump Operation, Water Management', isActive: true, lastActiveDate: null, seasonalNotes: '' },
+        { id: 104, name: 'Priya Sharma', role: 'Harvester', perDaySalary: 600, loanBalance: 3500, contact: '9876543213', lastSettlementDate: null, skills: 'Harvesting, Quality Grading', isActive: true, lastActiveDate: null, seasonalNotes: '' },
+        { id: 105, name: 'Vikram Choudhary', role: 'Tractor Operator', perDaySalary: 900, loanBalance: 0, contact: '9876543214', lastSettlementDate: null, skills: 'Tractor Operation, Plowing, Land Preparation', isActive: true, lastActiveDate: null, seasonalNotes: '' },
+        { id: 106, name: 'Rajesh Yadav', role: 'Seasonal Harvester', perDaySalary: 500, loanBalance: 0, contact: '9876543215', lastSettlementDate: '2025-09-30', skills: 'General Farm Work, Harvesting', isActive: false, lastActiveDate: '2025-09-30', seasonalNotes: 'Harvest season ended - Expected return: March 2026' },
     ],
     attendance: {
         '101': { '2025-10-01': 'P', '2025-10-02': 'P', '2025-10-03': 'H', '2025-10-04': 'A', '2025-10-06': 'P', '2025-10-07': 'P', '2025-10-08': 'P', '2025-10-09': 'P', '2025-10-10': 'P', '2025-10-11': 'A', '2025-10-13': 'P' },
@@ -31,8 +43,11 @@ const mockDatabase = {
         '104': { '2025-10-13': 'A' },
     },
     financials: {
-        summary: { revenue: 4000, expenses: 45000, profit: -41000 },
-        recentTransactions: [{ id: 1, type: 'Revenue', description: 'Sale of Tomatoes (Grade A)', amount: 4000 }]
+        summary: { revenue: 6500, expenses: 45000, profit: -38500 },
+        recentTransactions: [
+            { id: 1, type: 'Revenue', description: 'Sale of Tomatoes (Premium)', amount: 4000, category: 'Crop Sale', isMiscellaneous: false },
+            { id: 2, type: 'Revenue', description: 'Tomato Seeds to Local Nursery', amount: 2500, category: 'Miscellaneous Sale', isMiscellaneous: true, partyName: 'Local Nursery' }
+        ]
     },
     resources: {
         'Fertilisers': [{ id: 1, name: 'Urea', stock: 50, unit: 'bags' }, { id: 2, name: 'DAP', stock: 35, unit: 'bags' }],
@@ -52,11 +67,14 @@ const aggregateInventory = (yields, sales) => {
         const currentQty = inventoryMap.get(key)?.quantity || 0;
         inventoryMap.set(key, { crop: y.crop, grade: y.grade, quantity: currentQty + y.quantity, unit: y.unit });
     });
+    // Only subtract non-miscellaneous sales from inventory
     sales.forEach(s => {
-        const key = `${s.crop}-${s.grade}`;
-        if (inventoryMap.has(key)) {
-            const currentQty = inventoryMap.get(key).quantity;
-            inventoryMap.set(key, { ...inventoryMap.get(key), quantity: currentQty - s.quantity });
+        if (!s.isMiscellaneous && s.crop && s.grade) {
+            const key = `${s.crop}-${s.grade}`;
+            if (inventoryMap.has(key)) {
+                const currentQty = inventoryMap.get(key).quantity;
+                inventoryMap.set(key, { ...inventoryMap.get(key), quantity: currentQty - s.quantity });
+            }
         }
     });
     return Array.from(inventoryMap.values()).sort((a, b) => a.crop.localeCompare(b.crop) || a.grade.localeCompare(b.grade));
@@ -70,7 +88,7 @@ const DataContext = createContext(null);
 
 const DataProvider = ({ children }) => {
     const [data, setData] = useState({
-        yields: [], cropOptions: [], workers: [], financials: null, resources: {}, sales: [], inventory: [], attendance: {}, workerTransactions: []
+        yields: [], cropOptions: [], workers: [], financials: null, resources: {}, sales: [], inventory: [], attendance: {}, workerTransactions: [], farmCrops: []
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -78,7 +96,32 @@ const DataProvider = ({ children }) => {
         const savedData = localStorage.getItem('farmSightData');
         if (savedData) {
             try {
-                setData(JSON.parse(savedData));
+                const parsedData = JSON.parse(savedData);
+
+                // Migrate old deletedAt format to new isActive format
+                if (parsedData.workers) {
+                    parsedData.workers = parsedData.workers.map(worker => {
+                        // If worker has deletedAt but no isActive field, migrate it
+                        if (worker.deletedAt !== undefined && worker.isActive === undefined) {
+                            return {
+                                ...worker,
+                                isActive: !worker.deletedAt,  // If deletedAt exists, worker is inactive
+                                lastActiveDate: worker.deletedAt || null,
+                                seasonalNotes: worker.deletedAt ? 'Migrated from previous version' : '',
+                                deletedAt: undefined  // Remove old field
+                            };
+                        }
+                        // Ensure all workers have the new fields
+                        return {
+                            ...worker,
+                            isActive: worker.isActive !== undefined ? worker.isActive : true,
+                            lastActiveDate: worker.lastActiveDate || null,
+                            seasonalNotes: worker.seasonalNotes || ''
+                        };
+                    });
+                }
+
+                setData(parsedData);
             } catch (e) {
                 console.error("Failed to load saved data", e);
                 // Fallback to mock data if parse fails
@@ -128,14 +171,56 @@ const DataProvider = ({ children }) => {
     const addSale = (saleData) => {
         setData(prev => {
             const newSales = [{ ...saleData, id: Date.now() }, ...prev.sales];
-            const newInventory = aggregateInventory(prev.yields, newSales);
-            const newTransaction = { id: Date.now(), type: 'Revenue', description: `Sale of ${saleData.crop} (Grade ${saleData.grade})`, amount: parseInt(saleData.revenue, 10) };
+            // Only update inventory for non-miscellaneous sales
+            const newInventory = saleData.isMiscellaneous
+                ? prev.inventory
+                : aggregateInventory(prev.yields, newSales);
+
+            // Create transaction description based on sale type
+            let description;
+            if (saleData.isMiscellaneous) {
+                description = saleData.description || 'Miscellaneous Sale';
+                if (saleData.partyName) {
+                    description += ` to ${saleData.partyName}`;
+                }
+            } else {
+                description = `Sale of ${saleData.crop} (${saleData.grade})`;
+            }
+
+            const newTransaction = {
+                id: Date.now(),
+                type: 'Revenue',
+                description,
+                amount: parseInt(saleData.revenue, 10),
+                category: saleData.isMiscellaneous ? 'Miscellaneous Sale' : 'Crop Sale',
+                isMiscellaneous: saleData.isMiscellaneous || false
+            };
+
             const newFinancials = {
                 ...prev.financials,
-                summary: { ...prev.financials.summary, revenue: prev.financials.summary.revenue + newTransaction.amount, profit: prev.financials.summary.profit + newTransaction.amount },
+                summary: {
+                    ...prev.financials.summary,
+                    revenue: prev.financials.summary.revenue + newTransaction.amount,
+                    profit: prev.financials.summary.profit + newTransaction.amount
+                },
                 recentTransactions: [newTransaction, ...prev.financials.recentTransactions],
             };
             return { ...prev, sales: newSales, inventory: newInventory, financials: newFinancials };
+        });
+    };
+
+    const addWorker = (workerData) => {
+        setData(prev => {
+            const newWorker = {
+                id: Date.now(), // Generate unique ID
+                ...workerData,
+                loanBalance: workerData.loanBalance || 0,
+                lastSettlementDate: null,
+                isActive: true,
+                lastActiveDate: null,
+                seasonalNotes: ''
+            };
+            return { ...prev, workers: [...prev.workers, newWorker] };
         });
     };
 
@@ -303,7 +388,102 @@ const DataProvider = ({ children }) => {
         });
     };
 
-    const value = { ...data, isLoading, addYield, addSale, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, updateResource, addResourceCategory, getWeeklyTransactions, currentDate: MOCK_CURRENT_DATE };
+    // Farm Crops Management
+    const addFarmCrop = (farmCropData) => {
+        setData(prev => {
+            const newFarmCrops = [{ ...farmCropData, id: Date.now() }, ...prev.farmCrops];
+            return { ...prev, farmCrops: newFarmCrops };
+        });
+    };
+
+    const updateFarmCrop = (updatedCrop) => {
+        setData(prev => ({
+            ...prev,
+            farmCrops: prev.farmCrops.map(fc => fc.id === updatedCrop.id ? updatedCrop : fc)
+        }));
+    };
+
+    const deleteFarmCrop = (cropId) => {
+        setData(prev => ({
+            ...prev,
+            farmCrops: prev.farmCrops.filter(fc => fc.id !== cropId)
+        }));
+    };
+
+    // Seasonal Worker Management (Active/Inactive Status)
+    const deactivateWorker = (workerId, seasonalNotes = '') => {
+        setData(prev => ({
+            ...prev,
+            workers: prev.workers.map(w =>
+                w.id === workerId
+                    ? {
+                        ...w,
+                        isActive: false,
+                        lastActiveDate: formatDate(MOCK_CURRENT_DATE),
+                        seasonalNotes
+                    }
+                    : w
+            )
+        }));
+    };
+
+    const activateWorker = (workerId) => {
+        setData(prev => ({
+            ...prev,
+            workers: prev.workers.map(w =>
+                w.id === workerId
+                    ? {
+                        ...w,
+                        isActive: true,
+                        lastActiveDate: null,
+                        seasonalNotes: ''
+                    }
+                    : w
+            )
+        }));
+    };
+
+    // Get active workers (filter out inactive seasonal workers)
+    const getActiveWorkers = () => {
+        return data.workers.filter(w => w.isActive !== false);
+    };
+
+    // Get inactive workers (seasonal workers not currently working)
+    const getInactiveWorkers = () => {
+        return data.workers.filter(w => w.isActive === false);
+    };
+
+    // Get all grades used in the system
+    const getAllGrades = () => {
+        const gradesSet = new Set();
+        data.yields.forEach(y => { if (y.grade) gradesSet.add(y.grade); });
+        data.sales.forEach(s => { if (s.grade) gradesSet.add(s.grade); });
+        return Array.from(gradesSet).sort();
+    };
+
+    const value = {
+        ...data,
+        isLoading,
+        addYield,
+        addSale,
+        addWorker,
+        updateWorkerDetails,
+        markAttendance,
+        confirmWorkerPayment,
+        adjustLoanBalance,
+        updateResource,
+        addResourceCategory,
+        getWeeklyTransactions,
+        addFarmCrop,
+        updateFarmCrop,
+        deleteFarmCrop,
+        deactivateWorker,
+        activateWorker,
+        getActiveWorkers,
+        getInactiveWorkers,
+        getAllGrades,
+        currentDate: MOCK_CURRENT_DATE
+    };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 
@@ -334,12 +514,79 @@ const LoanIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-
 
 // --- MODAL COMPONENTS ---
 const YieldModal = ({ isOpen, onClose, onSave, cropOptions }) => {
-    const [formData, setFormData] = useState({ date: new Date().toISOString().split('T')[0], crop: '', quantity: '', unit: 'kg', grade: 'A' });
-    useEffect(() => { if (isOpen) setFormData({ date: new Date().toISOString().split('T')[0], crop: cropOptions[0] || '', quantity: '', unit: 'kg', grade: 'A' }); }, [isOpen, cropOptions]);
+    const { getAllGrades } = useData();
+    const [formData, setFormData] = useState({ date: new Date().toISOString().split('T')[0], crop: '', quantity: '', unit: 'kg', grade: '' });
+    const availableGrades = getAllGrades ? getAllGrades() : ['Premium', 'Standard', 'Export Quality', 'Grade A', 'Grade B', 'Organic Premium'];
+
+    useEffect(() => {
+        if (isOpen) setFormData({
+            date: new Date().toISOString().split('T')[0],
+            crop: cropOptions[0] || '',
+            quantity: '',
+            unit: 'kg',
+            grade: ''
+        });
+    }, [isOpen, cropOptions]);
+
     if (!isOpen) return null;
     const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
-    return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-6">Add New Harvest</h2><form onSubmit={handleSubmit}><div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label className="block text-sm font-medium text-gray-700">Date</label><input type="date" name="date" value={formData.date} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required /></div><div><label className="block text-sm font-medium text-gray-700">Crop/Produce</label><input list="crop-options" name="crop" value={formData.crop} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required /><datalist id="crop-options">{cropOptions.map(c => <option key={c} value={c} />)}</datalist></div><div><label className="block text-sm font-medium text-gray-700">Quantity</label><input type="number" name="quantity" value={formData.quantity} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required /></div><div><label className="block text-sm font-medium text-gray-700">Unit</label><input type="text" name="unit" value={formData.unit} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required /></div><div><label className="block text-sm font-medium text-gray-700">Quality/Grade</label><select name="grade" value={formData.grade} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"><option value="A">A (Premium)</option><option value="B">B (Standard)</option><option value="C">C (Basic)</option></select></div></div><div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">Cancel</button><button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md">Save</button></div></form></div></div>);
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.grade || formData.grade.trim() === '') {
+            alert('Please enter a quality grade');
+            return;
+        }
+        onSave(formData);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center">
+            <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+                <h2 className="text-2xl font-bold mb-6">Add New Harvest</h2>
+                <form onSubmit={handleSubmit}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Date</label>
+                            <input type="date" name="date" value={formData.date} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Crop/Produce</label>
+                            <input list="crop-options" name="crop" value={formData.crop} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required />
+                            <datalist id="crop-options">{cropOptions.map(c => <option key={c} value={c} />)}</datalist>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Quantity</label>
+                            <input type="number" name="quantity" value={formData.quantity} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Unit</label>
+                            <input type="text" name="unit" value={formData.unit} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700">Quality/Grade</label>
+                            <input
+                                list="grade-options"
+                                name="grade"
+                                value={formData.grade}
+                                onChange={handleChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                                placeholder="e.g., Premium, Export Quality, Grade A"
+                                required
+                            />
+                            <datalist id="grade-options">
+                                {availableGrades.map(g => <option key={g} value={g} />)}
+                            </datalist>
+                            <p className="text-xs text-gray-500 mt-1">Enter any grade name or select from previously used grades</p>
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-4 mt-8">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 const SaleModal = ({ isOpen, onClose, onSave, itemToSell }) => {
     const [formData, setFormData] = useState({ date: '', crop: '', grade: '', quantity: '', unit: '', pricePerUnit: '' });
@@ -363,7 +610,118 @@ const EditWorkerModal = ({ isOpen, onClose, onSave, worker }) => {
     if (!isOpen) return null;
     const handleChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
     const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
-    return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-6">Edit Worker Details</h2><form onSubmit={handleSubmit}><div className="space-y-4"><div><label className="block text-sm font-medium">Name</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" required /></div><div><label className="block text-sm font-medium">Role</label><input type="text" name="role" value={formData.role || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" required /></div><div><label className="block text-sm font-medium">Salary per Day (₹)</label><input type="number" name="perDaySalary" value={formData.perDaySalary || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" required /></div><div><label className="block text-sm font-medium">Contact</label><input type="text" name="contact" value={formData.contact || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" /></div></div><div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button><button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md">Save Changes</button></div></form></div></div>);
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center">
+            <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+                <h2 className="text-2xl font-bold mb-6">Edit Worker Details</h2>
+                <form onSubmit={handleSubmit}>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium">Name</label>
+                            <input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Role</label>
+                            <input type="text" name="role" value={formData.role || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Skills</label>
+                            <input type="text" name="skills" value={formData.skills || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" placeholder="e.g., Tractor Operation, Irrigation, Harvesting" />
+                            <p className="text-xs text-gray-500 mt-1">Comma-separated list of skills</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Salary per Day (₹)</label>
+                            <input type="number" name="perDaySalary" value={formData.perDaySalary || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Contact</label>
+                            <input type="text" name="contact" value={formData.contact || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300" />
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-4 mt-8">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const AddWorkerModal = ({ isOpen, onClose, onSave }) => {
+    const [formData, setFormData] = useState({
+        name: '',
+        role: '',
+        skills: '',
+        perDaySalary: '',
+        contact: '',
+        loanBalance: 0
+    });
+
+    useEffect(() => {
+        if (isOpen) {
+            // Reset form when modal opens
+            setFormData({
+                name: '',
+                role: '',
+                skills: '',
+                perDaySalary: '',
+                contact: '',
+                loanBalance: 0
+            });
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center">
+            <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+                <h2 className="text-2xl font-bold mb-6">Add New Worker</h2>
+                <form onSubmit={handleSubmit}>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium">Name *</label>
+                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 border p-2" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Role *</label>
+                            <input type="text" name="role" value={formData.role} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 border p-2" placeholder="e.g., Harvester, Tractor Operator" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Skills</label>
+                            <input type="text" name="skills" value={formData.skills} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 border p-2" placeholder="e.g., Tractor Operation, Irrigation, Harvesting" />
+                            <p className="text-xs text-gray-500 mt-1">Comma-separated list of skills</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Salary per Day (₹) *</label>
+                            <input type="number" name="perDaySalary" value={formData.perDaySalary} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 border p-2" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Contact</label>
+                            <input type="text" name="contact" value={formData.contact} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 border p-2" placeholder="Phone number" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Initial Loan Balance (₹)</label>
+                            <input type="number" name="loanBalance" value={formData.loanBalance} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 border p-2" placeholder="0" />
+                            <p className="text-xs text-gray-500 mt-1">Leave as 0 if no existing loan</p>
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-4 mt-8">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Add Worker</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 const LoanAdjustmentModal = ({ isOpen, onClose, onSave, worker }) => {
     const [advance, setAdvance] = useState('');
@@ -445,7 +803,7 @@ const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
 
 
 // --- FEATURE MODULES (SUB-COMPONENTS FOR WORKERS) ---
-const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPayment, onAdjustLoan }) => {
+const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPayment, onAdjustLoan, onDeactivate, onActivate }) => {
     const { getWeeklyTransactions } = useData();
     const [adjustments, setAdjustments] = useState({});
     const [confirmedPayments, setConfirmedPayments] = useState({});
@@ -545,7 +903,29 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
                         return (
                             <React.Fragment key={w.id}>
                                 <tr className="border-b">
-                                    <td className="p-3 font-medium">{w.name}<span className="block text-xs text-gray-500">{w.role}</span></td>
+                                    <td className="p-3 font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <div>
+                                                {w.name}
+                                                <span className="block text-xs text-gray-500">{w.role}</span>
+                                            </div>
+                                            {w.isActive === false && (
+                                                <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full whitespace-nowrap">
+                                                    Inactive
+                                                </span>
+                                            )}
+                                        </div>
+                                        {w.isActive === false && w.lastActiveDate && (
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                Last worked: {w.lastActiveDate}
+                                            </div>
+                                        )}
+                                        {w.isActive === false && w.seasonalNotes && (
+                                            <div className="text-xs text-blue-600 mt-1 italic">
+                                                {w.seasonalNotes}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className={`p-3 font-semibold ${w.loanBalance > 0 ? 'text-red-600' : 'text-gray-700'}`}>
                                         <div className="flex items-center space-x-2">
                                             <span>{w.loanBalance.toLocaleString('en-IN')}</span>
@@ -568,11 +948,26 @@ const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPay
                                             <span className="text-xs text-gray-400">No activity</span>
                                         )}
                                     </td>
-                                    <td className="p-3"><div className="flex flex-col space-y-1"><div className="flex space-x-1"><input type="number" placeholder="Advance" value={adjustments[w.id]?.advance || ''} onChange={(e) => handleAdjustmentChange(w.id, 'advance', e.target.value)} disabled={isConfirmed} className="w-20 p-1 border rounded text-xs disabled:bg-gray-100" /><input type="number" placeholder="Repay" value={adjustments[w.id]?.repayment || ''} onChange={(e) => handleAdjustmentChange(w.id, 'repayment', e.target.value)} disabled={isConfirmed} className="w-20 p-1 border rounded text-xs disabled:bg-gray-100" /></div><input type="number" placeholder="Bonus" value={adjustments[w.id]?.bonus || ''} onChange={(e) => handleAdjustmentChange(w.id, 'bonus', e.target.value)} disabled={isConfirmed} className="w-full p-1 border rounded text-xs disabled:bg-gray-100 bg-yellow-50 border-yellow-300" /></div></td>
+                                    <td className="p-3"><div className="flex flex-col space-y-1"><div className="flex space-x-1"><input type="number" placeholder="Advance" value={adjustments[w.id]?.advance || ''} onChange={(e) => handleAdjustmentChange(w.id, 'advance', e.target.value)} disabled={isConfirmed || w.isActive === false} className="w-20 p-1 border rounded text-xs disabled:bg-gray-100" /><input type="number" placeholder="Repay" value={adjustments[w.id]?.repayment || ''} onChange={(e) => handleAdjustmentChange(w.id, 'repayment', e.target.value)} disabled={isConfirmed || w.isActive === false} className="w-20 p-1 border rounded text-xs disabled:bg-gray-100" /></div><input type="number" placeholder="Bonus" value={adjustments[w.id]?.bonus || ''} onChange={(e) => handleAdjustmentChange(w.id, 'bonus', e.target.value)} disabled={isConfirmed || w.isActive === false} className="w-full p-1 border rounded text-xs disabled:bg-gray-100 bg-yellow-50 border-yellow-300" /></div></td>
                                     <td className="p-3 font-bold text-lg text-blue-600">{finalPayout.toLocaleString('en-IN')}</td>
-                                    <td className="p-3 flex items-center space-x-2">
-                                        <button onClick={() => onEdit(w)} className="text-blue-600 hover:text-blue-800"><EditIcon /></button>
-                                        <button onClick={() => handleConfirmPayment(w)} disabled={isConfirmed} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{isConfirmed ? 'Paid' : 'Confirm'}</button>
+                                    <td className="p-3">
+                                        <div className="flex flex-col items-start space-y-1">
+                                            <div className="flex items-center space-x-2">
+                                                <button onClick={() => onEdit(w)} className="text-blue-600 hover:text-blue-800" title="Edit Worker"><EditIcon /></button>
+                                                {w.isActive !== false ? (
+                                                    <>
+                                                        <button onClick={() => handleConfirmPayment(w)} disabled={isConfirmed} className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{isConfirmed ? 'Paid' : 'Confirm'}</button>
+                                                    </>
+                                                ) : (
+                                                    <button disabled className="px-3 py-1 text-sm bg-gray-300 text-gray-500 rounded cursor-not-allowed" title="Cannot pay inactive worker">Inactive</button>
+                                                )}
+                                            </div>
+                                            {w.isActive !== false ? (
+                                                <button onClick={() => onDeactivate && onDeactivate(w.id, w.name)} className="text-xs text-orange-600 hover:text-orange-800 hover:underline">Mark Inactive</button>
+                                            ) : (
+                                                <button onClick={() => onActivate && onActivate(w.id)} className="text-xs text-green-600 hover:text-green-800 hover:underline font-semibold">Reactivate Worker</button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                                 {isConfirmed && (
@@ -941,27 +1336,76 @@ const ResourceInventory = () => {
     );
 };
 const WorkerManagement = () => {
-    const { workers, attendance, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, currentDate, isLoading } = useData();
+    const { workers, attendance, addWorker, updateWorkerDetails, markAttendance, confirmWorkerPayment, adjustLoanBalance, deactivateWorker, activateWorker, currentDate, isLoading } = useData();
     const [view, setView] = useState('payments');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
     const [selectedWorker, setSelectedWorker] = useState(null);
+    const [showInactive, setShowInactive] = useState(false);
+
+    // Filter workers based on showInactive toggle
+    const displayedWorkers = showInactive ? workers : workers.filter(w => w.isActive !== false);
 
     const handleEditClick = (worker) => { setSelectedWorker(worker); setIsEditModalOpen(true); };
     const handleSaveWorker = (updatedWorker) => { updateWorkerDetails(updatedWorker); setIsEditModalOpen(false); };
 
+    const handleAddWorker = (workerData) => {
+        addWorker(workerData);
+        setIsAddModalOpen(false);
+    };
+
     const handleAdjustLoanClick = (worker) => { setSelectedWorker(worker); setIsLoanModalOpen(true); };
     const handleSaveLoanAdjustment = (adjustmentData) => { adjustLoanBalance(adjustmentData); setIsLoanModalOpen(false); };
+
+    const handleDeactivate = (workerId, workerName) => {
+        const notes = prompt(`Mark ${workerName} as inactive.\n\nOptional: Add notes (e.g., "Harvest season ended - Expected return: March 2026")`);
+        if (notes !== null) {  // null means cancelled
+            deactivateWorker(workerId, notes || '');
+        }
+    };
+
+    const handleActivate = (workerId) => {
+        activateWorker(workerId);
+    };
 
     if (isLoading) return <Spinner />;
     return (<>
         <EditWorkerModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleSaveWorker} worker={selectedWorker} />
+        <AddWorkerModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSave={handleAddWorker} />
         <LoanAdjustmentModal isOpen={isLoanModalOpen} onClose={() => setIsLoanModalOpen(false)} onSave={handleSaveLoanAdjustment} worker={selectedWorker} />
-        <div className="mb-4 border-b border-gray-200"><nav className="-mb-px flex space-x-6"><button onClick={() => setView('payments')} className={`py-3 px-1 border-b-2 font-medium ${view === 'payments' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Weekly Payments</button><button onClick={() => setView('daily')} className={`py-3 px-1 border-b-2 font-medium ${view === 'daily' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Daily Attendance</button><button onClick={() => setView('monthly')} className={`py-3 px-1 border-b-2 font-medium ${view === 'monthly' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Monthly View</button></nav></div>
-        <Card title={{ 'payments': 'Weekly Worker Payments', 'daily': "Today's Attendance", 'monthly': 'Monthly Attendance View' }[view]}>
-            {view === 'payments' && <WorkerPayments workers={workers} attendance={attendance} onEdit={handleEditClick} currentDate={currentDate} onConfirmPayment={confirmWorkerPayment} onAdjustLoan={handleAdjustLoanClick} />}
-            {view === 'daily' && <DailyAttendance workers={workers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}
-            {view === 'monthly' && <MonthlyAttendance workers={workers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}
+        <div className="mb-4 border-b border-gray-200">
+            <nav className="-mb-px flex space-x-6">
+                <button onClick={() => setView('payments')} className={`py-3 px-1 border-b-2 font-medium ${view === 'payments' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Weekly Payments</button>
+                <button onClick={() => setView('daily')} className={`py-3 px-1 border-b-2 font-medium ${view === 'daily' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Daily Attendance</button>
+                <button onClick={() => setView('monthly')} className={`py-3 px-1 border-b-2 font-medium ${view === 'monthly' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Monthly View</button>
+            </nav>
+        </div>
+        <Card
+            title={{ 'payments': 'Weekly Worker Payments', 'daily': "Today's Attendance", 'monthly': 'Monthly Attendance View' }[view]}
+            titleActions={
+                <div className="flex items-center space-x-4">
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center text-sm"
+                    >
+                        <span className="mr-2">+</span> Add Worker
+                    </button>
+                    <label className="flex items-center space-x-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={showInactive}
+                            onChange={(e) => setShowInactive(e.target.checked)}
+                            className="rounded border-gray-300"
+                        />
+                        <span className="text-gray-600">Show Inactive Workers</span>
+                    </label>
+                </div>
+            }
+        >
+            {view === 'payments' && <WorkerPayments workers={displayedWorkers} attendance={attendance} onEdit={handleEditClick} currentDate={currentDate} onConfirmPayment={confirmWorkerPayment} onAdjustLoan={handleAdjustLoanClick} onDeactivate={handleDeactivate} onActivate={handleActivate} />}
+            {view === 'daily' && <DailyAttendance workers={displayedWorkers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}
+            {view === 'monthly' && <MonthlyAttendance workers={displayedWorkers} attendance={attendance} onMark={markAttendance} currentDate={currentDate} />}
         </Card>
     </>);
 };
