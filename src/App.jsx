@@ -1,5 +1,7 @@
 import React, { useState, useEffect, createContext, useContext, Suspense, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { useAuth } from './contexts/AuthContext';
+import AccountSettings from './components/settings/AccountSettings';
 
 // --- MOCK DATA LAYER (DEMO DATA) ---
 const MOCK_CURRENT_DATE = new Date('2025-10-13T12:00:00Z');
@@ -487,13 +489,10 @@ const DataProvider = ({ children }) => {
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 
+
 const useData = () => useContext(DataContext);
-const AuthContext = createContext(null);
-const AuthProvider = ({ children }) => {
-    const [user] = useState(mockDatabase.user);
-    return <AuthContext.Provider value={{ user }}>{children}</AuthContext.Provider>;
-};
-const useAuth = () => useContext(AuthContext);
+
+
 
 
 // --- SHARED UI COMPONENTS & ICONS ---
@@ -1414,9 +1413,78 @@ const WorkerManagement = () => {
 // --- LAYOUT & APP ROUTING ---
 const NavLink = ({ to, icon, children, currentPath }) => { const isActive = (currentPath === '/' && to === '/') || (currentPath === to); return (<a href={to} className={`flex items-center px-4 py-3 text-lg rounded-lg ${isActive ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700'}`}>{icon}<span className="ml-4">{children}</span></a>); }
 const Sidebar = ({ isSidebarOpen, currentPath }) => (<aside className={`bg-green-800 text-white w-64 space-y-2 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30`}><div className="px-4 mb-8 text-center"><h1 className="text-3xl font-bold">FarmSight 360</h1><p className="text-sm text-green-200">Yield & Workforce Tracker</p></div><nav><NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink><NavLink to="/crops" icon={<YieldIcon />} currentPath={currentPath}>Crop Management</NavLink><NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink><NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Financials</NavLink><NavLink to="/resources" icon={<FertiliserIcon />} currentPath={currentPath}>Farm Resources</NavLink></nav></aside>);
-const Header = ({ toggleSidebar }) => { const { user } = useAuth(); return (<header className="bg-white shadow-sm p-4 flex justify-between items-center z-10"><button onClick={toggleSidebar} className="text-gray-500 focus:outline-none md:hidden"><svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button><div className="text-2xl font-bold text-gray-700 hidden md:block">Welcome, {user ? user.name : 'Guest'}!</div>{user && (<div className="flex items-center"><div className="text-right mr-4"><p className="font-semibold">{user.name}</p><p className="text-sm text-gray-500">{user.role}</p></div><img className="h-12 w-12 rounded-full" src={`https://i.pravatar.cc/150?u=${user.name}`} alt="User Avatar" /></div>)}</header>); };
+const Header = ({ toggleSidebar }) => {
+    const { currentUser, currentFarm, logout } = useAuth();
+    const [showDropdown, setShowDropdown] = useState(false);
 
-const routes = { '/': Dashboard, '/crops': CropManagement, '/workers': WorkerManagement, '/financials': FinancialTracking, '/resources': ResourceInventory };
+    const handleLogout = () => {
+        logout();
+        window.location.reload(); // Reload to show login page
+    };
+
+    const navigateToSettings = () => {
+        window.history.pushState({}, '', '/settings');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        setShowDropdown(false);
+    };
+
+    return (
+        <header className="bg-white shadow-sm p-4 flex justify-between items-center z-10">
+            <button onClick={toggleSidebar} className="text-gray-500 focus:outline-none md:hidden">
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            </button>
+            <div className="text-2xl font-bold text-gray-700 hidden md:block">
+                Welcome, {currentUser ? currentUser.name : 'Guest'}!
+            </div>
+            {currentUser && (
+                <div className="relative">
+                    <div
+                        className="flex items-center cursor-pointer"
+                        onClick={() => setShowDropdown(!showDropdown)}
+                    >
+                        <div className="text-right mr-4">
+                            <p className="font-semibold">{currentUser.name}</p>
+                            <p className="text-sm text-gray-500">{currentFarm?.name || 'No Farm Selected'}</p>
+                        </div>
+                        <img
+                            className="h-12 w-12 rounded-full"
+                            src={`https://i.pravatar.cc/150?u=${currentUser.name}`}
+                            alt="User Avatar"
+                        />
+                    </div>
+
+                    {showDropdown && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
+                            <button
+                                onClick={navigateToSettings}
+                                className="w-full text-left px-4 py-2 text-sm text-700 hover:bg-gray-100 flex items-center"
+                            >
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Settings
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                            >
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                Logout
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </header>
+    );
+};
+
+const routes = { '/': Dashboard, '/crops': CropManagement, '/workers': WorkerManagement, '/financials': FinancialTracking, '/resources': ResourceInventory, '/settings': AccountSettings };
 
 export default function App() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -1424,20 +1492,18 @@ export default function App() {
     useEffect(() => { const onLocationChange = () => setCurrentPath(window.location.pathname); window.addEventListener('popstate', onLocationChange); const handleLinkClick = (e) => { if (e.target.tagName === 'A' && e.target.href.startsWith(window.location.origin) && e.target.target !== '_blank') { e.preventDefault(); window.history.pushState({}, '', e.target.href); onLocationChange(); } }; window.addEventListener('click', handleLinkClick); return () => { window.removeEventListener('popstate', onLocationChange); window.removeEventListener('click', handleLinkClick); }; }, []);
     const Page = routes[currentPath] || routes['/'];
     return (
-        <AuthProvider>
-            <DataProvider>
-                <div className="flex h-screen bg-gray-100 font-sans">
-                    <Sidebar isSidebarOpen={isSidebarOpen} currentPath={currentPath} />
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <Header toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
-                        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-                            <Suspense fallback={<Spinner />}>
-                                <Page />
-                            </Suspense>
-                        </main>
-                    </div>
+        <DataProvider>
+            <div className="flex h-screen bg-gray-100 font-sans">
+                <Sidebar isSidebarOpen={isSidebarOpen} currentPath={currentPath} />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <Header toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                        <Suspense fallback={<Spinner />}>
+                            <Page />
+                        </Suspense>
+                    </main>
                 </div>
-            </DataProvider>
-        </AuthProvider>
+            </div>
+        </DataProvider>
     );
 }
