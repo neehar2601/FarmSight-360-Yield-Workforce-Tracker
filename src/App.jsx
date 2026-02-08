@@ -1449,8 +1449,8 @@ const Header = ({ toggleSidebar }) => {
                             <p className="text-sm text-gray-500">{currentFarm?.name || 'No Farm Selected'}</p>
                         </div>
                         <img
-                            className="h-12 w-12 rounded-full"
-                            src={`https://i.pravatar.cc/150?u=${currentUser.name}`}
+                            className="h-12 w-12 rounded-full object-cover"
+                            src={currentUser.profilePicture || `https://i.pravatar.cc/150?u=${currentUser.name}`}
                             alt="User Avatar"
                         />
                     </div>
