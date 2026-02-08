@@ -10,9 +10,12 @@ const AccountSettings = ({ onClose }) => {
     // Profile Edit State
     const [profileData, setProfileData] = useState({
         name: currentUser?.name || '',
-        email: currentUser?.email || ''
+        email: currentUser?.email || '',
+        profilePicture: currentUser?.profilePicture || ''
     });
     const [profileErrors, setProfileErrors] = useState({});
+    const [profilePicturePreview, setProfilePicturePreview] = useState(currentUser?.profilePicture || '');
+    const fileInputRef = React.useRef(null);
 
     // Password Change State
     const [passwordData, setPasswordData] = useState({
@@ -37,6 +40,45 @@ const AccountSettings = ({ onClose }) => {
     const showMessage = (type, text) => {
         setMessage({ type, text });
         setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    };
+
+    // Profile Picture Handlers
+    const handleProfilePictureChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showMessage('error', 'Please select a valid image file');
+                return;
+            }
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showMessage('error', 'Image size must be less than 5MB');
+                return;
+            }
+
+            // Read file and convert to base64
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result;
+                setProfilePicturePreview(base64String);
+                setProfileData(prev => ({ ...prev, profilePicture: base64String }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveProfilePicture = () => {
+        setProfilePicturePreview('');
+        setProfileData(prev => ({ ...prev, profilePicture: '' }));
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const triggerFileInput = () => {
+        fileInputRef.current?.click();
     };
 
     // Profile Update Handlers
@@ -270,8 +312,8 @@ const AccountSettings = ({ onClose }) => {
                         <button
                             onClick={() => setActiveTab('profile')}
                             className={`flex-1 px-6 py-4 font-medium ${activeTab === 'profile'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                                 }`}
                         >
                             Profile
@@ -279,8 +321,8 @@ const AccountSettings = ({ onClose }) => {
                         <button
                             onClick={() => setActiveTab('password')}
                             className={`flex-1 px-6 py-4 font-medium ${activeTab === 'password'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                                 }`}
                         >
                             Password
@@ -288,8 +330,8 @@ const AccountSettings = ({ onClose }) => {
                         <button
                             onClick={() => setActiveTab('farms')}
                             className={`flex-1 px-6 py-4 font-medium ${activeTab === 'farms'
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                                 }`}
                         >
                             Farms
@@ -301,6 +343,58 @@ const AccountSettings = ({ onClose }) => {
                         {activeTab === 'profile' && (
                             <form onSubmit={handleProfileSubmit} className="space-y-4">
                                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Profile Information</h2>
+
+                                {/* Profile Picture Section */}
+                                <div className="flex items-center space-x-6 pb-6 border-b border-gray-200">
+                                    <div className="relative">
+                                        <img
+                                            src={profilePicturePreview || `https://i.pravatar.cc/150?u=${currentUser?.name}`}
+                                            alt="Profile"
+                                            className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
+                                        />
+                                        {profilePicturePreview && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveProfilePicture}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                title="Remove picture"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-sm font-medium text-gray-700 mb-2">Profile Picture</h3>
+                                        <p className="text-xs text-gray-500 mb-3">JPG, PNG or GIF. Max size 5MB.</p>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleProfilePictureChange}
+                                            className="hidden"
+                                        />
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={triggerFileInput}
+                                                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                                            >
+                                                Upload Picture
+                                            </button>
+                                            {profilePicturePreview && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveProfilePicture}
+                                                    className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors"
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <div>
                                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
