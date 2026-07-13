@@ -21,13 +21,28 @@ const mockDatabase = {
         { id: 1, date: '2025-09-11', crop: 'Tomatoes', quantity: 100, unit: 'kg', grade: 'Premium', revenue: 4000, isMiscellaneous: false },
         { id: 2, date: '2025-09-12', crop: null, quantity: 5, unit: 'kg', grade: null, revenue: 2500, isMiscellaneous: true, partyName: 'Local Nursery', description: 'Tomato Seeds' },
     ],
-    cropOptions: ['Tomatoes', 'Potatoes', 'Onions', 'Spinach', 'Wheat', 'Sugarcane', 'Cotton'],
-    // Farm Crops - Cultivation Planning
+    // Phase 4: CROP_MASTER — crop registry with metadata
+    cropMaster: [
+        { name: 'Tomatoes',  defaultUnit: 'kg',   notes: 'Warm season vegetable' },
+        { name: 'Potatoes',  defaultUnit: 'kg',   notes: 'Cool season tuber crop' },
+        { name: 'Onions',    defaultUnit: 'kg',   notes: 'Rabi & Kharif crop' },
+        { name: 'Spinach',   defaultUnit: 'kg',   notes: 'Leafy greens' },
+        { name: 'Wheat',     defaultUnit: 'kg',   notes: 'Rabi cereal crop' },
+        { name: 'Sugarcane', defaultUnit: 'tonnes', notes: 'Cash crop' },
+        { name: 'Cotton',    defaultUnit: 'quintals', notes: 'Kharif cash crop' },
+    ],
+    // Phase 2: FIELD sub-division
+    fields: [
+        { id: 1, name: 'North Field', area: 5.5, areaUnit: 'acres', soilType: 'Loamy', notes: 'Main cultivation area' },
+        { id: 2, name: 'South Field', area: 4.0, areaUnit: 'acres', soilType: 'Sandy loam', notes: 'Winter crops' },
+        { id: 3, name: 'East Plot', area: 1.5, areaUnit: 'acres', soilType: 'Clay', notes: 'Leafy greens plot' },
+    ],
+    // Farm Crops - Cultivation Planning (now with optional fieldId)
     farmCrops: [
-        { id: 1, crop: 'Tomatoes', area: 2.5, areaUnit: 'acres', plantCount: 5000, plantingDate: '2025-08-01', expectedHarvestDate: '2025-11-15', notes: 'Hybrid variety - Better Boy', isActive: true },
-        { id: 2, crop: 'Potatoes', area: 3.0, areaUnit: 'acres', plantCount: 8000, plantingDate: '2025-07-15', expectedHarvestDate: '2025-10-30', notes: 'Kufri Jyoti variety', isActive: true },
-        { id: 3, crop: 'Onions', area: 1.5, areaUnit: 'acres', plantCount: 3000, plantingDate: '2025-09-01', expectedHarvestDate: '2025-12-20', notes: 'Red onion variety', isActive: true },
-        { id: 4, crop: 'Wheat', area: 5.0, areaUnit: 'acres', plantCount: 12000, plantingDate: '2025-11-01', expectedHarvestDate: '2026-03-15', notes: 'Rabi season crop', isActive: true },
+        { id: 1, crop: 'Tomatoes', fieldId: 1, area: 2.5, areaUnit: 'acres', plantCount: 5000, plantingDate: '2025-08-01', expectedHarvestDate: '2025-11-15', notes: 'Hybrid variety - Better Boy', isActive: true },
+        { id: 2, crop: 'Potatoes', fieldId: 2, area: 3.0, areaUnit: 'acres', plantCount: 8000, plantingDate: '2025-07-15', expectedHarvestDate: '2025-10-30', notes: 'Kufri Jyoti variety', isActive: true },
+        { id: 3, crop: 'Onions',   fieldId: 2, area: 1.5, areaUnit: 'acres', plantCount: 3000, plantingDate: '2025-09-01', expectedHarvestDate: '2025-12-20', notes: 'Red onion variety', isActive: true },
+        { id: 4, crop: 'Wheat',    fieldId: 1, area: 5.0, areaUnit: 'acres', plantCount: 12000, plantingDate: '2025-11-01', expectedHarvestDate: '2026-03-15', notes: 'Rabi season crop', isActive: true },
     ],
     // Workers with skills and seasonal status (active/inactive)
     workers: [
@@ -52,34 +67,70 @@ const mockDatabase = {
         ]
     },
     resources: {
-        'Fertilisers': [{ id: 1, name: 'Urea', stock: 50, unit: 'bags' }, { id: 2, name: 'DAP', stock: 35, unit: 'bags' }],
-        'Pesticides': [{ id: 1, name: 'Neem Oil', stock: 10, unit: 'L' }, { id: 2, name: 'Lambda', stock: 5, unit: 'L' }],
-        'Equipments': [{ id: 1, name: 'Sprayer', stock: 2, unit: 'units' }, { id: 2, name: 'Spade', stock: 5, unit: 'units' }],
-        'Vehicles': [{ id: 1, name: 'Tractor', stock: 1, unit: 'pcs' }],
+        'Fertilisers': [
+            { id: 1, name: 'Urea',     stock: 50, unit: 'bags',  reorderLevel: 10 },
+            { id: 2, name: 'DAP',      stock: 35, unit: 'bags',  reorderLevel: 8  },
+        ],
+        'Pesticides': [
+            { id: 1, name: 'Neem Oil', stock: 10, unit: 'L',     reorderLevel: 3  },
+            { id: 2, name: 'Lambda',   stock: 5,  unit: 'L',     reorderLevel: 2  },
+        ],
+        'Equipments': [
+            { id: 1, name: 'Sprayer',  stock: 2,  unit: 'units', reorderLevel: 1  },
+            { id: 2, name: 'Spade',    stock: 5,  unit: 'units', reorderLevel: 2  },
+        ],
+        'Vehicles': [
+            { id: 1, name: 'Tractor',  stock: 1,  unit: 'pcs',  reorderLevel: 1  },
+        ],
     },
+    // Phase 1: RESOURCE_PURCHASE purchase history log
+    resourcePurchases: [],
     yieldChartData: [{ name: 'May', Tomatoes: 4000, Potatoes: 2400 }, { name: 'Jun', Tomatoes: 3000, Potatoes: 1398 }, { name: 'Jul', Tomatoes: 2000, Potatoes: 9800 }, { name: 'Aug', Tomatoes: 2780, Potatoes: 3908 }, { name: 'Sep', Tomatoes: 1890, Potatoes: 4800 },],
     financialChartData: [{ name: 'May', revenue: 50000, expenses: 30000 }, { name: 'Jun', revenue: 65000, expenses: 40000 }, { name: 'Jul', revenue: 90000, expenses: 55000 }, { name: 'Aug', revenue: 75000, expenses: 50000 }, { name: 'Sep', revenue: 98800, expenses: 45000 },]
 };
 
 // --- DATA UTILITIES & HELPERS ---
-const aggregateInventory = (yields, sales) => {
+// aggregateInventory: computes current stock from yields, sales, and segregation records.
+// Yields with empty grade are bucketed as 'Unsegregated'. Segregations deduct from that
+// bucket and distribute into graded buckets.
+const aggregateInventory = (yields, sales, segregations = []) => {
     const inventoryMap = new Map();
+
     yields.forEach(y => {
-        const key = `${y.crop}-${y.grade}`;
-        const currentQty = inventoryMap.get(key)?.quantity || 0;
-        inventoryMap.set(key, { crop: y.crop, grade: y.grade, quantity: currentQty + y.quantity, unit: y.unit });
+        const grade = y.grade && y.grade.trim() ? y.grade : 'Unsegregated';
+        const key = `${y.crop}|||${grade}`;
+        const current = inventoryMap.get(key) || { crop: y.crop, grade, quantity: 0, unit: y.unit, isUnsegregated: grade === 'Unsegregated' };
+        inventoryMap.set(key, { ...current, quantity: current.quantity + y.quantity });
     });
-    // Only subtract non-miscellaneous sales from inventory
+
+    // Apply segregations: reduce unsegregated pool, add to graded buckets
+    (segregations || []).forEach(seg => {
+        const unsegKey = `${seg.cropName}|||Unsegregated`;
+        const totalSeg = seg.batches.reduce((sum, b) => sum + b.quantity, 0);
+        if (inventoryMap.has(unsegKey)) {
+            const c = inventoryMap.get(unsegKey);
+            inventoryMap.set(unsegKey, { ...c, quantity: c.quantity - totalSeg });
+        }
+        seg.batches.forEach(b => {
+            const key = `${seg.cropName}|||${b.grade}`;
+            const current = inventoryMap.get(key) || { crop: seg.cropName, grade: b.grade, quantity: 0, unit: seg.unit };
+            inventoryMap.set(key, { ...current, quantity: current.quantity + b.quantity });
+        });
+    });
+
+    // Subtract sales (only non-miscellaneous, graded sales)
     sales.forEach(s => {
         if (!s.isMiscellaneous && s.crop && s.grade) {
-            const key = `${s.crop}-${s.grade}`;
+            const key = `${s.crop}|||${s.grade}`;
             if (inventoryMap.has(key)) {
-                const currentQty = inventoryMap.get(key).quantity;
-                inventoryMap.set(key, { ...inventoryMap.get(key), quantity: currentQty - s.quantity });
+                const c = inventoryMap.get(key);
+                inventoryMap.set(key, { ...c, quantity: c.quantity - s.quantity });
             }
         }
     });
-    return Array.from(inventoryMap.values()).sort((a, b) => a.crop.localeCompare(b.crop) || a.grade.localeCompare(b.grade));
+
+    return Array.from(inventoryMap.values())
+        .sort((a, b) => a.crop.localeCompare(b.crop) || (a.isUnsegregated ? -1 : b.isUnsegregated ? 1 : a.grade.localeCompare(b.grade)));
 };
 
 const formatDate = (date) => date.toISOString().split('T')[0];
@@ -90,7 +141,8 @@ const DataContext = createContext(null);
 
 const DataProvider = ({ children }) => {
     const [data, setData] = useState({
-        yields: [], cropOptions: [], workers: [], financials: null, resources: {}, sales: [], inventory: [], attendance: {}, workerTransactions: [], farmCrops: []
+        yields: [], cropMaster: [], workers: [], financials: null, resources: {}, sales: [],
+        inventory: [], attendance: {}, workerTransactions: [], farmCrops: [], fields: [], resourcePurchases: [], segregations: []
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -100,34 +152,49 @@ const DataProvider = ({ children }) => {
             try {
                 const parsedData = JSON.parse(savedData);
 
-                // Migrate old deletedAt format to new isActive format
+                // Migrate old worker deletedAt → isActive
                 if (parsedData.workers) {
                     parsedData.workers = parsedData.workers.map(worker => {
-                        // If worker has deletedAt but no isActive field, migrate it
                         if (worker.deletedAt !== undefined && worker.isActive === undefined) {
-                            return {
-                                ...worker,
-                                isActive: !worker.deletedAt,  // If deletedAt exists, worker is inactive
-                                lastActiveDate: worker.deletedAt || null,
-                                seasonalNotes: worker.deletedAt ? 'Migrated from previous version' : '',
-                                deletedAt: undefined  // Remove old field
-                            };
+                            return { ...worker, isActive: !worker.deletedAt, lastActiveDate: worker.deletedAt || null, seasonalNotes: worker.deletedAt ? 'Migrated from previous version' : '', deletedAt: undefined };
                         }
-                        // Ensure all workers have the new fields
-                        return {
-                            ...worker,
-                            isActive: worker.isActive !== undefined ? worker.isActive : true,
-                            lastActiveDate: worker.lastActiveDate || null,
-                            seasonalNotes: worker.seasonalNotes || ''
-                        };
+                        return { ...worker, isActive: worker.isActive !== undefined ? worker.isActive : true, lastActiveDate: worker.lastActiveDate || null, seasonalNotes: worker.seasonalNotes || '' };
                     });
                 }
+
+                // Phase 4: Migrate cropOptions string[] → cropMaster objects
+                if (parsedData.cropOptions && !parsedData.cropMaster) {
+                    parsedData.cropMaster = parsedData.cropOptions.map(name => ({ name, defaultUnit: 'kg', notes: '' }));
+                    delete parsedData.cropOptions;
+                }
+
+                // Phase 1: Ensure resourcePurchases exists
+                if (!parsedData.resourcePurchases) parsedData.resourcePurchases = [];
+
+                // Phase 2: Ensure fields exists, migrate farmCrops to have fieldId
+                if (!parsedData.fields) parsedData.fields = [];
+                if (parsedData.farmCrops) {
+                    parsedData.farmCrops = parsedData.farmCrops.map(fc => ({ ...fc, fieldId: fc.fieldId || null }));
+                }
+
+                // Phase 1: Ensure reorderLevel on resource items
+                if (parsedData.resources) {
+                    Object.keys(parsedData.resources).forEach(cat => {
+                        parsedData.resources[cat] = parsedData.resources[cat].map(item => ({ ...item, reorderLevel: item.reorderLevel ?? 0 }));
+                    });
+                }
+
+                // Migrate: ensure segregations array exists
+                if (!parsedData.segregations) parsedData.segregations = [];
+
+                // Re-aggregate inventory so unsegregated yields & segregations are reflected
+                parsedData.inventory = aggregateInventory(parsedData.yields || [], parsedData.sales || [], parsedData.segregations);
 
                 setData(parsedData);
             } catch (e) {
                 console.error("Failed to load saved data", e);
                 // Fallback to mock data if parse fails
-                const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales);
+                const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales, []);
                 const initialRevenue = mockDatabase.sales.reduce((acc, sale) => acc + sale.revenue, 0);
                 setData({
                     ...mockDatabase,
@@ -140,17 +207,19 @@ const DataProvider = ({ children }) => {
                 });
             }
         } else {
-            const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales);
+            const initialInventory = aggregateInventory(mockDatabase.yields, mockDatabase.sales, []);
             const initialRevenue = mockDatabase.sales.reduce((acc, sale) => acc + sale.revenue, 0);
-            setData({
+            const freshData = {
                 ...mockDatabase,
+                segregations: [],
                 inventory: initialInventory,
                 workerTransactions: [],
                 financials: {
                     ...mockDatabase.financials,
                     summary: { ...mockDatabase.financials.summary, revenue: initialRevenue, profit: initialRevenue - mockDatabase.financials.summary.expenses }
                 }
-            });
+            };
+            setData(freshData);
         }
         setIsLoading(false);
     }, []);
@@ -164,9 +233,11 @@ const DataProvider = ({ children }) => {
     const addYield = (yieldData) => {
         setData(prev => {
             const newYields = [{ ...yieldData, id: Date.now() }, ...prev.yields];
-            const newInventory = aggregateInventory(newYields, prev.sales);
-            const newCropOptions = prev.cropOptions.includes(yieldData.crop) ? prev.cropOptions : [...prev.cropOptions, yieldData.crop];
-            return { ...prev, yields: newYields, inventory: newInventory, cropOptions: newCropOptions };
+            const newInventory = aggregateInventory(newYields, prev.sales, prev.segregations || []);
+            // Add to cropMaster if new crop
+            const exists = prev.cropMaster.some(c => c.name === yieldData.crop);
+            const newCropMaster = exists ? prev.cropMaster : [...prev.cropMaster, { name: yieldData.crop, defaultUnit: yieldData.unit || 'kg', notes: '' }];
+            return { ...prev, yields: newYields, inventory: newInventory, cropMaster: newCropMaster };
         });
     };
 
@@ -176,7 +247,7 @@ const DataProvider = ({ children }) => {
             // Only update inventory for non-miscellaneous sales
             const newInventory = saleData.isMiscellaneous
                 ? prev.inventory
-                : aggregateInventory(prev.yields, newSales);
+                : aggregateInventory(prev.yields, newSales, prev.segregations || []);
 
             // Create transaction description based on sale type
             let description;
@@ -314,50 +385,76 @@ const DataProvider = ({ children }) => {
         });
     };
 
-    const updateResource = (category, item) => {
+    // Phase 1: purchaseResource — creates a RESOURCE_PURCHASE record, updates stock, posts expense
+    const purchaseResource = (category, itemId, purchaseData) => {
         setData(prev => {
-            // Extract price for transaction, keep other fields for storage
-            const { pricePerUnit, ...itemToStore } = item;
-            const price = parseFloat(pricePerUnit) || 0;
+            const list = prev.resources[category] || [];
+            const item = list.find(i => i.id === itemId);
+            if (!item) return prev;
 
+            const { quantity, unitCost, vendor, notes } = purchaseData;
+            const totalCost = parseFloat(quantity) * parseFloat(unitCost);
+            const purchaseId = Date.now();
+
+            // Update stock on the item
+            const newList = list.map(i => i.id === itemId ? { ...i, stock: i.stock + parseFloat(quantity) } : i);
+
+            // Create purchase log record
+            const newPurchase = {
+                id: purchaseId,
+                resourceItemId: itemId,
+                category,
+                itemName: item.name,
+                date: formatDate(MOCK_CURRENT_DATE),
+                quantity: parseFloat(quantity),
+                unitCost: parseFloat(unitCost),
+                totalCost,
+                vendor: vendor || '',
+                notes: notes || '',
+            };
+
+            // Post expense to financial ledger with source tracking (Phase 4)
+            const newTransaction = {
+                id: purchaseId,
+                type: 'Expense',
+                description: `Purchase: ${item.name} (${quantity} ${item.unit})${vendor ? ` from ${vendor}` : ''}`,
+                amount: -totalCost,
+                category: 'Resource Purchase',
+                source_type: 'resource_purchase',
+                source_id: purchaseId,
+            };
+
+            const newFinancials = {
+                ...prev.financials,
+                summary: {
+                    ...prev.financials.summary,
+                    expenses: prev.financials.summary.expenses + totalCost,
+                    profit: prev.financials.summary.profit - totalCost,
+                },
+                recentTransactions: [newTransaction, ...prev.financials.recentTransactions],
+            };
+
+            return {
+                ...prev,
+                resources: { ...prev.resources, [category]: newList },
+                resourcePurchases: [newPurchase, ...(prev.resourcePurchases || [])],
+                financials: newFinancials,
+            };
+        });
+    };
+
+    // Phase 1: updateResourceItem — edits metadata only (name, unit, reorderLevel), never touches stock/financials
+    const updateResourceItem = (category, item) => {
+        setData(prev => {
             const list = prev.resources[category] || [];
             let newList;
-            let quantityAdded = 0;
-
-            // Check if item exists to calculate stock difference
-            if (itemToStore.id) {
-                const oldItem = list.find(i => i.id === itemToStore.id);
-                if (oldItem) {
-                    quantityAdded = itemToStore.stock - oldItem.stock;
-                }
-                newList = list.map(i => i.id === itemToStore.id ? itemToStore : i);
+            if (item.id) {
+                newList = list.map(i => i.id === item.id ? { ...i, name: item.name, unit: item.unit, reorderLevel: item.reorderLevel ?? 0 } : i);
             } else {
-                quantityAdded = itemToStore.stock;
-                newList = [...list, { ...itemToStore, id: Date.now() }];
+                // New item — stock starts at 0, must be purchased via purchaseResource
+                newList = [...list, { id: Date.now(), name: item.name, unit: item.unit, reorderLevel: item.reorderLevel ?? 0, stock: 0 }];
             }
-
-            // Handle Financials
-            let newFinancials = prev.financials;
-            if (quantityAdded > 0 && price > 0) {
-                const cost = quantityAdded * price;
-                const newTransaction = {
-                    id: Date.now(),
-                    type: 'Expense',
-                    description: `Purchase of ${category} - ${itemToStore.name} (${quantityAdded} ${itemToStore.unit})`,
-                    amount: -cost
-                };
-                newFinancials = {
-                    ...prev.financials,
-                    summary: {
-                        ...prev.financials.summary,
-                        expenses: prev.financials.summary.expenses + cost,
-                        profit: prev.financials.summary.profit - cost
-                    },
-                    recentTransactions: [newTransaction, ...prev.financials.recentTransactions]
-                };
-            }
-
-            return { ...prev, resources: { ...prev.resources, [category]: newList }, financials: newFinancials };
+            return { ...prev, resources: { ...prev.resources, [category]: newList } };
         });
     };
 
@@ -410,6 +507,44 @@ const DataProvider = ({ children }) => {
             ...prev,
             farmCrops: prev.farmCrops.filter(fc => fc.id !== cropId)
         }));
+    };
+
+    // Phase 2: Field Management
+    const addField = (fieldData) => {
+        setData(prev => ({ ...prev, fields: [...(prev.fields || []), { ...fieldData, id: Date.now() }] }));
+    };
+    const updateField = (updatedField) => {
+        setData(prev => ({ ...prev, fields: prev.fields.map(f => f.id === updatedField.id ? updatedField : f) }));
+    };
+    const deleteField = (fieldId) => {
+        setData(prev => ({
+            ...prev,
+            fields: prev.fields.filter(f => f.id !== fieldId),
+            // Unlink any farmCrops that referenced this field
+            farmCrops: prev.farmCrops.map(fc => fc.fieldId === fieldId ? { ...fc, fieldId: null } : fc),
+        }));
+    };
+
+    // Phase 4: CROP_MASTER management
+    const addCropToMaster = (cropData) => {
+        setData(prev => {
+            const exists = prev.cropMaster.some(c => c.name === cropData.name);
+            if (exists) return prev;
+            return { ...prev, cropMaster: [...prev.cropMaster, { name: cropData.name, defaultUnit: cropData.defaultUnit || 'kg', notes: cropData.notes || '' }] };
+        });
+    };
+    const updateCropMaster = (updatedCrop) => {
+        setData(prev => ({ ...prev, cropMaster: prev.cropMaster.map(c => c.name === updatedCrop.name ? updatedCrop : c) }));
+    };
+
+    // Segregation: split an unsegregated batch into graded buckets
+    const addSegregation = (segData) => {
+        // segData: { cropName, date, unit, batches: [{grade, quantity}] }
+        setData(prev => {
+            const newSegregations = [{ ...segData, id: Date.now() }, ...(prev.segregations || [])];
+            const newInventory = aggregateInventory(prev.yields, prev.sales, newSegregations);
+            return { ...prev, segregations: newSegregations, inventory: newInventory };
+        });
     };
 
     // Seasonal Worker Management (Active/Inactive Status)
@@ -473,12 +608,23 @@ const DataProvider = ({ children }) => {
         markAttendance,
         confirmWorkerPayment,
         adjustLoanBalance,
-        updateResource,
+        // Phase 1: resource purchase ledger
+        purchaseResource,
+        updateResourceItem,
         addResourceCategory,
         getWeeklyTransactions,
         addFarmCrop,
         updateFarmCrop,
         deleteFarmCrop,
+        // Phase 2: field management
+        addField,
+        updateField,
+        deleteField,
+        // Phase 4: crop master management
+        addCropToMaster,
+        updateCropMaster,
+        // Segregation
+        addSegregation,
         deactivateWorker,
         activateWorker,
         getActiveWorkers,
@@ -512,30 +658,42 @@ const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-
 const LoanIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m8-4h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2z" /></svg>;
 
 // --- MODAL COMPONENTS ---
-const YieldModal = ({ isOpen, onClose, onSave, cropOptions }) => {
+// Phase 4: YieldModal — uses cropMaster for auto-fill unit; accepts preselectedCrop
+const YieldModal = ({ isOpen, onClose, onSave, cropMaster, preselectedCrop }) => {
     const { getAllGrades } = useData();
+    const cropNames = cropMaster.map(c => c.name);
     const [formData, setFormData] = useState({ date: new Date().toISOString().split('T')[0], crop: '', quantity: '', unit: 'kg', grade: '' });
     const availableGrades = getAllGrades ? getAllGrades() : ['Premium', 'Standard', 'Export Quality', 'Grade A', 'Grade B', 'Organic Premium'];
 
     useEffect(() => {
-        if (isOpen) setFormData({
-            date: new Date().toISOString().split('T')[0],
-            crop: cropOptions[0] || '',
-            quantity: '',
-            unit: 'kg',
-            grade: ''
-        });
-    }, [isOpen, cropOptions]);
+        if (isOpen) {
+            const defaultCrop = preselectedCrop || cropNames[0] || '';
+            const master = cropMaster.find(c => c.name === defaultCrop);
+            setFormData({
+                date: new Date().toISOString().split('T')[0],
+                crop: defaultCrop,
+                quantity: '',
+                unit: master?.defaultUnit || cropMaster[0]?.defaultUnit || 'kg',
+                grade: ''
+            });
+        }
+    }, [isOpen, preselectedCrop]);
 
     if (!isOpen) return null;
-    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'crop') {
+            // Phase 4: auto-fill unit from cropMaster on crop select
+            const master = cropMaster.find(c => c.name === value);
+            setFormData(prev => ({ ...prev, crop: value, unit: master?.defaultUnit || prev.unit }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
+    };
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.grade || formData.grade.trim() === '') {
-            alert('Please enter a quality grade');
-            return;
-        }
-        onSave(formData);
+        onSave(formData); // grade is optional — empty = Unsegregated
     };
 
     return (
@@ -551,36 +709,98 @@ const YieldModal = ({ isOpen, onClose, onSave, cropOptions }) => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Crop/Produce</label>
                             <input list="crop-options" name="crop" value={formData.crop} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required />
-                            <datalist id="crop-options">{cropOptions.map(c => <option key={c} value={c} />)}</datalist>
+                            <datalist id="crop-options">{cropNames.map(c => <option key={c} value={c} />)}</datalist>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Quantity</label>
                             <input type="number" name="quantity" value={formData.quantity} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Unit</label>
+                            <label className="block text-sm font-medium text-gray-700">Unit <span className="text-xs text-green-600">(auto-filled)</span></label>
                             <input type="text" name="unit" value={formData.unit} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700">Quality/Grade</label>
-                            <input
-                                list="grade-options"
-                                name="grade"
-                                value={formData.grade}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                                placeholder="e.g., Premium, Export Quality, Grade A"
-                                required
-                            />
-                            <datalist id="grade-options">
-                                {availableGrades.map(g => <option key={g} value={g} />)}
-                            </datalist>
-                            <p className="text-xs text-gray-500 mt-1">Enter any grade name or select from previously used grades</p>
+                            <label className="block text-sm font-medium text-gray-700">
+                                Quality / Grade <span className="text-xs text-gray-400 font-normal">(optional)</span>
+                            </label>
+                            <input list="grade-options" name="grade" value={formData.grade} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="e.g., Premium, Export Quality, Grade A" />
+                            <datalist id="grade-options">{availableGrades.map(g => <option key={g} value={g} />)}</datalist>
+                            <p className="text-xs text-gray-400 mt-1">Leave blank to add as <strong>Unsegregated</strong> — you can grade it later from Inventory.</p>
                         </div>
                     </div>
                     <div className="flex justify-end space-x-4 mt-8">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">Cancel</button>
                         <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// SegregationModal — split an unsegregated harvest batch into multiple grade buckets
+const SegregationModal = ({ isOpen, onClose, onSave, cropName, availableQty, unit }) => {
+    const { getAllGrades } = useData();
+    const [batches, setBatches] = useState([{ grade: '', quantity: '' }]);
+    const [date, setDate] = useState('');
+    useEffect(() => {
+        if (isOpen) {
+            setBatches([{ grade: '', quantity: '' }]);
+            setDate(new Date().toISOString().split('T')[0]);
+        }
+    }, [isOpen]);
+    if (!isOpen) return null;
+    const availableGrades = getAllGrades ? getAllGrades() : [];
+    const totalAllocated = batches.reduce((sum, b) => sum + (parseFloat(b.quantity) || 0), 0);
+    const remaining = (availableQty || 0) - totalAllocated;
+    const addBatch = () => setBatches(p => [...p, { grade: '', quantity: '' }]);
+    const removeBatch = (i) => setBatches(p => p.filter((_, idx) => idx !== i));
+    const updateBatch = (i, field, val) => setBatches(p => p.map((b, idx) => idx === i ? { ...b, [field]: val } : b));
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const valid = batches.filter(b => b.grade.trim() && parseFloat(b.quantity) > 0);
+        if (valid.length === 0) { alert('Add at least one grade with a quantity.'); return; }
+        if (remaining < 0) { alert(`Total allocated exceeds available stock of ${availableQty} ${unit}.`); return; }
+        onSave({ cropName, date, unit, batches: valid.map(b => ({ grade: b.grade.trim(), quantity: parseFloat(b.quantity) })) });
+    };
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
+            <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-lg">
+                <h2 className="text-2xl font-bold mb-1">Segregate Harvest</h2>
+                <p className="text-sm text-gray-500 mb-5">
+                    <strong>{cropName}</strong> — Unsegregated stock: <span className="font-semibold text-green-700">{availableQty} {unit}</span>
+                </p>
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date of Segregation</label>
+                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="block w-full rounded-md border border-gray-300 p-2" required />
+                    </div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Assign quantities to grades:</p>
+                    <div className="space-y-2 mb-3">
+                        {batches.map((b, i) => (
+                            <div key={i} className="flex gap-2 items-center">
+                                <div className="flex-1">
+                                    <input list="seg-grade-options" type="text" placeholder="Grade (e.g. Premium)" value={b.grade}
+                                        onChange={e => updateBatch(i, 'grade', e.target.value)}
+                                        className="w-full rounded-md border border-gray-300 p-2 text-sm" />
+                                    <datalist id="seg-grade-options">{availableGrades.map(g => <option key={g} value={g} />)}</datalist>
+                                </div>
+                                <input type="number" min="0" placeholder={unit} value={b.quantity}
+                                    onChange={e => updateBatch(i, 'quantity', e.target.value)}
+                                    className="w-28 rounded-md border border-gray-300 p-2 text-sm" />
+                                {batches.length > 1 && (
+                                    <button type="button" onClick={() => removeBatch(i)} className="text-red-400 hover:text-red-600 text-xl font-bold leading-none px-1">×</button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <button type="button" onClick={addBatch} className="text-green-600 text-sm hover:text-green-800 font-medium mb-4">+ Add another grade</button>
+                    <div className={`text-sm font-medium p-3 rounded-lg mb-5 ${remaining < 0 ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+                        Allocated: <strong>{totalAllocated} {unit}</strong> · Remaining ungraded: <strong>{remaining} {unit}</strong>
+                    </div>
+                    <div className="flex justify-end space-x-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">Cancel</button>
+                        <button type="submit" disabled={remaining < 0} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400">Save Segregation</button>
                     </div>
                 </form>
             </div>
@@ -762,34 +982,28 @@ const LoanAdjustmentModal = ({ isOpen, onClose, onSave, worker }) => {
     return (<div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center"><div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md"><h2 className="text-2xl font-bold mb-2">Adjust Loan for {worker.name}</h2><p className="text-sm text-gray-500 mb-6">Current Outstanding Loan: ₹{worker.loanBalance.toLocaleString('en-IN')}</p><div className="space-y-4"><div><label className="block text-sm font-medium">Give Advance (₹)</label><input type="number" placeholder="Enter advance amount" value={advance} onChange={e => { setAdvance(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div><div><label className="block text-sm font-medium">Record Repayment (₹)</label><input type="number" placeholder="Enter repayment amount" value={repayment} onChange={e => { setRepayment(e.target.value); setError(''); }} className="mt-1 block w-full rounded-md border-gray-300" /></div></div><div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md"><p className="text-xs text-blue-800"><strong>📅 Transaction Date:</strong> {currentDateStr}</p><p className="text-xs text-blue-700 mt-2">ℹ️ This mid-week transaction will be automatically included in the next weekly settlement.</p></div>{error && <p className="text-red-500 text-sm mt-4">{error}</p>}<div className="flex justify-end space-x-4 mt-8"><button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Cancel</button><button type="button" onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Confirm Adjustment</button></div></div></div>);
 };
 
+// Phase 1: ResourceModal — metadata only (no stock/price fields)
 const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
     if (!isOpen) return null;
-    const [formData, setFormData] = useState({ name: '', stock: 0, unit: '', pricePerUnit: '' });
-
+    const [formData, setFormData] = useState({ name: '', unit: '', reorderLevel: 0 });
     useEffect(() => {
-        if (item) setFormData({ ...item, pricePerUnit: '' }); // Reset price on edit
-        else setFormData({ name: '', stock: 0, unit: '', pricePerUnit: '' });
+        if (item) setFormData({ name: item.name, unit: item.unit, reorderLevel: item.reorderLevel ?? 0, id: item.id });
+        else setFormData({ name: '', unit: '', reorderLevel: 0 });
     }, [item, isOpen]);
-
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave({ ...formData, stock: Number(formData.stock) });
-    };
-
+    const handleSubmit = (e) => { e.preventDefault(); onSave({ ...formData, reorderLevel: Number(formData.reorderLevel) }); };
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg w-96">
-                <h2 className="text-xl font-bold mb-4">{item ? 'Edit' : 'Add'} Resource</h2>
+                <h2 className="text-xl font-bold mb-4">{item ? 'Edit' : 'Add'} Resource Item</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div><label className="block text-sm font-medium">Name</label><input name="name" className="w-full border p-2 rounded" value={formData.name} onChange={handleChange} required /></div>
-                    <div><label className="block text-sm font-medium">Stock</label><input type="number" name="stock" className="w-full border p-2 rounded" value={formData.stock} onChange={handleChange} required /></div>
                     <div><label className="block text-sm font-medium">Unit</label><input name="unit" className="w-full border p-2 rounded" value={formData.unit} onChange={handleChange} required /></div>
-                    <div className="pt-2 border-t mt-2">
-                        <label className="block text-sm font-medium text-gray-700">Price per Unit (₹) <span className="text-xs font-normal text-gray-500">(Optional - for Tracking Expenses)</span></label>
-                        <input type="number" name="pricePerUnit" className="w-full border p-2 rounded" value={formData.pricePerUnit} onChange={handleChange} placeholder="e.g. 50" />
-                        <p className="text-xs text-gray-500 mt-1">Leave empty if you don't want to record an expense transaction.</p>
+                    <div>
+                        <label className="block text-sm font-medium">Reorder Level <span className="text-xs font-normal text-gray-500">(alert when stock falls below)</span></label>
+                        <input type="number" name="reorderLevel" className="w-full border p-2 rounded" value={formData.reorderLevel} onChange={handleChange} />
                     </div>
+                    {!item && <p className="text-xs text-blue-700 bg-blue-50 p-2 rounded">ℹ️ New item starts with 0 stock. Use the <strong>Purchase</strong> button to add stock.</p>}
                     <div className="mt-6 flex justify-end space-x-3">
                         <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
                         <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
@@ -800,6 +1014,134 @@ const ResourceModal = ({ isOpen, onClose, onSave, item }) => {
     );
 };
 
+// Phase 1: ResourcePurchaseModal — logs a purchase, adds to stock, posts expense
+const ResourcePurchaseModal = ({ isOpen, onClose, onSave, item }) => {
+    const [formData, setFormData] = useState({ quantity: '', unitCost: '', vendor: '', notes: '' });
+    useEffect(() => { if (isOpen) setFormData({ quantity: '', unitCost: '', vendor: '', notes: '' }); }, [isOpen]);
+    if (!isOpen || !item) return null;
+    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const totalCost = formData.quantity && formData.unitCost ? (parseFloat(formData.quantity) * parseFloat(formData.unitCost)).toLocaleString('en-IN') : '—';
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.quantity || !formData.unitCost || parseFloat(formData.quantity) <= 0 || parseFloat(formData.unitCost) <= 0) { alert('Enter valid quantity and unit cost'); return; }
+        onSave(formData);
+    };
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-96">
+                <h2 className="text-xl font-bold mb-1">Purchase Stock</h2>
+                <p className="text-sm text-gray-500 mb-4">{item.name} &middot; Current stock: <strong>{item.stock} {item.unit}</strong></p>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-sm font-medium">Quantity ({item.unit})</label>
+                            <input type="number" name="quantity" className="w-full border p-2 rounded" value={formData.quantity} onChange={handleChange} placeholder="e.g. 20" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Unit Cost (₹)</label>
+                            <input type="number" name="unitCost" className="w-full border p-2 rounded" value={formData.unitCost} onChange={handleChange} placeholder="e.g. 50" required />
+                        </div>
+                    </div>
+                    <div><label className="block text-sm font-medium">Vendor <span className="text-xs font-normal text-gray-500">(optional)</span></label><input name="vendor" className="w-full border p-2 rounded" value={formData.vendor} onChange={handleChange} placeholder="Supplier name" /></div>
+                    <div><label className="block text-sm font-medium">Notes <span className="text-xs font-normal text-gray-500">(optional)</span></label><input name="notes" className="w-full border p-2 rounded" value={formData.notes} onChange={handleChange} /></div>
+                    <div className="bg-green-50 border border-green-200 rounded p-3">
+                        <p className="text-sm font-semibold text-green-800">Total Cost: ₹{totalCost}</p>
+                        <p className="text-xs text-green-700 mt-1">This will be recorded as an expense in Financials.</p>
+                    </div>
+                    <div className="flex justify-end space-x-3 mt-2">
+                        <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Confirm Purchase</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// Phase 2: FieldModal — add or edit a farm field
+const FieldModal = ({ isOpen, onClose, onSave, field }) => {
+    const [formData, setFormData] = useState({ name: '', area: '', areaUnit: 'acres', soilType: '', notes: '' });
+    useEffect(() => {
+        if (isOpen) setFormData(field ? { ...field } : { name: '', area: '', areaUnit: 'acres', soilType: '', notes: '' });
+    }, [isOpen, field]);
+    if (!isOpen) return null;
+    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const handleSubmit = (e) => { e.preventDefault(); onSave({ ...formData, area: parseFloat(formData.area) || 0 }); };
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-96">
+                <h2 className="text-xl font-bold mb-4">{field ? 'Edit' : 'Add'} Field</h2>
+                <form onSubmit={handleSubmit} className="space-y-3">
+                    <div><label className="block text-sm font-medium">Field Name *</label><input name="name" className="w-full border p-2 rounded" value={formData.name} onChange={handleChange} placeholder="e.g. North Field" required /></div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><label className="block text-sm font-medium">Area</label><input type="number" name="area" className="w-full border p-2 rounded" value={formData.area} onChange={handleChange} /></div>
+                        <div><label className="block text-sm font-medium">Unit</label>
+                            <select name="areaUnit" className="w-full border p-2 rounded" value={formData.areaUnit} onChange={handleChange}>
+                                <option>acres</option><option>hectares</option><option>sq ft</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div><label className="block text-sm font-medium">Soil Type</label><input name="soilType" className="w-full border p-2 rounded" value={formData.soilType} onChange={handleChange} placeholder="e.g. Loamy, Sandy" /></div>
+                    <div><label className="block text-sm font-medium">Notes</label><input name="notes" className="w-full border p-2 rounded" value={formData.notes} onChange={handleChange} /></div>
+                    <div className="flex justify-end space-x-3 mt-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+
+// CropMasterModal — register a new crop type with unit and notes
+const CropMasterModal = ({ isOpen, onClose, onSave }) => {
+    const [formData, setFormData] = useState({ name: '', defaultUnit: 'kg', notes: '' });
+    useEffect(() => { if (isOpen) setFormData({ name: '', defaultUnit: 'kg', notes: '' }); }, [isOpen]);
+    if (!isOpen) return null;
+    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const handleSubmit = (e) => { e.preventDefault(); if (!formData.name.trim()) return; onSave(formData); };
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center">
+            <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+                <h2 className="text-2xl font-bold mb-6">Add New Crop</h2>
+                <form onSubmit={handleSubmit}>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Crop Name *</label>
+                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm" placeholder="e.g. Tomatoes, Rice, Maize" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Default Measurement Unit</label>
+                            <select name="defaultUnit" value={formData.defaultUnit} onChange={handleChange} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm">
+                                <option value="kg">kg</option>
+                                <option value="tonnes">tonnes</option>
+                                <option value="quintals">quintals</option>
+                                <option value="bags">bags</option>
+                                <option value="L">Litres (L)</option>
+                                <option value="units">units</option>
+                                <option value="boxes">boxes</option>
+                                <option value="crates">crates</option>
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">Auto-filled when recording a harvest for this crop.</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Notes</label>
+                            <input type="text" name="notes" value={formData.notes} onChange={handleChange} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm" placeholder="e.g. Rabi season, Cash crop" />
+                        </div>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p className="text-xs text-blue-700">💡 <strong>Quality grades</strong> (e.g. Premium, Export Quality) are assigned when you record a harvest — you can use any grade name you like.</p>
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-4 mt-8">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Add Crop</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
 
 // --- FEATURE MODULES (SUB-COMPONENTS FOR WORKERS) ---
 const WorkerPayments = ({ workers, attendance, onEdit, currentDate, onConfirmPayment, onAdjustLoan, onDeactivate, onActivate }) => {
@@ -1028,205 +1370,276 @@ const Dashboard = () => {
     return (<div className="space-y-6"><div className="grid grid-cols-1 md:grid-cols-3 gap-6"><StatCard title="Total Revenue" value={`₹${financials.summary.revenue.toLocaleString('en-IN')}`} icon={<RevenueIcon />} /><StatCard title="Total Expenses" value={`₹${financials.summary.expenses.toLocaleString('en-IN')}`} icon={<ExpenseIcon />} /><StatCard title="Net Profit" value={`₹${financials.summary.profit.toLocaleString('en-IN')}`} icon={<ProfitIcon />} /></div><div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><Card title="Yield Performance"><ResponsiveContainer width="100%" height={300}><BarChart data={yieldChartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Bar dataKey="Tomatoes" fill="#8884d8" /><Bar dataKey="Potatoes" fill="#82ca9d" /></BarChart></ResponsiveContainer></Card><Card title="Financial Overview"><ResponsiveContainer width="100%" height={300}><LineChart data={financialChartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey="revenue" stroke="#8884d8" /><Line type="monotone" dataKey="expenses" stroke="#82ca9d" /></LineChart></ResponsiveContainer></Card></div></div>);
 };
 const CropManagement = () => {
-    const { yields, cropOptions, addYield, inventory, sales, addSale, isLoading } = useData();
-    const [activeTab, setActiveTab] = useState('harvests');
+    const { yields, cropMaster, addYield, inventory, sales, addSale, isLoading, addCropToMaster, addSegregation } = useData();
+    const [activeTab, setActiveTab] = useState('inventory');
     const [isYieldModalOpen, setIsYieldModalOpen] = useState(false);
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+    const [isCropMasterModalOpen, setIsCropMasterModalOpen] = useState(false);
+    const [isSegregationModalOpen, setIsSegregationModalOpen] = useState(false);
+    const [segregationTarget, setSegregationTarget] = useState(null); // { crop, quantity, unit }
     const [itemToSell, setItemToSell] = useState(null);
+    const [preselectedCrop, setPreselectedCrop] = useState(null);
     const [selectedYear, setSelectedYear] = useState('All');
     const [selectedSeason, setSelectedSeason] = useState('All');
 
-    const availableYears = useMemo(() => ['All', ...new Set(yields.map(y => new Date(y.date).getFullYear()))].sort(), [yields]);
-    const filteredYields = useMemo(() => { return yields.filter(y => { const date = new Date(y.date); const year = date.getFullYear(); const month = date.getMonth() + 1; const yearMatch = selectedYear === 'All' || year === parseInt(selectedYear); if (!yearMatch) return false; if (selectedSeason === 'All') return true; if (selectedSeason === 'Kharif' && month >= 6 && month <= 10) return true; if (selectedSeason === 'Rabi' && (month >= 11 || month <= 4)) return true; return false; }); }, [yields, selectedYear, selectedSeason]);
-
-    const groupedYields = useMemo(() => {
-        return filteredYields.reduce((acc, item) => {
-            if (!acc[item.crop]) acc[item.crop] = [];
-            acc[item.crop].push(item);
-            return acc;
-        }, {});
-    }, [filteredYields]);
-
-    const groupedInventory = useMemo(() => {
-        return inventory.reduce((acc, item) => {
-            if (!acc[item.crop]) acc[item.crop] = [];
-            acc[item.crop].push(item);
-            return acc;
-        }, {});
-    }, [inventory]);
-
-    const groupedSales = useMemo(() => {
-        return sales.reduce((acc, item) => {
-            if (!acc[item.crop]) acc[item.crop] = [];
-            acc[item.crop].push(item);
-            return acc;
-        }, {});
-    }, [sales]);
-
-    const handleSaveYield = (yieldData) => { addYield(yieldData); setIsYieldModalOpen(false); };
+    const handleSaveYield = (yieldData) => { addYield(yieldData); setIsYieldModalOpen(false); setPreselectedCrop(null); };
     const handleOpenSaleModal = (item) => { setItemToSell(item); setIsSaleModalOpen(true); };
     const handleSaveSale = (saleData) => { addSale(saleData); setIsSaleModalOpen(false); };
+    const handleOpenYieldModal = (cropName = null) => { setPreselectedCrop(cropName); setIsYieldModalOpen(true); };
+    const handleAddCrop = (cropData) => { addCropToMaster(cropData); setIsCropMasterModalOpen(false); };
+    const handleOpenSegregation = (item) => { setSegregationTarget(item); setIsSegregationModalOpen(true); };
+    const handleSaveSegregation = (segData) => { addSegregation(segData); setIsSegregationModalOpen(false); setSegregationTarget(null); };
+
+    // Inventory keyed by crop name for fast lookup
+    const inventoryByCrop = useMemo(() => inventory.reduce((acc, item) => { if (!acc[item.crop]) acc[item.crop] = []; acc[item.crop].push(item); return acc; }, {}), [inventory]);
 
     if (isLoading) return <Spinner />;
 
+    const tabBtn = (tab, label) => (
+        <button onClick={() => setActiveTab(tab)} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>{label}</button>
+    );
+
     return (
         <>
-            <YieldModal isOpen={isYieldModalOpen} onClose={() => setIsYieldModalOpen(false)} onSave={handleSaveYield} cropOptions={cropOptions} />
+            <YieldModal isOpen={isYieldModalOpen} onClose={() => { setIsYieldModalOpen(false); setPreselectedCrop(null); }} onSave={handleSaveYield} cropMaster={cropMaster} preselectedCrop={preselectedCrop} />
             <SaleModal isOpen={isSaleModalOpen} onClose={() => setIsSaleModalOpen(false)} onSave={handleSaveSale} itemToSell={itemToSell} />
+            <CropMasterModal isOpen={isCropMasterModalOpen} onClose={() => setIsCropMasterModalOpen(false)} onSave={handleAddCrop} />
+            <SegregationModal
+                isOpen={isSegregationModalOpen}
+                onClose={() => { setIsSegregationModalOpen(false); setSegregationTarget(null); }}
+                onSave={handleSaveSegregation}
+                cropName={segregationTarget?.crop}
+                availableQty={segregationTarget?.quantity}
+                unit={segregationTarget?.unit}
+            />
 
             {/* Tab Navigation */}
             <div className="mb-6 border-b border-gray-200">
                 <nav className="-mb-px flex space-x-8">
-                    <button onClick={() => setActiveTab('harvests')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'harvests' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
-                        🌾 Harvest Records
-                    </button>
-                    <button onClick={() => setActiveTab('inventory')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'inventory' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
-                        📦 Current Inventory
-                    </button>
-                    <button onClick={() => setActiveTab('sales')} className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'sales' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
-                        💰 Sales Log
-                    </button>
+                    {tabBtn('inventory', '📦 Inventory')}
+                    {tabBtn('harvests', '🌾 Harvest Log')}
+                    {tabBtn('sales', '💰 Sales Log')}
                 </nav>
             </div>
 
-            {/* Harvests Tab */}
+            {/* ── INVENTORY TAB ── primary hub */}
+            {activeTab === 'inventory' && (
+                <Card title="Crop Inventory" titleActions={
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setIsCropMasterModalOpen(true)} className="px-3 py-2 border border-green-600 text-green-700 text-sm font-medium rounded-md hover:bg-green-50">+ New Crop</button>
+                        <button onClick={() => handleOpenYieldModal(null)} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">+ Add Harvest</button>
+                    </div>
+                }>
+                    {cropMaster.length === 0 ? (
+                        <div className="text-center py-12">
+                            <p className="text-gray-500 mb-4">No crops registered yet.</p>
+                            <button onClick={() => setIsCropMasterModalOpen(true)} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Add Your First Crop</button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {cropMaster.map(crop => {
+                                const grades = inventoryByCrop[crop.name] || [];
+                                const totalStock = grades.reduce((sum, g) => sum + g.quantity, 0);
+                                return (
+                                    <div key={crop.name} className="border border-gray-200 rounded-xl overflow-hidden">
+                                        <div className="bg-green-50 px-4 py-3 flex justify-between items-center">
+                                            <div>
+                                                <h4 className="font-bold text-gray-800">{crop.name}</h4>
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    Unit: <span className="font-medium">{crop.defaultUnit}</span>
+                                                    {crop.notes && <span className="ml-2 text-gray-400">· {crop.notes}</span>}
+                                                </p>
+                                                <p className={`text-xs font-semibold mt-0.5 ${totalStock > 0 ? 'text-green-700' : 'text-gray-400'}`}>
+                                                    Total stock: {totalStock} {crop.defaultUnit}
+                                                </p>
+                                            </div>
+                                            <button onClick={() => handleOpenYieldModal(crop.name)} className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700">
+                                                + Add Harvest
+                                            </button>
+                                        </div>
+                                        {grades.length === 0 ? (
+                                            <p className="text-sm text-gray-400 italic px-4 py-3">No stock recorded yet — add a harvest to get started.</p>
+                                        ) : (
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="bg-gray-50 border-t border-gray-200">
+                                                        <th className="p-3 text-left font-medium text-gray-600">Grade</th>
+                                                        <th className="p-3 text-left font-medium text-gray-600">Available</th>
+                                                        <th className="p-3 text-left font-medium text-gray-600">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {grades.map(item => (
+                                                        <tr key={`${item.crop}-${item.grade}`} className="border-t border-gray-100">
+                                                            <td className="p-3">
+                                                                {item.isUnsegregated
+                                                                    ? <span className="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-700">Unsegregated</span>
+                                                                    : <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{item.grade}</span>
+                                                                }
+                                                            </td>
+                                                            <td className={`p-3 font-medium ${item.quantity <= 0 ? 'text-red-400' : 'text-gray-800'}`}>
+                                                                {item.quantity} {item.unit}
+                                                            </td>
+                                                            <td className="p-3">
+                                                                {item.isUnsegregated
+                                                                    ? <button onClick={() => handleOpenSegregation(item)} disabled={item.quantity <= 0} className="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed">Segregate</button>
+                                                                    : <button onClick={() => handleOpenSaleModal(item)} disabled={item.quantity <= 0} className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed">Sell</button>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </Card>
+            )}
+
+            {/* ── HARVEST LOG TAB ── ledger only */}
             {activeTab === 'harvests' && (
-                <Card title="Yield Harvest Records" titleActions={
-                    <div className="flex items-center space-x-2">
+                <Card title="Harvest Ledger" titleActions={
+                    <div className="flex items-center gap-2">
                         <select value={selectedSeason} onChange={e => setSelectedSeason(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm">
                             <option value="All">All Seasons</option>
                             <option value="Kharif">Kharif (Jun-Oct)</option>
                             <option value="Rabi">Rabi (Nov-Apr)</option>
                         </select>
                         <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="text-sm rounded-md border-gray-300 shadow-sm">
-                            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                            {['All', ...new Set(yields.map(y => new Date(y.date).getFullYear()))].sort().map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
-                        <button onClick={() => setIsYieldModalOpen(true)} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
-                            Add Harvest
-                        </button>
                     </div>
                 }>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="bg-gray-100">
-                                    <th className="p-3">Date</th>
-                                    <th className="p-3">Quantity</th>
-                                    <th className="p-3">Grade</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {Object.entries(groupedYields).map(([crop, yieldsList]) => (
-                                    <React.Fragment key={crop}>
-                                        <tr className="bg-green-50">
-                                            <td colSpan="3" className="p-3 font-bold text-green-800">{crop}</td>
-                                        </tr>
-                                        {yieldsList.map((y) => (
-                                            <tr key={y.id} className="border-b">
-                                                <td className="p-3">{y.date}</td>
+                    {yields.length === 0 ? (
+                        <p className="text-gray-400 text-center py-8 italic">No harvests recorded yet. Use the Inventory tab to add a harvest.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead>
+                                    <tr className="bg-gray-100">
+                                        <th className="p-3">Date</th>
+                                        <th className="p-3">Crop</th>
+                                        <th className="p-3">Quantity</th>
+                                        <th className="p-3">Grade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {[...yields]
+                                        .filter(y => {
+                                            const m = new Date(y.date).getMonth() + 1;
+                                            const yr = new Date(y.date).getFullYear();
+                                            if (selectedYear !== 'All' && yr !== parseInt(selectedYear)) return false;
+                                            if (selectedSeason === 'Kharif') return m >= 6 && m <= 10;
+                                            if (selectedSeason === 'Rabi') return m >= 11 || m <= 4;
+                                            return true;
+                                        })
+                                        .sort((a, b) => b.date.localeCompare(a.date))
+                                        .map(y => (
+                                            <tr key={y.id} className="border-b hover:bg-gray-50">
+                                                <td className="p-3 text-gray-500">{y.date}</td>
+                                                <td className="p-3 font-medium text-green-800">{y.crop}</td>
                                                 <td className="p-3">{y.quantity} {y.unit}</td>
                                                 <td className="p-3">
-                                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${y.grade === 'A' ? 'bg-green-200 text-green-800' : y.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{y.grade}</span>
+                                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{y.grade}</span>
                                                 </td>
                                             </tr>
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                        ))
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </Card>
             )}
 
-            {/* Inventory Tab */}
-            {activeTab === 'inventory' && (
-                <Card title="Current Crop Inventory">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="bg-gray-100">
-                                    <th className="p-3">Grade</th>
-                                    <th className="p-3">Available Quantity</th>
-                                    <th className="p-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {Object.entries(groupedInventory).map(([crop, grades]) => (
-                                    <React.Fragment key={crop}>
-                                        <tr className="bg-blue-50">
-                                            <td colSpan="3" className="p-3 font-bold text-blue-800">{crop}</td>
-                                        </tr>
-                                        {grades.map((item) => (
-                                            <tr key={`${item.crop}-${item.grade}`} className="border-b">
-                                                <td className="p-3">
-                                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${item.grade === 'A' ? 'bg-green-200 text-green-800' : item.grade === 'B' ? 'bg-blue-200 text-blue-800' : 'bg-yellow-200 text-yellow-800'}`}>{item.grade}</span>
-                                                </td>
-                                                <td className="p-3">{item.quantity} {item.unit}</td>
-                                                <td className="p-3">
-                                                    <button onClick={() => handleOpenSaleModal(item)} disabled={item.quantity <= 0} className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400">
-                                                        Record Sale
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card>
-            )}
-
-            {/* Sales Tab */}
+            {/* ── SALES LOG TAB ── ledger only */}
             {activeTab === 'sales' && (
-                <Card title="Recent Sales Log">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="bg-gray-100">
-                                    <th className="p-3">Date</th>
-                                    <th className="p-3">Grade</th>
-                                    <th className="p-3">Quantity</th>
-                                    <th className="p-3">Revenue</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {Object.entries(groupedSales).map(([crop, salesList]) => (
-                                    <React.Fragment key={crop}>
-                                        <tr className="bg-gray-50">
-                                            <td colSpan="4" className="p-3 font-bold text-gray-700">{crop}</td>
+                <Card title="Sales Ledger">
+                    {sales.length === 0 ? (
+                        <p className="text-gray-400 text-center py-8 italic">No sales recorded yet. Use the Inventory tab to sell a crop.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead>
+                                    <tr className="bg-gray-100">
+                                        <th className="p-3">Date</th>
+                                        <th className="p-3">Description</th>
+                                        <th className="p-3">Quantity</th>
+                                        <th className="p-3">Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {[...sales].sort((a, b) => b.date.localeCompare(a.date)).map(s => (
+                                        <tr key={s.id} className="border-b hover:bg-gray-50">
+                                            <td className="p-3 text-gray-500">{s.date}</td>
+                                            <td className="p-3">
+                                                {s.isMiscellaneous
+                                                    ? <span className="font-medium text-gray-700">{s.description || 'Misc. Sale'}{s.partyName && <span className="text-gray-400 text-xs ml-1">→ {s.partyName}</span>}</span>
+                                                    : <span className="font-medium text-gray-800">{s.crop} <span className="px-1.5 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 ml-1">{s.grade}</span></span>
+                                                }
+                                            </td>
+                                            <td className="p-3">{s.quantity} {s.unit}</td>
+                                            <td className="p-3 font-semibold text-green-600">+₹{s.revenue.toLocaleString('en-IN')}</td>
                                         </tr>
-                                        {salesList.map((s) => (
-                                            <tr key={s.id} className="border-b">
-                                                <td className="p-3">{s.date}</td>
-                                                <td className="p-3">{s.grade}</td>
-                                                <td className="p-3">{s.quantity} {s.unit}</td>
-                                                <td className="p-3 text-green-600 font-semibold">+₹{s.revenue.toLocaleString('en-IN')}</td>
-                                            </tr>
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </Card>
             )}
+
+
         </>
     );
 };
 
+
+
+
+// Phase 4: FinancialTracking — adds source_type badge
 const FinancialTracking = () => {
     const { financials, isLoading } = useData();
     if (isLoading || !financials) return <Spinner />;
-    return (<Card title="Financial Transactions"><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-gray-100"><th className="p-3">Description</th><th className="p-3">Type</th><th className="p-3">Amount</th></tr></thead><tbody>{financials.recentTransactions.map(t => (<tr key={t.id} className="border-b"><td className="p-3">{t.description}</td><td className="p-3">{t.type}</td><td className={`p-3 font-semibold ${t.type === 'Revenue' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'Revenue' ? '+' : ''}₹{Math.abs(t.amount).toLocaleString('en-IN')}</td></tr>))}</tbody></table></div></Card>);
+    const sourceLabel = (t) => {
+        if (t.source_type === 'resource_purchase') return <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Resource</span>;
+        if (t.source_type === 'worker_payment') return <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Worker</span>;
+        if (t.source_type === 'sale') return <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Sale</span>;
+        return null;
+    };
+    return (
+        <Card title="Financial Transactions">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                    <thead><tr className="bg-gray-100"><th className="p-3">Description</th><th className="p-3">Type</th><th className="p-3">Amount</th></tr></thead>
+                    <tbody>
+                        {financials.recentTransactions.map(t => (
+                            <tr key={t.id} className="border-b">
+                                <td className="p-3">{t.description}{sourceLabel(t)}</td>
+                                <td className="p-3">{t.type}</td>
+                                <td className={`p-3 font-semibold ${t.type === 'Revenue' ? 'text-green-600' : 'text-red-600'}`}>{t.type === 'Revenue' ? '+' : ''}₹{Math.abs(t.amount).toLocaleString('en-IN')}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </Card>
+    );
 };
+// Phase 1: ResourceInventory — split Edit/Purchase, history, reorder level indicator
 const ResourceInventory = () => {
-    const { resources, updateResource, addResourceCategory, isLoading } = useData();
+    const { resources, resourcePurchases, purchaseResource, updateResourceItem, addResourceCategory, isLoading } = useData();
     const [activeTab, setActiveTab] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
+    const [purchasingItem, setPurchasingItem] = useState(null);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState('');
+    const [historyItemId, setHistoryItemId] = useState(null);
 
     useEffect(() => {
         if (!activeTab && resources && Object.keys(resources).length > 0) {
@@ -1236,16 +1649,10 @@ const ResourceInventory = () => {
 
     if (isLoading) return <Spinner />;
 
-    const getCurrentList = () => {
-        if (!activeTab || !resources[activeTab]) return [];
-        return resources[activeTab];
-    };
+    const getCurrentList = () => (!activeTab || !resources[activeTab]) ? [] : resources[activeTab];
 
-    const handleOpenModal = (item = null) => { setEditingItem(item); setIsModalOpen(true); };
-    const handleSave = (item) => {
-        updateResource(activeTab, item);
-        setIsModalOpen(false);
-    };
+    const handleEditSave = (item) => { updateResourceItem(activeTab, item); setIsEditModalOpen(false); };
+    const handlePurchaseSave = (purchaseData) => { purchaseResource(activeTab, purchasingItem.id, purchaseData); setIsPurchaseModalOpen(false); };
 
     const handleAddCategory = (e) => {
         e.preventDefault();
@@ -1257,23 +1664,19 @@ const ResourceInventory = () => {
         }
     };
 
+    const getPurchaseHistory = (itemId) => (resourcePurchases || []).filter(p => p.resourceItemId === itemId).slice(0, 5);
+
     return (
         <>
-            <ResourceModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} item={editingItem} />
+            <ResourceModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleEditSave} item={editingItem} />
+            <ResourcePurchaseModal isOpen={isPurchaseModalOpen} onClose={() => setIsPurchaseModalOpen(false)} onSave={handlePurchaseSave} item={purchasingItem} />
 
-            {/* Simple Modal for Adding Category */}
             {isCategoryModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg w-80">
                         <h2 className="text-xl font-bold mb-4">Add New Category</h2>
                         <form onSubmit={handleAddCategory}>
-                            <input
-                                className="w-full border p-2 rounded mb-4"
-                                placeholder="Category Name (e.g. Seeds)"
-                                value={newCategoryName}
-                                onChange={e => setNewCategoryName(e.target.value)}
-                                autoFocus
-                            />
+                            <input className="w-full border p-2 rounded mb-4" placeholder="Category Name (e.g. Seeds)" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} autoFocus />
                             <div className="flex justify-end space-x-2">
                                 <button type="button" onClick={() => setIsCategoryModalOpen(false)} className="px-3 py-1 border rounded">Cancel</button>
                                 <button type="submit" className="px-3 py-1 bg-green-600 text-white rounded">Add</button>
@@ -1286,20 +1689,16 @@ const ResourceInventory = () => {
             <Card title="Farm Resources">
                 <div className="flex flex-wrap gap-2 mb-4">
                     {Object.keys(resources).map(tab => (
-                        <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg capitalize ${activeTab === tab ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
-                            {tab}
-                        </button>
+                        <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg capitalize ${activeTab === tab ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>{tab}</button>
                     ))}
-                    <button onClick={() => setIsCategoryModalOpen(true)} className="px-3 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-bold border border-gray-300">
-                        +
-                    </button>
+                    <button onClick={() => setIsCategoryModalOpen(true)} className="px-3 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 font-bold border border-gray-300">+</button>
                 </div>
 
                 {activeTab ? (
                     <>
                         <div className="flex justify-between items-center mb-4 bg-gray-50 p-3 rounded">
                             <h4 className="text-lg font-semibold text-gray-700">{activeTab} Inventory</h4>
-                            <button onClick={() => handleOpenModal()} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center">
+                            <button onClick={() => { setEditingItem(null); setIsEditModalOpen(true); }} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center">
                                 <span className="mr-2">+</span> Add {activeTab} Item
                             </button>
                         </div>
@@ -1309,22 +1708,61 @@ const ResourceInventory = () => {
                                     <tr className="bg-gray-100">
                                         <th className="p-3">Name</th>
                                         <th className="p-3">Stock</th>
+                                        <th className="p-3">Reorder Level</th>
                                         <th className="p-3">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {getCurrentList().map(item => (
-                                        <tr key={item.id} className="border-b">
-                                            <td className="p-3">{item.name}</td>
-                                            <td className="p-3 font-medium">{item.stock} {item.unit}</td>
-                                            <td className="p-3">
-                                                <button onClick={() => handleOpenModal(item)} className="text-blue-600 hover:text-blue-800"><EditIcon /></button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {getCurrentList().map(item => {
+                                        const isLow = item.reorderLevel > 0 && item.stock <= item.reorderLevel;
+                                        const history = getPurchaseHistory(item.id);
+                                        const showHistory = historyItemId === item.id;
+                                        return (
+                                            <React.Fragment key={item.id}>
+                                                <tr className={`border-b ${isLow ? 'bg-red-50' : ''}`}>
+                                                    <td className="p-3">
+                                                        {item.name}
+                                                        {isLow && <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Low Stock</span>}
+                                                    </td>
+                                                    <td className="p-3 font-medium">{item.stock} {item.unit}</td>
+                                                    <td className="p-3 text-gray-500 text-sm">{item.reorderLevel > 0 ? `≤ ${item.reorderLevel}` : '—'}</td>
+                                                    <td className="p-3 flex items-center gap-2">
+                                                        <button onClick={() => { setEditingItem(item); setIsEditModalOpen(true); }} className="text-blue-600 hover:text-blue-800" title="Edit item details"><EditIcon /></button>
+                                                        <button onClick={() => { setPurchasingItem(item); setIsPurchaseModalOpen(true); }} className="text-green-700 hover:text-green-900 text-xs font-semibold border border-green-600 px-2 py-1 rounded" title="Purchase stock">🛒 Purchase</button>
+                                                        {history.length > 0 && (
+                                                            <button onClick={() => setHistoryItemId(showHistory ? null : item.id)} className="text-gray-500 hover:text-gray-700 text-xs underline">
+                                                                {showHistory ? 'Hide' : `History (${history.length})`}
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                                {showHistory && (
+                                                    <tr className="bg-gray-50">
+                                                        <td colSpan="4" className="px-6 pb-3 pt-1">
+                                                            <p className="text-xs font-semibold text-gray-500 mb-2">Recent Purchases</p>
+                                                            <table className="w-full text-xs">
+                                                                <thead><tr className="text-gray-400"><th className="text-left pb-1">Date</th><th className="text-left pb-1">Qty</th><th className="text-left pb-1">Unit Cost</th><th className="text-left pb-1">Total</th><th className="text-left pb-1">Vendor</th></tr></thead>
+                                                                <tbody>
+                                                                    {history.map(p => (
+                                                                        <tr key={p.id}>
+                                                                            <td className="py-0.5">{p.date}</td>
+                                                                            <td>{p.quantity} {item.unit}</td>
+                                                                            <td>₹{p.unitCost}</td>
+                                                                            <td className="font-medium">₹{p.totalCost.toLocaleString('en-IN')}</td>
+                                                                            <td className="text-gray-400">{p.vendor || '—'}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
-                            {getCurrentList().length === 0 && <p className="text-center p-4 text-gray-500">No items found in {activeTab}.</p>}
+                            {getCurrentList().length === 0 && <p className="text-center p-4 text-gray-500">No items in {activeTab}. Add an item to get started.</p>}
                         </div>
                     </>
                 ) : (
