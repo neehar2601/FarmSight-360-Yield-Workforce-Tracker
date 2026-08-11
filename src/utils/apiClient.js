@@ -56,7 +56,11 @@ const request = async (path, options = {}, _retry = false) => {
     const res = await fetch(url, { ...options, headers });
 
     // ── Auto-refresh on 401 ──────────────────────────────────────────────────
-    if (res.status === 401 && !_retry && !isRefreshing) {
+    // Only attempt token refresh when we actually have a stored access token
+    // (i.e. the user is logged in and the token expired). A plain 401 from
+    // /auth/login (wrong password) has no stored token and should surface the
+    // server's "Invalid email or password" message directly.
+    if (res.status === 401 && !_retry && !isRefreshing && tokenStore.getAccess()) {
         const refreshToken = tokenStore.getRefresh();
 
         if (!refreshToken) {
