@@ -160,3 +160,71 @@ export const getCurrentFarm = () => null;
 export const setCurrentUser = () => {};
 export const setCurrentFarm = () => {};
 export const getUsers = () => [];
+
+// ── Forgot password (OTP flow) ────────────────────────────────────────────────
+
+/**
+ * Step 1 — Request an OTP for the given email.
+ * Returns { success, message?, error? }
+ */
+export const sendOtp = async (email) => {
+    try {
+        const data = await api.post('/auth/forgot-password', { email });
+        return { success: true, message: data.message };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+};
+
+/**
+ * Step 2 — Verify the OTP the user received.
+ * Returns { success, resetToken?, error? }
+ */
+export const verifyOtp = async (email, otp) => {
+    try {
+        const data = await api.post('/auth/verify-otp', { email, otp });
+        return { success: true, resetToken: data.resetToken };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+};
+
+/**
+ * Step 3 — Set the new password using the reset token.
+ * Returns { success, message?, error? }
+ */
+export const resetPassword = async (resetToken, newPassword) => {
+    try {
+        const data = await api.post('/auth/reset-password', { resetToken, newPassword });
+        return { success: true, message: data.message };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+};
+
+// ── Avatar upload ─────────────────────────────────────────────────────────────
+
+const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:4000';
+
+/**
+ * Upload a profile picture (File object).
+ * Returns { success, avatarUrl?, error? }
+ */
+export const uploadAvatar = async (file) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const res = await fetch(`${AUTH_SERVICE_URL}/auth/avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenStore.getAccess()}` },
+        body: formData, // no Content-Type header — let browser set multipart boundary
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { success: false, error: err.error || 'Upload failed' };
+    }
+
+    const data = await res.json();
+    return { success: true, avatarUrl: data.avatarUrl };
+};

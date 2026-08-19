@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { isValidEmail } from '../../utils/authUtils';
 
-const LoginPage = ({ onLoginSuccess, onNavigateToRegister }) => {
+const LoginPage = ({ onLoginSuccess, onNavigateToRegister, onForgotPassword }) => {
     const { login } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
@@ -146,6 +146,7 @@ const LoginPage = ({ onLoginSuccess, onNavigateToRegister }) => {
                             </label>
                             <button
                                 type="button"
+                                onClick={onForgotPassword}
                                 className="text-sm text-green-600 hover:text-green-700 font-medium"
                                 disabled={isLoading}
                             >
