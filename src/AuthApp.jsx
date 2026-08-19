@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
+import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
+import ProfileSettings from './components/auth/ProfileSettings';
 import FarmSelector from './components/auth/FarmSelector';
 import InitialSetup from './components/auth/InitialSetup';
 import App from './App'; // The existing main app
 
 const AuthenticatedApp = () => {
     const { isAuthenticated, currentUser, currentFarm, loading, completeFirstLogin } = useAuth();
-    const [authView, setAuthView] = useState('login'); // 'login', 'register', 'farmSelector', 'initialSetup'
+    const [authView, setAuthView] = useState('login'); // 'login' | 'register' | 'forgotPassword'
     const [showInitialSetup, setShowInitialSetup] = useState(false);
+    const [showProfileSettings, setShowProfileSettings] = useState(false);
 
     if (loading) {
         return (
@@ -47,7 +50,14 @@ const AuthenticatedApp = () => {
             );
         }
 
-        return <App />;
+        return (
+            <>
+                <App onOpenProfile={() => setShowProfileSettings(true)} />
+                {showProfileSettings && (
+                    <ProfileSettings onClose={() => setShowProfileSettings(false)} />
+                )}
+            </>
+        );
     }
 
     // If authenticated but no farm selected, show farm selector
@@ -94,10 +104,22 @@ const AuthenticatedApp = () => {
         );
     }
 
+    if (authView === 'forgotPassword') {
+        return (
+            <ForgotPasswordPage
+                onBack={() => setAuthView('login')}
+                onSuccess={() => {
+                    setAuthView('login');
+                }}
+            />
+        );
+    }
+
     return (
         <LoginPage
             onLoginSuccess={handleLoginSuccess}
             onNavigateToRegister={() => setAuthView('register')}
+            onForgotPassword={() => setAuthView('forgotPassword')}
         />
     );
 };

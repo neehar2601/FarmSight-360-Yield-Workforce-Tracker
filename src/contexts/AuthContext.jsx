@@ -127,24 +127,20 @@ export const AuthProvider = ({ children }) => {
     };
 
     // ── Logout ────────────────────────────────────────────────────────────────
-    const logout = async () => {
-        try {
-            await logoutUser();
-            localStorage.removeItem('farm360_current_farm');
-            setCurrentUser(null);
-            setCurrentFarm(null);
-            setIsAuthenticated(false);
-            return { success: true };
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Clear local state even if server call fails
-            tokenStore.clear();
-            localStorage.removeItem('farm360_current_farm');
-            setCurrentUser(null);
-            setCurrentFarm(null);
-            setIsAuthenticated(false);
-            return { success: false, error: 'Logout failed' };
-        }
+    const logout = () => {
+        // Clear local state immediately (optimistic) so the UI updates on the
+        // very first click and extra clicks are harmless.
+        tokenStore.clear();
+        localStorage.removeItem('farm360_current_farm');
+        setCurrentUser(null);
+        setCurrentFarm(null);
+        setIsAuthenticated(false);
+
+        // Fire-and-forget: invalidate the refresh token server-side.
+        // We don't await this — the user is already "logged out" locally.
+        logoutUser().catch((err) =>
+            console.warn('Server-side logout failed (token already cleared):', err.message)
+        );
     };
 
     // ── Switch farm ───────────────────────────────────────────────────────────
@@ -256,6 +252,7 @@ export const AuthProvider = ({ children }) => {
         changePassword,
         updateProfile: updateUserProfile,
         completeFirstLogin,
+        setCurrentUser, // exposed so components can update avatar/name without re-fetching
     };
 
     return (
