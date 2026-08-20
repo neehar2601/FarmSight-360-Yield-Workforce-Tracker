@@ -1871,7 +1871,6 @@ const Sidebar = ({ isSidebarOpen, currentPath }) => (
             <NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink>
 
             <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Legacy</p>
-            <NavLink to="/crops" icon={<YieldIcon />} currentPath={currentPath}>Old Crops</NavLink>
             <NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Old Financials</NavLink>
             <NavLink to="/resources" icon={<FertiliserIcon />} currentPath={currentPath}>Farm Resources</NavLink>
         </nav>
@@ -1952,7 +1951,6 @@ const Header = ({ toggleSidebar }) => {
 // New farm-service-backed routes:
 const routes = {
     '/': Dashboard,
-    '/crops': CropManagement,          // legacy mock crops (still accessible)
     '/workers': WorkerManagement,
     '/financials': FinancialTracking,  // legacy mock financials
     '/resources': ResourceInventory,   // legacy mock resources

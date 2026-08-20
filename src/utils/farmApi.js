@@ -43,6 +43,8 @@ export const updateCrop = (id, body) => call('PUT', `/farm/crops/${id}`, body);
 export const getCropById = (id, farmId) => call('GET', `/farm/crops/${id}?farm_id=${farmId}`);
 export const harvestCrop = (id, body) => call('POST', `/farm/crops/${id}/harvest`, body);
 export const sellCrop = (id, body) => call('POST', `/farm/crops/${id}/sell`, body);
+export const segregateCrop = (id, body) => call('POST', `/farm/crops/${id}/segregate`, body);
+export const getCropHistory = (id, farmId) => call('GET', `/farm/crops/${id}/history?farm_id=${farmId}`);
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 export const getInventoryCategories = (farmId) =>
