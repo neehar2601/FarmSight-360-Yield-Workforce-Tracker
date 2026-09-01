@@ -37,9 +37,14 @@ export const updateFarm = (id, body) => call('PUT', `/farm/farms/${id}`, body);
 export const deleteFarm = (id) => call('DELETE', `/farm/farms/${id}`);
 
 // ── Crops ─────────────────────────────────────────────────────────────────────
-export const getCrops = (farmId) => call('GET', `/farm/crops?farm_id=${farmId}`);
+export const getCrops = (farmId, archived = false) =>
+    call('GET', `/farm/crops?farm_id=${farmId}&archived=${archived}`);
 export const createCrop = (body) => call('POST', '/farm/crops', body);
-export const updateCrop = (id, body) => call('PUT', `/farm/crops/${id}`, body);
+/** Full update — use patchCrop for partial changes like archiving */
+export const updateCrop = (id, body) => call('PATCH', `/farm/crops/${id}`, body);
+/** Lightweight partial update — only send changed fields */
+export const patchCrop = (id, farmId, patch) => call('PATCH', `/farm/crops/${id}`, { farm_id: farmId, ...patch });
+export const archiveCrop = (id, farmId, is_archived) => call('PATCH', `/farm/crops/${id}`, { farm_id: farmId, is_archived });
 export const getCropById = (id, farmId) => call('GET', `/farm/crops/${id}?farm_id=${farmId}`);
 export const harvestCrop = (id, body) => call('POST', `/farm/crops/${id}/harvest`, body);
 export const sellCrop = (id, body) => call('POST', `/farm/crops/${id}/sell`, body);
