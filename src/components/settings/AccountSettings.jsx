@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/apiClient';
-import { getArchivedFarms } from '../../utils/farmApi';
+import { getArchivedFarms, getArchivedFarmData } from '../../utils/farmApi';
 
 const AccountSettings = ({ onClose }) => {
     const { currentUser, currentFarm, updateProfile, changePassword, addFarm, updateFarm, deleteFarm, switchFarm, logout } = useAuth();
@@ -26,6 +26,11 @@ const AccountSettings = ({ onClose }) => {
     const [deleteAccountError, setDeleteAccountError] = useState('');
     const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+    // View Archived Farm Data Modal
+    const [viewFarmModal, setViewFarmModal] = useState(null); // { farm, crops, inventory } | null
+    const [viewFarmLoading, setViewFarmLoading] = useState(false);
+    const [viewFarmTab, setViewFarmTab] = useState('crops'); // 'crops' | 'inventory'
 
     // Load archived farms when tab is selected
     useEffect(() => {
@@ -754,12 +759,29 @@ const AccountSettings = ({ onClose }) => {
                                                                     <p className="text-xs text-blue-600 mt-1">🔀 Merged into: {farm.merged_into_farm_name}</p>
                                                                 )}
                                                             </div>
-                                                            <div className="text-right">
-                                                                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded capitalize">
-                                                                    {farm.deletion_reason || 'archived'}
-                                                                </span>
-                                                                {farm.deleted_at && (
-                                                                    <p className="text-xs text-gray-400 mt-1">{new Date(farm.deleted_at).toLocaleDateString()}</p>
+                                                            <div className="flex flex-col items-end gap-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded capitalize">
+                                                                        {farm.deletion_reason || 'archived'}
+                                                                    </span>
+                                                                    {farm.deleted_at && (
+                                                                        <span className="text-xs text-gray-400">{new Date(farm.deleted_at).toLocaleDateString()}</span>
+                                                                    )}
+                                                                </div>
+                                                                {/* Only show View for archive (not merge — data moved away) */}
+                                                                {farm.deletion_reason !== 'merge' && (
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            setViewFarmTab('crops');
+                                                                            setViewFarmLoading(true);
+                                                                            setViewFarmModal({ farm, crops: [], inventory: [] });
+                                                                            const { data } = await getArchivedFarmData(farm.id);
+                                                                            if (data) setViewFarmModal({ farm, crops: data.crops || [], inventory: data.inventory || [] });
+                                                                            setViewFarmLoading(false);
+                                                                        }}
+                                                                        className="text-xs text-blue-600 hover:text-blue-800 border border-blue-300 hover:border-blue-500 px-3 py-1 rounded-lg transition-colors">
+                                                                        📂 View Data
+                                                                    </button>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -793,6 +815,115 @@ const AccountSettings = ({ onClose }) => {
                     </div>
                 </div>
             </div>
+
+            {/* ── View Archived Farm Data Modal ──────────────────────────── */}
+            {viewFarmModal && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+                        {/* Header */}
+                        <div className="flex justify-between items-start p-6 border-b">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">📂 {viewFarmModal.farm.name}</h2>
+                                <p className="text-sm text-gray-500 mt-0.5">📍 {viewFarmModal.farm.location} · Archived {viewFarmModal.farm.deleted_at ? new Date(viewFarmModal.farm.deleted_at).toLocaleDateString() : ''}</p>
+                            </div>
+                            <button onClick={() => setViewFarmModal(null)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex border-b px-6">
+                            <button onClick={() => setViewFarmTab('crops')}
+                                className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                                    viewFarmTab === 'crops' ? 'border-green-600 text-green-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+                                }`}>🌾 Crops & Harvests</button>
+                            <button onClick={() => setViewFarmTab('inventory')}
+                                className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                                    viewFarmTab === 'inventory' ? 'border-green-600 text-green-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+                                }`}>📦 Inventory</button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="overflow-y-auto flex-1 p-6">
+                            {viewFarmLoading ? (
+                                <div className="text-center py-16 text-gray-400">Loading data…</div>
+                            ) : viewFarmTab === 'crops' ? (
+                                viewFarmModal.crops.length === 0 ? (
+                                    <p className="text-gray-400 text-sm text-center py-12">No crops recorded for this farm.</p>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {viewFarmModal.crops.map(crop => (
+                                            <div key={crop.id} className="border border-gray-200 rounded-xl p-4">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <div>
+                                                        <p className="font-bold text-gray-800">{crop.name}</p>
+                                                        {crop.variety && <p className="text-xs text-gray-500">{crop.variety}</p>}
+                                                    </div>
+                                                    <div className="text-right text-xs text-gray-400">
+                                                        <p>Planted: {crop.planting_date ? new Date(crop.planting_date).toLocaleDateString() : '—'}</p>
+                                                        {crop.area_planted && <p>{crop.area_planted} {crop.area_unit}</p>}
+                                                    </div>
+                                                </div>
+
+                                                {/* Harvests */}
+                                                {crop.harvests?.length > 0 && (
+                                                    <div className="mt-3">
+                                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Harvests</p>
+                                                        <div className="space-y-1">
+                                                            {crop.harvests.map((h, i) => (
+                                                                <div key={i} className="flex justify-between text-sm bg-green-50 rounded-lg px-3 py-1.5">
+                                                                    <span className="text-gray-700">{h.quantity_kg} kg · Grade {h.grade || '—'}</span>
+                                                                    <span className="text-gray-400">{h.harvest_date ? new Date(h.harvest_date).toLocaleDateString() : '—'}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Sales */}
+                                                {crop.sales?.length > 0 && (
+                                                    <div className="mt-3">
+                                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Sales</p>
+                                                        <div className="space-y-1">
+                                                            {crop.sales.map((s, i) => (
+                                                                <div key={i} className="flex justify-between text-sm bg-blue-50 rounded-lg px-3 py-1.5">
+                                                                    <span className="text-gray-700">{s.quantity_kg} kg @ ₹{s.price_per_kg}/kg{s.buyer_name ? ` · ${s.buyer_name}` : ''}</span>
+                                                                    <span className="font-semibold text-blue-700">₹{Number(s.total_amount).toLocaleString()}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )
+                            ) : (
+                                viewFarmModal.inventory.length === 0 ? (
+                                    <p className="text-gray-400 text-sm text-center py-12">No inventory recorded for this farm.</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {viewFarmModal.inventory.map(item => (
+                                            <div key={item.id} className="flex justify-between items-center border border-gray-200 rounded-xl px-4 py-3">
+                                                <div>
+                                                    <p className="font-semibold text-gray-800">{item.name}</p>
+                                                    <p className="text-xs text-gray-500">{item.category_name || 'Uncategorised'}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-bold text-gray-700">{item.quantity} {item.unit}</p>
+                                                    {item.unit_cost && <p className="text-xs text-gray-400">₹{item.unit_cost}/unit</p>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )
+                            )}
+                        </div>
+
+                        <div className="px-6 py-4 border-t flex justify-end">
+                            <button onClick={() => setViewFarmModal(null)} className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors">Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Delete Farm Modal ─────────────────────────────────── */}
             {deleteFarmModal && (
