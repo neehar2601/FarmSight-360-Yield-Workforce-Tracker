@@ -117,8 +117,8 @@ const api = {
     put: (path, body, options = {}) =>
         request(path, { ...options, method: 'PUT', body: JSON.stringify(body) }),
 
-    delete: (path, options = {}) =>
-        request(path, { ...options, method: 'DELETE' }),
+    delete: (path, body, options = {}) =>
+        request(path, { ...options, method: 'DELETE', body: body ? JSON.stringify(body) : undefined }),
 };
 
 export default api;

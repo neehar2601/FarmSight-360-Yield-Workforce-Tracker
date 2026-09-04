@@ -1,11 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../utils/apiClient';
+import { getArchivedFarms, deleteFarm as apiFarmDelete, createFarm as apiCreateFarm, getFarms } from '../../utils/farmApi';
 
 const AccountSettings = ({ onClose }) => {
-    const { currentUser, currentFarm, updateProfile, changePassword, addFarm, updateFarm, deleteFarm, switchFarm } = useAuth();
-    const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'password', 'farms'
+    const { currentUser, currentFarm, updateProfile, changePassword, addFarm, updateFarm, deleteFarm, switchFarm, logout } = useAuth();
+    const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'password', 'farms', 'danger'
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+
+    // Delete Farm Modal State
+    const [deleteFarmModal, setDeleteFarmModal] = useState(null); // { farm } | null
+    const [deleteFarmAction, setDeleteFarmAction] = useState(''); // 'archive' | 'merge'
+    const [deleteFarmTarget, setDeleteFarmTarget] = useState('');
+    const [deleteFarmError, setDeleteFarmError] = useState('');
+    const [deleteFarmLoading, setDeleteFarmLoading] = useState(false);
+
+    // Archived farms state
+    const [archivedFarms, setArchivedFarms] = useState([]);
+    const [archivedLoading, setArchivedLoading] = useState(false);
+
+    // Delete Account Modal State
+    const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteAccountError, setDeleteAccountError] = useState('');
+    const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+    // Load archived farms when tab is selected
+    useEffect(() => {
+        if (activeTab === 'farms') {
+            setArchivedLoading(true);
+            getArchivedFarms().then(({ data }) => {
+                setArchivedFarms(data || []);
+                setArchivedLoading(false);
+            });
+        }
+    }, [activeTab]);
 
     // Profile Edit State
     const [profileData, setProfileData] = useState({
@@ -229,19 +260,57 @@ const AccountSettings = ({ onClose }) => {
         }
     };
 
-    const handleDeleteFarm = async (farmId) => {
-        if (!confirm('Are you sure you want to delete this farm? This action cannot be undone.')) {
+    const handleDeleteFarm = (farm) => {
+        if (currentUser?.farms?.length <= 1) {
+            showMessage('error', 'Cannot delete your only farm. Please add another farm first.');
             return;
         }
+        setDeleteFarmAction('');
+        setDeleteFarmTarget('');
+        setDeleteFarmError('');
+        setDeleteFarmModal({ farm });
+    };
 
-        setIsLoading(true);
-        const result = await deleteFarm(farmId);
-        setIsLoading(false);
+    const confirmDeleteFarm = async () => {
+        if (!deleteFarmAction) { setDeleteFarmError('Please select an action.'); return; }
+        if (deleteFarmAction === 'merge' && !deleteFarmTarget) { setDeleteFarmError('Please select a target farm.'); return; }
+        setDeleteFarmLoading(true);
+        setDeleteFarmError('');
+        try {
+            const { error } = await apiFarmDelete(deleteFarmModal.farm.id, {
+                action: deleteFarmAction,
+                target_farm_id: deleteFarmAction === 'merge' ? deleteFarmTarget : undefined,
+            });
+            if (error) { setDeleteFarmError(error); setDeleteFarmLoading(false); return; }
+            // Refresh auth (farm list)
+            const result = await deleteFarm(deleteFarmModal.farm.id, {
+                action: deleteFarmAction,
+                target_farm_id: deleteFarmTarget || undefined,
+            });
+            showMessage('success', deleteFarmAction === 'merge'
+                ? 'Farm data merged and archived successfully!'
+                : 'Farm archived successfully!');
+            setDeleteFarmModal(null);
+            // Reload archived farms list
+            getArchivedFarms().then(({ data }) => setArchivedFarms(data || []));
+        } catch (err) {
+            setDeleteFarmError(err.message);
+        } finally {
+            setDeleteFarmLoading(false);
+        }
+    };
 
-        if (result.success) {
-            showMessage('success', 'Farm deleted successfully!');
-        } else {
-            showMessage('error', result.error || 'Failed to delete farm');
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== 'DELETE') { setDeleteAccountError('Please type DELETE to confirm.'); return; }
+        if (!deletePassword) { setDeleteAccountError('Password is required.'); return; }
+        setDeleteAccountLoading(true);
+        setDeleteAccountError('');
+        try {
+            await api.delete('/auth/me', { password: deletePassword });
+            logout();
+        } catch (err) {
+            setDeleteAccountError(err.message || 'Failed to delete account');
+            setDeleteAccountLoading(false);
         }
     };
 
@@ -276,6 +345,7 @@ const AccountSettings = ({ onClose }) => {
     };
 
     return (
+        <>
         <div className="min-h-screen bg-gray-100 p-6">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
@@ -318,25 +388,16 @@ const AccountSettings = ({ onClose }) => {
                         >
                             Profile
                         </button>
-                        <button
-                            onClick={() => setActiveTab('password')}
-                            className={`flex-1 px-6 py-4 font-medium ${activeTab === 'password'
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                                }`}
-                        >
-                            Password
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('farms')}
-                            className={`flex-1 px-6 py-4 font-medium ${activeTab === 'farms'
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                                }`}
-                        >
-                            Farms
-                        </button>
-                    </div>
+                        <button onClick={() => setActiveTab('password')} className={`flex-1 px-6 py-4 font-medium ${activeTab === 'password' ? 'bg-green-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                        Password
+                    </button>
+                    <button onClick={() => setActiveTab('farms')} className={`flex-1 px-6 py-4 font-medium ${activeTab === 'farms' ? 'bg-green-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                        Farms
+                    </button>
+                    <button onClick={() => setActiveTab('danger')} className={`flex-1 px-6 py-4 font-medium ${activeTab === 'danger' ? 'bg-red-600 text-white' : 'bg-gray-50 text-red-600 hover:bg-red-50'}`}>
+                        Danger Zone
+                    </button>
+                </div>
 
                     <div className="p-6">
                         {/* Profile Tab */}
@@ -641,8 +702,7 @@ const AccountSettings = ({ onClose }) => {
                                     {currentUser?.farms?.map((farm) => (
                                         <div
                                             key={farm.id}
-                                            className={`border rounded-lg p-4 ${farm.id === currentFarm?.id ? 'border-green-500 bg-green-50' : 'border-gray-300'
-                                                }`}
+                                            className={`border rounded-lg p-4 ${farm.id === currentFarm?.id ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}
                                         >
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1">
@@ -652,45 +712,24 @@ const AccountSettings = ({ onClose }) => {
                                                             <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">Active</span>
                                                         )}
                                                     </div>
-                                                    <p className="text-gray-600 mt-1">
-                                                        <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        </svg>
-                                                        {farm.location}
-                                                    </p>
-                                                    <p className="text-gray-600 mt-1">
-                                                        <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
-                                                        </svg>
-                                                        {farm.area} {farm.areaUnit}
-                                                    </p>
+                                                    <p className="text-gray-600 mt-1">📍 {farm.location}</p>
+                                                    {farm.area && <p className="text-gray-600 mt-1">📐 {farm.area} {farm.areaUnit}</p>}
                                                 </div>
-
                                                 <div className="flex gap-2">
                                                     {farm.id !== currentFarm?.id && (
-                                                        <button
-                                                            onClick={() => handleSwitchFarm(farm.id)}
-                                                            disabled={isLoading}
-                                                            className="text-green-600 hover:text-green-700 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
-                                                        >
+                                                        <button onClick={() => handleSwitchFarm(farm.id)} disabled={isLoading}
+                                                            className="text-green-600 hover:text-green-700 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50">
                                                             Switch
                                                         </button>
                                                     )}
-                                                    <button
-                                                        onClick={() => startEditFarm(farm)}
-                                                        disabled={isLoading}
-                                                        className="text-blue-600 hover:text-blue-700 px-3 py-1 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
-                                                    >
+                                                    <button onClick={() => startEditFarm(farm)} disabled={isLoading}
+                                                        className="text-blue-600 hover:text-blue-700 px-3 py-1 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50">
                                                         Edit
                                                     </button>
                                                     {currentUser?.farms?.length > 1 && (
-                                                        <button
-                                                            onClick={() => handleDeleteFarm(farm.id)}
-                                                            disabled={isLoading || farm.id === currentFarm?.id}
+                                                        <button onClick={() => handleDeleteFarm(farm)} disabled={isLoading || farm.id === currentFarm?.id}
                                                             className="text-red-600 hover:text-red-700 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-                                                            title={farm.id === currentFarm?.id ? 'Cannot delete active farm' : 'Delete farm'}
-                                                        >
+                                                            title={farm.id === currentFarm?.id ? 'Switch away from this farm before deleting' : 'Delete farm'}>
                                                             Delete
                                                         </button>
                                                     )}
@@ -699,13 +738,152 @@ const AccountSettings = ({ onClose }) => {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Archived Farms */}
+                                <div className="mt-8">
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-3">📦 Past / Archived Farms</h3>
+                                    {archivedLoading ? (
+                                        <p className="text-gray-400 text-sm">Loading...</p>
+                                    ) : archivedFarms.length === 0 ? (
+                                        <p className="text-gray-400 text-sm">No archived farms.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {archivedFarms.map(farm => (
+                                                <div key={farm.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <p className="font-semibold text-gray-700">{farm.name}</p>
+                                                            <p className="text-sm text-gray-500">📍 {farm.location}</p>
+                                                            {farm.deletion_reason === 'merged' && farm.merged_into_farm_name && (
+                                                                <p className="text-xs text-blue-600 mt-1">🔀 Merged into: {farm.merged_into_farm_name}</p>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded capitalize">
+                                                                {farm.deletion_reason || 'archived'}
+                                                            </span>
+                                                            {farm.deleted_at && (
+                                                                <p className="text-xs text-gray-400 mt-1">{new Date(farm.deleted_at).toLocaleDateString()}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Danger Zone Tab ──────────────────────────────────── */}
+                        {activeTab === 'danger' && (
+                            <div className="p-6 space-y-6">
+                                <h2 className="text-xl font-semibold text-red-700">⚠️ Danger Zone</h2>
+                                <p className="text-gray-600 text-sm">Actions here are permanent and cannot be undone.</p>
+
+                                <div className="border-2 border-red-200 rounded-xl p-6 bg-red-50">
+                                    <h3 className="text-lg font-bold text-red-800 mb-2">Delete Account</h3>
+                                    <p className="text-sm text-red-700 mb-4">
+                                        This will permanently delete your account, all farms, all crops, all inventory and all transaction history. There is no recovery.
+                                    </p>
+                                    <button onClick={() => { setShowDeleteAccount(true); setDeletePassword(''); setDeleteConfirmText(''); setDeleteAccountError(''); }}
+                                        className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2.5 rounded-lg transition-colors">
+                                        Delete My Account
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
         </div>
+
+        {/* ── Delete Farm Modal ─────────────────────────────────── */}
+        {deleteFarmModal && (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8">
+                    <h2 className="text-xl font-bold text-gray-800 mb-1">🗑️ Remove Farm</h2>
+                    <p className="text-gray-500 text-sm mb-6">What should happen to <b>{deleteFarmModal.farm.name}</b>'s data?</p>
+
+                    {deleteFarmError && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">{deleteFarmError}</p>}
+
+                    <div className="space-y-3 mb-6">
+                        <button onClick={() => setDeleteFarmAction('archive')}
+                            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${deleteFarmAction === 'archive' ? 'border-amber-400 bg-amber-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                            <p className="font-bold text-gray-800">📦 Archive this farm</p>
+                            <p className="text-sm text-gray-500 mt-0.5">Keep all data as-is but hide it from active views. Good for sold or inactive farms. History will still be visible in your profile.</p>
+                        </button>
+                        <button onClick={() => setDeleteFarmAction('merge')}
+                            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${deleteFarmAction === 'merge' ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                            <p className="font-bold text-gray-800">🔀 Merge into another farm</p>
+                            <p className="text-sm text-gray-500 mt-0.5">All crops and inventory will be transferred to a farm you choose. The original farm will be archived.</p>
+                        </button>
+                    </div>
+
+                    {deleteFarmAction === 'merge' && (
+                        <div className="mb-6">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Transfer all data to:</label>
+                            <select value={deleteFarmTarget} onChange={e => setDeleteFarmTarget(e.target.value)}
+                                className="w-full border-2 border-gray-200 rounded-xl p-3 text-base outline-none focus:border-blue-400">
+                                <option value="">-- Select a farm --</option>
+                                {currentUser?.farms?.filter(f => f.id !== deleteFarmModal.farm.id).map(f => (
+                                    <option key={f.id} value={f.id}>{f.name} — {f.location}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="flex gap-3">
+                        <button onClick={() => setDeleteFarmModal(null)} className="flex-1 py-3 border-2 border-gray-200 rounded-xl text-gray-600 font-semibold">
+                            Cancel
+                        </button>
+                        <button onClick={confirmDeleteFarm} disabled={deleteFarmLoading || !deleteFarmAction}
+                            className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold disabled:opacity-50">
+                            {deleteFarmLoading ? 'Processing…' : 'Confirm'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* ── Delete Account Modal ─────────────────────────────── */}
+        {showDeleteAccount && (
+            <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+                    <h2 className="text-xl font-bold text-red-700 mb-1">⚠️ Delete Account Permanently</h2>
+                    <p className="text-gray-500 text-sm mb-6">This will delete your account, all farms, crops, inventory and history. This cannot be undone.</p>
+
+                    {deleteAccountError && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">{deleteAccountError}</p>}
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Type <b>DELETE</b> to confirm</label>
+                            <input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
+                                placeholder="DELETE" className="w-full border-2 border-gray-200 rounded-xl p-3 text-base outline-none focus:border-red-400" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Your Password</label>
+                            <input type="password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)}
+                                placeholder="Enter your password" className="w-full border-2 border-gray-200 rounded-xl p-3 text-base outline-none focus:border-red-400" />
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-6">
+                        <button onClick={() => setShowDeleteAccount(false)} className="flex-1 py-3 border-2 border-gray-200 rounded-xl text-gray-600 font-semibold">
+                            Cancel
+                        </button>
+                        <button onClick={handleDeleteAccount} disabled={deleteAccountLoading || deleteConfirmText !== 'DELETE' || !deletePassword}
+                            className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold disabled:opacity-50">
+                            {deleteAccountLoading ? 'Deleting…' : 'Delete Everything'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 };
+
+export default AccountSettings;
 
 export default AccountSettings;
