@@ -2,6 +2,9 @@ import React, { useState, useEffect, createContext, useContext, Suspense, useMem
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { useAuth } from './contexts/AuthContext';
 import AccountSettings from './components/settings/AccountSettings';
+import CropsPage from './components/farm/CropsPage';
+import InventoryPage from './components/farm/InventoryPage';
+import FinancePage from './components/farm/FinancePage';
 
 // --- MOCK DATA LAYER (DEMO DATA) ---
 const MOCK_CURRENT_DATE = new Date('2025-10-13T12:00:00Z');
@@ -1850,7 +1853,29 @@ const WorkerManagement = () => {
 
 // --- LAYOUT & APP ROUTING ---
 const NavLink = ({ to, icon, children, currentPath }) => { const isActive = (currentPath === '/' && to === '/') || (currentPath === to); return (<a href={to} className={`flex items-center px-4 py-3 text-lg rounded-lg ${isActive ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700'}`}>{icon}<span className="ml-4">{children}</span></a>); }
-const Sidebar = ({ isSidebarOpen, currentPath }) => (<aside className={`bg-green-800 text-white w-64 space-y-2 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30`}><div className="px-4 mb-8 text-center"><h1 className="text-3xl font-bold">FarmSight 360</h1><p className="text-sm text-green-200">Yield & Workforce Tracker</p></div><nav><NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink><NavLink to="/crops" icon={<YieldIcon />} currentPath={currentPath}>Crop Management</NavLink><NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink><NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Financials</NavLink><NavLink to="/resources" icon={<FertiliserIcon />} currentPath={currentPath}>Farm Resources</NavLink></nav></aside>);
+const Sidebar = ({ isSidebarOpen, currentPath }) => (
+    <aside className={`bg-green-800 text-white w-64 space-y-1 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30 overflow-y-auto`}>
+        <div className="px-4 mb-6 text-center">
+            <h1 className="text-3xl font-bold">FarmSight 360</h1>
+            <p className="text-sm text-green-200">Yield & Workforce Tracker</p>
+        </div>
+        <nav>
+            <NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink>
+
+            <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Farm Service</p>
+            <NavLink to="/farm/crops" icon={<YieldIcon />} currentPath={currentPath}>Crops</NavLink>
+            <NavLink to="/farm/inventory" icon={<InventoryIcon />} currentPath={currentPath}>Inventory</NavLink>
+            <NavLink to="/farm/finance" icon={<FinancialIcon />} currentPath={currentPath}>Finance</NavLink>
+
+            <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Workforce</p>
+            <NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink>
+
+            <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Legacy</p>
+            <NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Old Financials</NavLink>
+            <NavLink to="/resources" icon={<FertiliserIcon />} currentPath={currentPath}>Farm Resources</NavLink>
+        </nav>
+    </aside>
+);
 const Header = ({ toggleSidebar }) => {
     const { currentUser, currentFarm, logout } = useAuth();
     const [showDropdown, setShowDropdown] = useState(false);
@@ -1922,7 +1947,19 @@ const Header = ({ toggleSidebar }) => {
     );
 };
 
-const routes = { '/': Dashboard, '/crops': CropManagement, '/workers': WorkerManagement, '/financials': FinancialTracking, '/resources': ResourceInventory, '/settings': AccountSettings };
+// Legacy mock-data routes are kept for Workers (not yet on the service)
+// New farm-service-backed routes:
+const routes = {
+    '/': Dashboard,
+    '/workers': WorkerManagement,
+    '/financials': FinancialTracking,  // legacy mock financials
+    '/resources': ResourceInventory,   // legacy mock resources
+    '/settings': AccountSettings,
+    // ── Farm Service routes ─────────────────────────────────
+    '/farm/crops': CropsPage,
+    '/farm/inventory': InventoryPage,
+    '/farm/finance': FinancePage,
+};
 
 export default function App() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
