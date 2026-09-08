@@ -32,9 +32,13 @@ const call = async (method, path, body) => {
 
 // ── Farms ─────────────────────────────────────────────────────────────────────
 export const getFarms = () => call('GET', '/farm/farms');
+export const getArchivedFarms = () => call('GET', '/farm/farms/archived');
 export const createFarm = (body) => call('POST', '/farm/farms', body);
 export const updateFarm = (id, body) => call('PUT', `/farm/farms/${id}`, body);
-export const deleteFarm = (id) => call('DELETE', `/farm/farms/${id}`);
+/** action: 'archive' | 'merge', target_farm_id required for merge */
+export const deleteFarm = (id, body) => call('DELETE', `/farm/farms/${id}`, body);
+/** Fetch all crops, harvests, sales & inventory for any farm (incl. archived) */
+export const getArchivedFarmData = (id) => call('GET', `/farm/farms/${id}/data`);
 
 // ── Crops ─────────────────────────────────────────────────────────────────────
 export const getCrops = (farmId, archived = false) =>

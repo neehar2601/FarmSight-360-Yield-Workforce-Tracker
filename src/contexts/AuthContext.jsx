@@ -7,10 +7,8 @@ import {
     completeFirstLogin as markFirstLoginComplete,
     changePassword as updatePassword,
     updateUserProfile as updateProfile,
-    addFarm as addNewFarm,
-    updateFarm as updateExistingFarm,
-    deleteFarm as removeFarm,
 } from '../utils/authUtils';
+import { createFarm, updateFarm as apiUpdateFarm, deleteFarm as apiFarmDelete } from '../utils/farmApi';
 import { tokenStore } from '../utils/apiClient';
 
 const AuthContext = createContext(null);
@@ -159,43 +157,68 @@ export const AuthProvider = ({ children }) => {
     const addFarm = async (farmData) => {
         if (!currentUser) return { success: false, error: 'No user logged in' };
 
-        const result = await addNewFarm(currentUser.id, farmData);
-        if (!result.success) return result;
+        // Hit the Farm Service (which expects totalArea and areaUnit)
+        const { data: newFarm, error } = await createFarm({
+            name: farmData.name,
+            location: farmData.location,
+            totalArea: farmData.area, 
+            areaUnit: farmData.areaUnit
+        });
+        
+        if (error) return { success: false, error };
 
-        // Refresh user data to get updated farms list
-        // For now update optimistically (Phase 2 Farm Service will handle this properly)
-        const updatedUser = { ...currentUser, farms: [...(currentUser.farms || []), result.farm] };
+        // Map backend keys to frontend expected keys (area, areaUnit)
+        const mappedFarm = {
+            ...newFarm,
+            area: newFarm.total_area,
+            areaUnit: newFarm.area_unit
+        };
+
+        const updatedUser = { ...currentUser, farms: [...(currentUser.farms || []), mappedFarm] };
         setCurrentUser(updatedUser);
 
-        return { success: true, farm: result.farm };
+        return { success: true, farm: mappedFarm };
     };
 
     // ── Update farm ───────────────────────────────────────────────────────────
     const updateFarm = async (farmId, farmData) => {
         if (!currentUser) return { success: false, error: 'No user logged in' };
 
-        const result = await updateExistingFarm(currentUser.id, farmId, farmData);
-        if (!result.success) return result;
+        const { data: updatedFarm, error } = await apiUpdateFarm(farmId, {
+            name: farmData.name,
+            location: farmData.location,
+            totalArea: farmData.area,
+            areaUnit: farmData.areaUnit
+        });
+        
+        if (error) return { success: false, error };
+
+        const mappedFarm = {
+            ...updatedFarm,
+            area: updatedFarm.total_area,
+            areaUnit: updatedFarm.area_unit
+        };
 
         const updatedFarms = (currentUser.farms || []).map((f) =>
-            f.id === farmId ? result.farm : f
+            f.id === farmId ? mappedFarm : f
         );
         setCurrentUser({ ...currentUser, farms: updatedFarms });
 
         if (currentFarm?.id === farmId) {
-            setCurrentFarm(result.farm);
+            setCurrentFarm(mappedFarm);
         }
 
-        return { success: true, farm: result.farm };
+        return { success: true, farm: mappedFarm };
     };
 
-    // ── Delete farm ───────────────────────────────────────────────────────────
-    const deleteFarm = async (farmId) => {
+    // ── Delete / archive / merge farm ──────────────────────────────────────
+    const deleteFarm = async (farmId, options = {}) => {
         if (!currentUser) return { success: false, error: 'No user logged in' };
 
-        const result = await removeFarm(currentUser.id, farmId);
-        if (!result.success) return result;
+        const { data, error } = await apiFarmDelete(farmId, options);
+        if (error) return { success: false, error };
 
+        // Remove the farm from the active list in React state
         const updatedFarms = (currentUser.farms || []).filter((f) => f.id !== farmId);
         setCurrentUser({ ...currentUser, farms: updatedFarms });
 
