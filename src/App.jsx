@@ -5,6 +5,7 @@ import AccountSettings from './components/settings/AccountSettings';
 import CropsPage from './components/farm/CropsPage';
 import InventoryPage from './components/farm/InventoryPage';
 import FinancePage from './components/farm/FinancePage';
+import WorkersPage from './components/farm/WorkersPage';
 
 // --- MOCK DATA LAYER (DEMO DATA) ---
 const MOCK_CURRENT_DATE = new Date('2025-10-13T12:00:00Z');
@@ -1946,7 +1947,7 @@ const Header = ({ toggleSidebar }) => {
 // New farm-service-backed routes:
 const routes = {
     '/': Dashboard,
-    '/workers': WorkerManagement,
+    '/workers': WorkersPage,
     '/settings': AccountSettings,
     // ── Farm Service routes ─────────────────────────────────
     '/farm/crops': CropsPage,
