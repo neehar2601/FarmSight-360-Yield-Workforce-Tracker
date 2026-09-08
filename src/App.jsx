@@ -1869,10 +1869,6 @@ const Sidebar = ({ isSidebarOpen, currentPath }) => (
 
             <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Workforce</p>
             <NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink>
-
-            <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Legacy</p>
-            <NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Old Financials</NavLink>
-            <NavLink to="/resources" icon={<FertiliserIcon />} currentPath={currentPath}>Farm Resources</NavLink>
         </nav>
     </aside>
 );
@@ -1947,13 +1943,10 @@ const Header = ({ toggleSidebar }) => {
     );
 };
 
-// Legacy mock-data routes are kept for Workers (not yet on the service)
 // New farm-service-backed routes:
 const routes = {
     '/': Dashboard,
     '/workers': WorkerManagement,
-    '/financials': FinancialTracking,  // legacy mock financials
-    '/resources': ResourceInventory,   // legacy mock resources
     '/settings': AccountSettings,
     // ── Farm Service routes ─────────────────────────────────
     '/farm/crops': CropsPage,
