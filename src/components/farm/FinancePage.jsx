@@ -57,14 +57,23 @@ export default function FinancePage() {
     // Map live worker transactions into financial ledger items
     const mappedWorkerTxs = workerTransactions.map(t => {
         const isIncome = t.type === 'LOAN_SETTLEMENT';
+        const loanDeducted = parseFloat(t.loan_deducted || 0);
+
+        // Net cash outflow/inflow for this transaction
+        // For PAYOUT: cash paid out = gross payout amount - loan deduction
         const amt = t.type === 'PAYOUT'
-            ? (parseFloat(t.amount || 0) + parseFloat(t.loan_deducted || 0))
+            ? Math.max(0, parseFloat(t.amount || 0) - loanDeducted)
             : parseFloat(t.amount || 0);
 
-        const typeLabel = t.type === 'PAYOUT' ? 'Worker Payout'
+        const typeLabel = t.type === 'PAYOUT' ? 'Worker Payout (Cash Paid)'
             : t.type === 'ADVANCE' ? 'Worker Advance'
             : t.type === 'BONUS' ? 'Worker Bonus'
             : 'Loan Repayment Recovery';
+
+        let notes = t.notes || `${typeLabel} transaction`;
+        if (t.type === 'PAYOUT' && loanDeducted > 0) {
+            notes = `Gross ₹${parseFloat(t.amount || 0).toLocaleString('en-IN')}, Loan Deducted ₹${loanDeducted.toLocaleString('en-IN')}${t.notes ? ` • ${t.notes}` : ''}`;
+        }
 
         return {
             id: `w_${t.id}`,
@@ -72,7 +81,7 @@ export default function FinancePage() {
             amount: amt,
             category: isIncome ? 'income' : 'expense',
             date_col: t.payment_date || t.created_at,
-            notes: t.notes || `${typeLabel} transaction`,
+            notes,
         };
     });
 
