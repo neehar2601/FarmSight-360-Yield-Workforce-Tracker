@@ -59,3 +59,32 @@ export const getAttendance = (farmId, month) => {
 
 /** Upsert a single attendance record { worker_id, farm_id, date, status } */
 export const upsertAttendance = (body) => call('POST', '/attendance', body);
+
+// ── Finance & Payroll ─────────────────────────────────────────────────────────
+/** Get payroll summary for a date range (weekly/monthly) */
+export const getPayrollSummary = (farmId, fromDate, toDate) => {
+    const params = new URLSearchParams({ farm_id: farmId });
+    if (fromDate) params.append('from_date', fromDate);
+    if (toDate) params.append('to_date', toDate);
+    return call('GET', `/finance/payroll-summary?${params}`);
+};
+
+/** Record a cash advance given to a worker */
+export const recordAdvance = (body) => call('POST', '/finance/advance', body);
+
+/** Record a loan settlement repayment from worker */
+export const recordLoanSettlement = (body) => call('POST', '/finance/loan-settlement', body);
+
+/** Credit period salary to worker's deposit balance */
+export const accrueSalary = (body) => call('POST', '/finance/accrue-salary', body);
+
+/** Process a salary payout (with optional loan deduction) */
+export const processPayout = (body) => call('POST', '/finance/payout', body);
+
+/** Get financial transactions audit log */
+export const getFinanceTransactions = (farmId, workerId, type) => {
+    const params = new URLSearchParams({ farm_id: farmId });
+    if (workerId) params.append('worker_id', workerId);
+    if (type) params.append('type', type);
+    return call('GET', `/finance/transactions?${params}`);
+};
