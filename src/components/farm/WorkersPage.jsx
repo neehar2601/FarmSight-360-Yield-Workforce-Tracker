@@ -517,9 +517,13 @@ const AllInOneWorkerCard = ({
                         <p className="text-xs font-semibold text-gray-600 mt-0.5">💰 Daily Wage: {fmtCurr(worker.per_day_salary)}/day</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <button onClick={() => onEdit(worker)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 text-xs" title="Edit Worker">✏️</button>
-                    <button onClick={() => onArchive(worker)} className="p-1.5 text-gray-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 text-xs" title="Archive Worker">📦</button>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => onEdit(worker)} className="px-2.5 py-1 text-xs border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-600 rounded-lg transition-colors font-medium flex items-center gap-1">
+                        ✏️ Edit
+                    </button>
+                    <button onClick={() => onArchive(worker)} className="px-2.5 py-1 text-xs border border-amber-300 hover:border-amber-500 hover:bg-amber-50 text-amber-600 rounded-lg transition-colors font-medium flex items-center gap-1">
+                        📦 Archive
+                    </button>
                 </div>
             </div>
 
@@ -567,8 +571,14 @@ const AllInOneWorkerCard = ({
 
             {/* Direct Quick Action Buttons Bar */}
             <div className="grid grid-cols-4 gap-1.5 pt-1">
-                <button onClick={() => onPaySalary(worker)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-1 text-center text-xs rounded-xl transition-colors shadow-sm">
+                <button
+                    disabled={worker.unpaid_carryforward_salary <= 0}
+                    onClick={() => onPaySalary(worker)}
+                    className={`font-semibold py-2 px-1 text-center text-xs rounded-xl transition-colors shadow-sm ${
+                        worker.unpaid_carryforward_salary <= 0
+                            ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed shadow-none'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}>
                     💰 Pay Salary
                 </button>
                 <button onClick={() => onAdvance(worker)}
