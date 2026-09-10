@@ -58,28 +58,52 @@ export default function FinancePage() {
     const mappedWorkerTxs = workerTransactions.map(t => {
         const isIncome = t.type === 'LOAN_SETTLEMENT';
         const loanDeducted = parseFloat(t.loan_deducted || 0);
+        const grossAmount = parseFloat(t.amount || 0);
 
-        // Net cash outflow/inflow for this transaction
-        // For PAYOUT: cash paid out = gross payout amount - loan deduction
-        const amt = t.type === 'PAYOUT'
-            ? Math.max(0, parseFloat(t.amount || 0) - loanDeducted)
-            : parseFloat(t.amount || 0);
+        let netCashPaid = 0;
+        let isFullyAdjusted = false;
+        let isPartialAdjusted = false;
 
-        const typeLabel = t.type === 'PAYOUT' ? 'Worker Payout (Cash Paid)'
-            : t.type === 'ADVANCE' ? 'Worker Advance'
+        if (t.type === 'PAYOUT') {
+            netCashPaid = Math.max(0, grossAmount - loanDeducted);
+            if (loanDeducted > 0 && netCashPaid === 0) {
+                isFullyAdjusted = true;
+            } else if (loanDeducted > 0 && netCashPaid > 0) {
+                isPartialAdjusted = true;
+            }
+        }
+
+        const typeLabel = t.type === 'PAYOUT' ? 'Worker Salary Settlement'
+            : t.type === 'ADVANCE' ? 'Worker Cash Advance'
             : t.type === 'BONUS' ? 'Worker Bonus'
-            : 'Loan Repayment Recovery';
+            : 'Loan Cash Repayment';
+
+        const icon = t.type === 'PAYOUT'
+            ? (isFullyAdjusted ? '🔄' : '💰')
+            : t.type === 'ADVANCE' ? '💵'
+            : t.type === 'BONUS' ? '🎁'
+            : '🤝';
 
         let notes = t.notes || `${typeLabel} transaction`;
-        if (t.type === 'PAYOUT' && loanDeducted > 0) {
-            notes = `Gross ₹${parseFloat(t.amount || 0).toLocaleString('en-IN')}, Loan Deducted ₹${loanDeducted.toLocaleString('en-IN')}${t.notes ? ` • ${t.notes}` : ''}`;
+        if (t.type === 'PAYOUT') {
+            if (isFullyAdjusted) {
+                notes = `Gross Salary ₹${fmt(grossAmount)} • Loan Deducted ₹${fmt(loanDeducted)} • Net Cash Paid ₹0`;
+            } else if (isPartialAdjusted) {
+                notes = `Gross Salary ₹${fmt(grossAmount)} • Loan Deducted ₹${fmt(loanDeducted)} • Net Cash Paid ₹${fmt(netCashPaid)}`;
+            }
         }
 
         return {
             id: `w_${t.id}`,
             source: `${typeLabel} (${t.worker_name || 'Worker'})`,
-            amount: amt,
-            category: isIncome ? 'income' : 'expense',
+            amount: isFullyAdjusted ? grossAmount : (t.type === 'PAYOUT' ? netCashPaid : grossAmount),
+            cashAmount: isFullyAdjusted ? 0 : (t.type === 'PAYOUT' ? netCashPaid : grossAmount),
+            category: isIncome ? 'income' : (isFullyAdjusted ? 'adjusted' : 'expense'),
+            isFullyAdjusted,
+            isPartialAdjusted,
+            loanDeducted,
+            grossAmount,
+            icon,
             date_col: t.payment_date || t.created_at,
             notes,
         };
@@ -87,7 +111,7 @@ export default function FinancePage() {
 
     const totalWorkerExpenses = mappedWorkerTxs
         .filter(t => t.category === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + (t.cashAmount !== undefined ? t.cashAmount : t.amount), 0);
 
     const totalWorkerIncome = mappedWorkerTxs
         .filter(t => t.category === 'income')
@@ -105,7 +129,9 @@ export default function FinancePage() {
 
     const filtered = activeTab === 'all'
         ? allTransactions
-        : allTransactions.filter(t => t.category === activeTab);
+        : activeTab === 'expense'
+            ? allTransactions.filter(t => t.category === 'expense' || t.category === 'adjusted')
+            : allTransactions.filter(t => t.category === activeTab);
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
@@ -157,7 +183,7 @@ export default function FinancePage() {
                             <div>
                                 <p className="text-sm font-bold text-emerald-900">Live Worker Service Finance Connected</p>
                                 <p className="text-xs text-emerald-700 mt-0.5">
-                                    Total Live Worker Expenses: <strong>₹{fmt(totalWorkerExpenses)}</strong> (Includes Payouts, Advances & Bonuses)
+                                    Total Live Worker Cash Outflows: <strong>₹{fmt(totalWorkerExpenses)}</strong> (Includes Net Payouts, Advances & Bonuses)
                                 </p>
                             </div>
                         </div>
@@ -190,20 +216,42 @@ export default function FinancePage() {
                                     <div key={tx.id || i} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
                                         <div className="flex items-center gap-4">
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-                                                tx.category === 'income' ? 'bg-green-100' : 'bg-red-100'
+                                                tx.category === 'income' ? 'bg-green-100'
+                                                : tx.category === 'adjusted' ? 'bg-slate-100'
+                                                : 'bg-red-100'
                                             }`}>
-                                                {tx.category === 'income' ? '📈' : '📉'}
+                                                {tx.icon || (tx.category === 'income' ? '📈' : '📉')}
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-gray-800 text-sm">{tx.source}</p>
-                                                {tx.notes && <p className="text-xs text-gray-400">{tx.notes}</p>}
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold text-gray-800 text-sm">{tx.source}</p>
+                                                    {tx.isFullyAdjusted && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] border border-slate-200">
+                                                            Adjusted from Loan
+                                                        </span>
+                                                    )}
+                                                    {tx.isPartialAdjusted && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-semibold text-[10px] border border-amber-200">
+                                                            ₹{fmt(tx.loanDeducted)} Loan Deducted
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {tx.notes && <p className="text-xs text-gray-400 mt-0.5">{tx.notes}</p>}
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className={`font-bold text-sm ${tx.category === 'income' ? 'text-green-600' : 'text-red-500'}`}>
-                                                {tx.category === 'income' ? '+' : '-'}₹{fmt(tx.amount)}
-                                            </p>
-                                            <p className="text-xs text-gray-400">
+                                            {tx.isFullyAdjusted ? (
+                                                <div className="flex items-center justify-end">
+                                                    <span className="font-bold text-sm text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                                                        ₹{fmt(tx.grossAmount)}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <p className={`font-bold text-sm ${tx.category === 'income' ? 'text-green-600' : 'text-red-500'}`}>
+                                                    {tx.category === 'income' ? '+' : '-'}₹{fmt(tx.amount)}
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-gray-400 mt-0.5">
                                                 {tx.date_col ? new Date(tx.date_col).toLocaleDateString('en-IN') : '—'}
                                             </p>
                                         </div>
