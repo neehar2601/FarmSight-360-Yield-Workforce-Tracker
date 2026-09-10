@@ -61,6 +61,10 @@ export const getAttendance = (farmId, month) => {
 export const upsertAttendance = (body) => call('POST', '/attendance', body);
 
 // ── Finance & Payroll ─────────────────────────────────────────────────────────
+/** Get complete workers financial overview (includes today attendance, carryforward salary, loan balances) */
+export const getWorkersOverview = (farmId) =>
+    call('GET', `/finance/workers-overview?farm_id=${farmId}`);
+
 /** Get payroll summary for a date range (weekly/monthly) */
 export const getPayrollSummary = (farmId, fromDate, toDate) => {
     const params = new URLSearchParams({ farm_id: farmId });
@@ -71,6 +75,9 @@ export const getPayrollSummary = (farmId, fromDate, toDate) => {
 
 /** Record a cash advance given to a worker */
 export const recordAdvance = (body) => call('POST', '/finance/advance', body);
+
+/** Record a bonus awarded to a worker */
+export const recordBonus = (body) => call('POST', '/finance/bonus', body);
 
 /** Record a loan settlement repayment from worker */
 export const recordLoanSettlement = (body) => call('POST', '/finance/loan-settlement', body);
