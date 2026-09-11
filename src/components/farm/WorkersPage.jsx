@@ -19,6 +19,19 @@ const TX_TYPE_BADGES = {
     PAYOUT: 'bg-emerald-100 text-emerald-800 border-emerald-200',
 };
 
+// ─── Activity Types ───────────────────────────────────────────────────────────
+const ACTIVITY_TYPES = [
+    { value: 'GENERAL',      label: 'General',       emoji: '👷' },
+    { value: 'PLUCKING',     label: 'Plucking',      emoji: '🌿' },
+    { value: 'FERTILISATION',label: 'Fertilisation', emoji: '🌱' },
+    { value: 'SPRAY',        label: 'Spraying',      emoji: '💦' },
+    { value: 'MULCHING',     label: 'Mulching',      emoji: '🍂' },
+    { value: 'PRUNING',      label: 'Pruning',       emoji: '✂️' },
+    { value: 'SORTING',      label: 'Sorting',       emoji: '📦' },
+    { value: 'IRRIGATION',   label: 'Irrigation',    emoji: '💧' },
+];
+const ACTIVITY_MAP = Object.fromEntries(ACTIVITY_TYPES.map(a => [a.value, a]));
+
 // ─── WorkerModal ──────────────────────────────────────────────────────────────
 const WorkerModal = ({ worker, farmId, onClose, onSaved }) => {
     const editing = !!worker;
@@ -495,13 +508,30 @@ const AllInOneWorkerCard = ({
     onPaySalary, onAdvance, onBonus, onSettleLoan
 }) => {
     const [savingAtt, setSavingAtt] = useState(false);
+    const [activityType, setActivityType] = useState(worker.today_activity_type || 'GENERAL');
     const todayStr = today();
+
+    // Sync activity if the worker prop changes (e.g., after reload)
+    useEffect(() => {
+        setActivityType(worker.today_activity_type || 'GENERAL');
+    }, [worker.today_activity_type]);
 
     const handleAttendance = async (status) => {
         setSavingAtt(true);
-        await onMarkAttendance(worker.id, status);
+        await onMarkAttendance(worker.id, status, activityType);
         setSavingAtt(false);
     };
+
+    const handleActivityChange = async (newActivity) => {
+        // Only update activity if worker has already been marked P or H today
+        if (!worker.today_status || worker.today_status === 'A') return;
+        setActivityType(newActivity);
+        setSavingAtt(true);
+        await onMarkAttendance(worker.id, worker.today_status, newActivity);
+        setSavingAtt(false);
+    };
+
+    const actInfo = ACTIVITY_MAP[activityType] || ACTIVITY_MAP['GENERAL'];
 
     return (
         <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all space-y-4">
@@ -528,26 +558,49 @@ const AllInOneWorkerCard = ({
             </div>
 
             {/* Quick Attendance Bar for Today */}
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-600 flex items-center gap-1">
-                    📋 Today's Attendance {savingAtt && <span className="text-[10px] text-gray-400 font-normal">(Saving…)</span>}
-                </span>
-                <div className="flex gap-1.5">
-                    {[
-                        { s: 'P', label: 'P', name: 'Present', activeClass: 'bg-emerald-600 text-white border-emerald-600' },
-                        { s: 'H', label: 'H', name: 'Half Day', activeClass: 'bg-amber-500 text-white border-amber-500' },
-                        { s: 'A', label: 'A', name: 'Absent', activeClass: 'bg-rose-600 text-white border-rose-600' },
-                    ].map(btn => (
-                        <button key={btn.s} onClick={() => handleAttendance(btn.s)}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
-                                worker.today_status === btn.s
-                                    ? btn.activeClass
-                                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
-                            }`}>
-                            {btn.label}
-                        </button>
-                    ))}
+            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2">
+                <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                        📋 Today's Attendance {savingAtt && <span className="text-[10px] text-gray-400 font-normal">(Saving…)</span>}
+                    </span>
+                    <div className="flex gap-1.5">
+                        {[
+                            { s: 'P', label: 'P', name: 'Present', activeClass: 'bg-emerald-600 text-white border-emerald-600' },
+                            { s: 'H', label: 'H', name: 'Half Day', activeClass: 'bg-amber-500 text-white border-amber-500' },
+                            { s: 'A', label: 'A', name: 'Absent', activeClass: 'bg-rose-600 text-white border-rose-600' },
+                        ].map(btn => (
+                            <button key={btn.s} onClick={() => handleAttendance(btn.s)}
+                                className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
+                                    worker.today_status === btn.s
+                                        ? btn.activeClass
+                                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                                }`}>
+                                {btn.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
+
+                {/* Activity Selector — only shown when worker is P or H */}
+                {worker.today_status && worker.today_status !== 'A' && (
+                    <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
+                        <span className="text-[11px] text-gray-500 font-medium whitespace-nowrap">📌 Task:</span>
+                        <div className="flex flex-wrap gap-1">
+                            {ACTIVITY_TYPES.map(act => (
+                                <button
+                                    key={act.value}
+                                    onClick={() => handleActivityChange(act.value)}
+                                    className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all ${
+                                        activityType === act.value
+                                            ? 'bg-green-600 text-white border-green-600'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-700'
+                                    }`}>
+                                    {act.emoji} {act.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Realtime Financial Metric Badges */}
@@ -594,6 +647,172 @@ const AllInOneWorkerCard = ({
                     🤝 Settle Loan
                 </button>
             </div>
+        </div>
+    );
+};
+
+// ─── MonthlyAttendance ────────────────────────────────────────────────────────
+const MonthlyAttendance = ({ workers, farmId }) => {
+    const now = new Date();
+    const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const [month, setMonth] = useState(defaultMonth);
+    const [records, setRecords] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!farmId || !month) return;
+        setLoading(true);
+        getAttendance(farmId, month).then(({ data }) => {
+            setRecords(data || []);
+            setLoading(false);
+        });
+    }, [farmId, month]);
+
+    // Build calendar: days in month
+    const [year, mon] = month.split('-').map(Number);
+    const daysInMonth = new Date(year, mon, 0).getDate();
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+    // Map: { workerId: { date: { status, activity_type } } }
+    const attMap = {};
+    records.forEach(r => {
+        if (!attMap[r.worker_id]) attMap[r.worker_id] = {};
+        const d = new Date(r.date);
+        const dayNum = d.getUTCDate();
+        attMap[r.worker_id][dayNum] = { status: r.status, activity: r.activity_type };
+    });
+
+    const STATUS_STYLE = {
+        P: 'bg-emerald-500 text-white',
+        H: 'bg-amber-400 text-white',
+        A: 'bg-rose-400 text-white',
+    };
+
+    // Monthly summary per worker
+    const summary = workers.map(w => {
+        const wAtt = attMap[w.id] || {};
+        const p = Object.values(wAtt).filter(v => v.status === 'P').length;
+        const h = Object.values(wAtt).filter(v => v.status === 'H').length;
+        const a = Object.values(wAtt).filter(v => v.status === 'A').length;
+        const worked = p * 1.0 + h * 0.5;
+        const earned = worked * parseFloat(w.per_day_salary || 0);
+        return { ...w, p, h, a, worked, earned };
+    });
+
+    return (
+        <div className="space-y-5">
+            {/* Month Picker + Legend */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <h3 className="font-bold text-gray-800 text-base">📅 Monthly Attendance Roster</h3>
+                    <input
+                        type="month" value={month}
+                        onChange={e => setMonth(e.target.value)}
+                        className="border rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
+                </div>
+                <div className="flex items-center gap-3 text-xs">
+                    <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-emerald-500 inline-block"></span> Present</span>
+                    <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-amber-400 inline-block"></span> Half Day</span>
+                    <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-rose-400 inline-block"></span> Absent</span>
+                    <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-gray-200 inline-block"></span> Not Marked</span>
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="text-center py-10 text-gray-400">Loading attendance…</div>
+            ) : workers.length === 0 ? (
+                <div className="text-center py-10 text-gray-400">No active workers to display.</div>
+            ) : (
+                <>
+                    {/* Calendar Grid */}
+                    <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                        <table className="text-[11px] w-full border-collapse">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="sticky left-0 bg-gray-50 z-10 p-2.5 text-left font-semibold text-gray-600 border-b border-r border-gray-200 min-w-[120px]">Worker</th>
+                                    {days.map(d => {
+                                        const date = new Date(year, mon - 1, d);
+                                        const dow = date.getDay();
+                                        const isSun = dow === 0;
+                                        const isSat = dow === 6;
+                                        return (
+                                            <th key={d} className={`p-1.5 text-center font-semibold border-b border-gray-200 min-w-[28px] ${
+                                                isSun ? 'text-rose-500 bg-rose-50' : isSat ? 'text-amber-600 bg-amber-50' : 'text-gray-500'
+                                            }`}>
+                                                <div>{d}</div>
+                                                <div className="text-[9px] font-normal">{['Su','Mo','Tu','We','Th','Fr','Sa'][dow]}</div>
+                                            </th>
+                                        );
+                                    })}
+                                    <th className="p-2.5 text-center font-semibold text-gray-600 border-b border-l border-gray-200 whitespace-nowrap">P</th>
+                                    <th className="p-2.5 text-center font-semibold text-gray-600 border-b border-gray-200">H</th>
+                                    <th className="p-2.5 text-center font-semibold text-gray-600 border-b border-gray-200">Days</th>
+                                    <th className="p-2.5 text-center font-semibold text-gray-600 border-b border-gray-200 whitespace-nowrap">Earned (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {summary.map(w => (
+                                    <tr key={w.id} className="hover:bg-gray-50">
+                                        <td className="sticky left-0 bg-white z-10 p-2.5 font-semibold text-gray-800 border-r border-gray-200 whitespace-nowrap">
+                                            {w.name}
+                                            <p className="text-[10px] text-gray-400 font-normal">{fmtCurr(w.per_day_salary)}/day</p>
+                                        </td>
+                                        {days.map(d => {
+                                            const cell = attMap[w.id]?.[d];
+                                            const actInfo = cell?.activity ? ACTIVITY_MAP[cell.activity] : null;
+                                            return (
+                                                <td key={d} className="p-0.5 text-center">
+                                                    {cell ? (
+                                                        <div
+                                                            title={`${cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent'}${actInfo ? ` — ${actInfo.emoji} ${actInfo.label}` : ''}`}
+                                                            className={`w-6 h-6 rounded-md mx-auto flex items-center justify-center text-[10px] font-bold cursor-default ${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'}`}>
+                                                            {cell.status}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-6 h-6 rounded-md mx-auto bg-gray-100"></div>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                        <td className="p-2.5 text-center font-bold text-emerald-700">{w.p}</td>
+                                        <td className="p-2.5 text-center font-bold text-amber-600">{w.h}</td>
+                                        <td className="p-2.5 text-center font-bold text-gray-700">{w.worked}</td>
+                                        <td className="p-2.5 text-center font-bold text-emerald-700">{fmtCurr(w.earned)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Summary Cards */}
+                    <div className="grid sm:grid-cols-3 gap-3">
+                        {summary.map(w => (
+                            <div key={w.id} className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+                                <p className="font-bold text-gray-800 text-sm">{w.name}</p>
+                                <p className="text-xs text-gray-500 mb-2">{w.role || 'General Farm Hand'}</p>
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className="bg-emerald-50 rounded-xl p-2">
+                                        <p className="text-lg font-extrabold text-emerald-700">{w.p}</p>
+                                        <p className="text-[10px] text-gray-500">Present</p>
+                                    </div>
+                                    <div className="bg-amber-50 rounded-xl p-2">
+                                        <p className="text-lg font-extrabold text-amber-600">{w.h}</p>
+                                        <p className="text-[10px] text-gray-500">Half Day</p>
+                                    </div>
+                                    <div className="bg-rose-50 rounded-xl p-2">
+                                        <p className="text-lg font-extrabold text-rose-500">{w.a}</p>
+                                        <p className="text-[10px] text-gray-500">Absent</p>
+                                    </div>
+                                </div>
+                                <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
+                                    <span className="text-xs text-gray-500">{w.worked} days worked</span>
+                                    <span className="text-sm font-extrabold text-emerald-700">{fmtCurr(w.earned)}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 };
@@ -692,10 +911,13 @@ export default function WorkersPage() {
 
     useEffect(() => { loadWorkers(); }, [loadWorkers]);
 
-    const handleMarkAttendance = async (workerId, status) => {
-        await upsertAttendance({ worker_id: workerId, farm_id: farmId, date: today(), status });
-        // Optimistically update today_status
-        setWorkers(prev => prev.map(w => w.id === workerId ? { ...w, today_status: status } : w));
+    const handleMarkAttendance = async (workerId, status, activityType = 'GENERAL') => {
+        await upsertAttendance({ worker_id: workerId, farm_id: farmId, date: today(), status, activity_type: activityType });
+        // Optimistically update today_status and today_activity_type
+        setWorkers(prev => prev.map(w => w.id === workerId
+            ? { ...w, today_status: status, today_activity_type: activityType }
+            : w
+        ));
         loadWorkers();
     };
 
