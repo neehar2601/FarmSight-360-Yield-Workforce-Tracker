@@ -5,6 +5,7 @@ import AccountSettings from './components/settings/AccountSettings';
 import CropsPage from './components/farm/CropsPage';
 import InventoryPage from './components/farm/InventoryPage';
 import FinancePage from './components/farm/FinancePage';
+import WorkersPage from './components/farm/WorkersPage';
 
 // --- MOCK DATA LAYER (DEMO DATA) ---
 const MOCK_CURRENT_DATE = new Date('2025-10-13T12:00:00Z');
@@ -1869,10 +1870,6 @@ const Sidebar = ({ isSidebarOpen, currentPath }) => (
 
             <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Workforce</p>
             <NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink>
-
-            <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Legacy</p>
-            <NavLink to="/financials" icon={<FinancialIcon />} currentPath={currentPath}>Old Financials</NavLink>
-            <NavLink to="/resources" icon={<FertiliserIcon />} currentPath={currentPath}>Farm Resources</NavLink>
         </nav>
     </aside>
 );
@@ -1947,13 +1944,10 @@ const Header = ({ toggleSidebar }) => {
     );
 };
 
-// Legacy mock-data routes are kept for Workers (not yet on the service)
 // New farm-service-backed routes:
 const routes = {
     '/': Dashboard,
-    '/workers': WorkerManagement,
-    '/financials': FinancialTracking,  // legacy mock financials
-    '/resources': ResourceInventory,   // legacy mock resources
+    '/workers': WorkersPage,
     '/settings': AccountSettings,
     // ── Farm Service routes ─────────────────────────────────
     '/farm/crops': CropsPage,
