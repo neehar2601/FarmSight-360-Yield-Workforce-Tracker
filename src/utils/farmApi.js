@@ -68,6 +68,8 @@ export const getInventoryItemById = (id, farmId) =>
 export const updateInventoryItem = (id, body) => call('PUT', `/farm/inventory/${id}`, body);
 export const buyInventoryItem = (id, body) => call('POST', `/farm/inventory/${id}/buy`, body);
 export const sellInventoryItem = (id, body) => call('POST', `/farm/inventory/${id}/sell`, body);
+/** Record on-farm consumption (e.g. fertiliser applied). Reduces stock, no financial amount. */
+export const useInventoryItem = (id, body) => call('POST', `/farm/inventory/${id}/use`, body);
 
 // ── Finance ───────────────────────────────────────────────────────────────────
 export const getFinanceSummary = (farmId, from, to) => {

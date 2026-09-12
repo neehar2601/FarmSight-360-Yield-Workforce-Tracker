@@ -4,7 +4,7 @@ import {
     getInventoryCategories, createInventoryCategory,
     getInventoryItems, createInventoryItem,
     updateInventoryItem, buyInventoryItem, sellInventoryItem,
-    getActiveCrops,
+    useInventoryItem, getActiveCrops,
 } from '../../utils/farmApi';
 
 // ── Activity Types (shared with Worker attendance) ────────────────────────────
@@ -237,6 +237,134 @@ const TransactionModal = ({ item, type, onClose, onSaved }) => {
     );
 };
 
+// ── Modal: Use / Consume Stock ────────────────────────────────────────────────
+// Records on-farm consumption — no financial impact, stock quantity decreases.
+const UseStockModal = ({ item, onClose, onSaved }) => {
+    const { currentFarm } = useAuth();
+    const today = new Date().toISOString().split('T')[0];
+    const [form, setForm] = useState({
+        quantity: '', transaction_date: today,
+        notes: '', activity_type: '', crop_id: '',
+    });
+    const [crops, setCrops] = useState([]);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (currentFarm?.id) {
+            getActiveCrops(currentFarm.id).then(({ data }) => {
+                setCrops((data || []).filter(c => c.status === 'growing'));
+            });
+        }
+    }, [currentFarm?.id]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (parseFloat(form.quantity) > parseFloat(item.current_quantity)) {
+            setError(`Only ${item.current_quantity} ${item.unit} available in stock`);
+            return;
+        }
+        setSaving(true);
+        const { data, error: err } = await useInventoryItem(item.id, { ...form, farm_id: item.farm_id });
+        setSaving(false);
+        if (err) { setError(err); return; }
+        onSaved(data);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-1">🪣 Use / Consume Stock</h2>
+                <p className="text-sm text-gray-500 mb-1">
+                    {item.name} · Available: <strong className="text-gray-700">{item.current_quantity} {item.unit}</strong>
+                </p>
+                <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-1.5 mb-5">
+                    ⚠️ Stock will decrease. No income recorded — expense was captured at purchase.
+                </p>
+                {error && <p className="text-red-600 text-sm mb-4 bg-red-50 p-3 rounded-lg">{error}</p>}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Qty Used ({item.unit}) *</label>
+                            <input
+                                type="number" min="0.01" step="0.01"
+                                max={item.current_quantity}
+                                value={form.quantity}
+                                onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))}
+                                required
+                                className="w-full border border-gray-300 rounded-lg p-2.5" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                            <input type="date" value={form.transaction_date}
+                                onChange={e => setForm(p => ({ ...p, transaction_date: e.target.value }))}
+                                required className="w-full border border-gray-300 rounded-lg p-2.5" />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                            <input value={form.notes}
+                                onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg p-2.5"
+                                placeholder="e.g. Applied to North Block" />
+                        </div>
+                    </div>
+
+                    {/* Activity + Crop tagging */}
+                    <div className="border-t border-gray-100 pt-4 space-y-3">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tag this usage (optional)</p>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">📌 Activity</label>
+                            <div className="flex flex-wrap gap-1.5">
+                                {ACTIVITY_TYPES.map(act => (
+                                    <button
+                                        key={act.value}
+                                        type="button"
+                                        onClick={() => setForm(p => ({
+                                            ...p,
+                                            activity_type: p.activity_type === act.value ? '' : act.value
+                                        }))}
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                            form.activity_type === act.value
+                                                ? 'bg-amber-500 text-white border-amber-500'
+                                                : 'bg-white text-gray-600 border-gray-200 hover:border-amber-400 hover:text-amber-700'
+                                        }`}>
+                                        {act.emoji} {act.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        {crops.length > 0 && (
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1.5">🌾 Applied to Crop</label>
+                                <select
+                                    value={form.crop_id}
+                                    onChange={e => setForm(p => ({ ...p, crop_id: e.target.value }))}
+                                    className="w-full border border-gray-300 rounded-lg p-2.5 text-sm">
+                                    <option value="">No specific crop</option>
+                                    {crops.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name}{c.variety ? ` (${c.variety})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="px-5 py-2 border rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                        <button type="submit" disabled={saving}
+                            className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium disabled:opacity-50">
+                            {saving ? 'Recording…' : '🪣 Record Usage'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 // ── Modal: Add Custom Category ─────────────────────────────────────────────────
 const CategoryModal = ({ farmId, onClose, onSaved }) => {
     const [name, setName] = useState('');
@@ -377,6 +505,10 @@ export default function InventoryPage() {
                                         className="flex-1 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-all">
                                         🛒 Buy
                                     </button>
+                                    <button onClick={() => setModal({ type: 'use', item })}
+                                        className="flex-1 py-1.5 text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-all">
+                                        🪣 Use
+                                    </button>
                                     <button onClick={() => setModal({ type: 'sell', item })}
                                         className="flex-1 py-1.5 text-xs font-medium bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-all">
                                         💸 Sell
@@ -394,7 +526,10 @@ export default function InventoryPage() {
             {modal === 'category' && (
                 <CategoryModal farmId={currentFarm.id} onClose={() => setModal(null)} onSaved={load} />
             )}
-            {modal?.type && (
+            {modal?.type === 'use' && (
+                <UseStockModal item={modal.item} onClose={() => setModal(null)} onSaved={load} />
+            )}
+            {(modal?.type === 'buy' || modal?.type === 'sell') && (
                 <TransactionModal item={modal.item} type={modal.type} onClose={() => setModal(null)} onSaved={load} />
             )}
         </div>
