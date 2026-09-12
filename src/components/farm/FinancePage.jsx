@@ -190,20 +190,20 @@ export default function FinancePage() {
                             SORTING: '📦', IRRIGATION: '💧', UNTAGGED: '🔖',
                         };
 
-                        // Build a merged map: activityType → { labor, materials, workedDays, purchaseCount, crops[] }
+                        // Build a merged map: activityType → { labor, materials, workedDays, useCount, crops[] }
                         const combined = {};
                         activityBreakdown.forEach(a => {
                             const key = a.activity_type;
-                            combined[key] = combined[key] || { labor: 0, materials: 0, workedDays: 0, purchaseCount: 0, crops: [] };
+                            combined[key] = combined[key] || { labor: 0, materials: 0, workedDays: 0, useCount: 0, crops: [] };
                             combined[key].labor     += parseFloat(a.total_labor_cost || 0);
                             combined[key].workedDays = parseFloat(a.worked_days || 0);
                         });
                         invActivityBreakdown.forEach(a => {
                             const key = a.activity_type;
-                            combined[key] = combined[key] || { labor: 0, materials: 0, workedDays: 0, purchaseCount: 0, crops: [] };
-                            combined[key].materials     += parseFloat(a.total_material_cost || 0);
-                            combined[key].purchaseCount += parseInt(a.purchase_count || 0);
-                            combined[key].crops          = a.crops || [];
+                            combined[key] = combined[key] || { labor: 0, materials: 0, workedDays: 0, useCount: 0, crops: [] };
+                            combined[key].materials += parseFloat(a.total_material_cost || 0);
+                            combined[key].useCount  += parseInt(a.use_count || 0);
+                            combined[key].crops      = a.crops || [];
                         });
 
                         const entries = Object.entries(combined).sort(
@@ -213,7 +213,7 @@ export default function FinancePage() {
                         return (
                             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
                                 <h2 className="text-lg font-bold text-gray-800 mb-1">⚡ Cost Breakdown by Activity</h2>
-                                <p className="text-xs text-gray-400 mb-4">Labor wages + material purchases combined per activity</p>
+                                <p className="text-xs text-gray-400 mb-4">Labor wages + material costs attributed at time of use</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {entries.map(([activity, data]) => {
                                         const emoji = ACTIVITY_EMOJIS[activity] || '🔖';
@@ -230,8 +230,8 @@ export default function FinancePage() {
                                                         <p className="font-bold text-gray-800 text-sm">{label}</p>
                                                         <p className="text-[10px] text-gray-400">
                                                             {data.workedDays > 0 && `${data.workedDays} worker-days`}
-                                                            {data.workedDays > 0 && data.purchaseCount > 0 && ' · '}
-                                                            {data.purchaseCount > 0 && `${data.purchaseCount} purchase${data.purchaseCount > 1 ? 's' : ''}`}
+                                                            {data.workedDays > 0 && data.useCount > 0 && ' · '}
+                                                            {data.useCount > 0 && `${data.useCount} material usage${data.useCount > 1 ? 's' : ''}`}
                                                         </p>
                                                     </div>
                                                     <p className="ml-auto text-base font-extrabold text-gray-800">₹{fmt(total)}</p>
