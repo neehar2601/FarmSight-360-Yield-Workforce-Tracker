@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getFinanceSummary, getFinanceTransactions } from '../../utils/farmApi';
+import { getFinanceSummary, getFinanceTransactions, getInventoryActivityBreakdown } from '../../utils/farmApi';
 import { getFinanceTransactions as getWorkerTransactions, getActivityBreakdown } from '../../utils/workerApi';
 
 const Spinner = () => (
@@ -25,7 +25,8 @@ export default function FinancePage() {
     const [summary, setSummary] = useState(null);
     const [transactions, setTransactions] = useState([]);
     const [workerTransactions, setWorkerTransactions] = useState([]);
-    const [activityBreakdown, setActivityBreakdown] = useState([]);
+    const [activityBreakdown, setActivityBreakdown] = useState([]);     // labor costs per activity
+    const [invActivityBreakdown, setInvActivityBreakdown] = useState([]); // material costs per activity
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
@@ -35,11 +36,12 @@ export default function FinancePage() {
         if (!currentFarm?.id) return;
         setLoading(true);
         setError('');
-        const [sumRes, txRes, wTxRes, actRes] = await Promise.all([
+        const [sumRes, txRes, wTxRes, actRes, invActRes] = await Promise.all([
             getFinanceSummary(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
             getFinanceTransactions(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
             getWorkerTransactions(currentFarm.id),
             getActivityBreakdown(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
+            getInventoryActivityBreakdown(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
         ]);
         setLoading(false);
         if (sumRes.error) { setError(sumRes.error); return; }
@@ -47,6 +49,7 @@ export default function FinancePage() {
         setTransactions(txRes.data || []);
         setWorkerTransactions(wTxRes.data || []);
         setActivityBreakdown(actRes.data || []);
+        setInvActivityBreakdown(invActRes.data || []);
     }, [currentFarm?.id, dateRange.from, dateRange.to]);
 
     useEffect(() => { load(); }, [load]);
@@ -179,31 +182,108 @@ export default function FinancePage() {
                         </div>
                     </div>
 
-                    {/* Activity Cost Breakdown */}
-                    {activityBreakdown.length > 0 && (
-                        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-                            <h2 className="text-lg font-bold text-gray-800 mb-4">⚡ Labor Cost by Activity</h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                {activityBreakdown.map(act => {
-                                    const ACTIVITY_EMOJIS = {
-                                        GENERAL: '👷', PLUCKING: '🌿', FERTILISATION: '🌱',
-                                        SPRAY: '💦', MULCHING: '🍂', PRUNING: '✂️',
-                                        SORTING: '📦', IRRIGATION: '💧',
-                                    };
-                                    const emoji = ACTIVITY_EMOJIS[act.activity_type] || '🔖';
-                                    const label = act.activity_type.charAt(0) + act.activity_type.slice(1).toLowerCase();
-                                    return (
-                                        <div key={act.activity_type} className="bg-gradient-to-br from-green-50 to-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
-                                            <div className="text-2xl mb-1">{emoji}</div>
-                                            <p className="text-xs font-bold text-gray-700">{label}</p>
-                                            <p className="text-lg font-extrabold text-emerald-700 mt-1">₹{fmt(act.total_labor_cost)}</p>
-                                            <p className="text-[10px] text-gray-500 mt-0.5">{act.worked_days} worker-days</p>
-                                        </div>
-                                    );
-                                })}
+                    {/* ⚡ Cost Breakdown by Activity (Labor + Materials combined) */}
+                    {(activityBreakdown.length > 0 || invActivityBreakdown.length > 0) && (() => {
+                        const ACTIVITY_EMOJIS = {
+                            GENERAL: '👷', PLUCKING: '🌿', FERTILISATION: '🌱',
+                            SPRAY: '💦', MULCHING: '🍂', PRUNING: '✂️',
+                            SORTING: '📦', IRRIGATION: '💧', UNTAGGED: '🔖',
+                        };
+
+                        // Build a merged map: activityType → { labor, materials, workedDays, purchaseCount, crops[] }
+                        const combined = {};
+                        activityBreakdown.forEach(a => {
+                            const key = a.activity_type;
+                            combined[key] = combined[key] || { labor: 0, materials: 0, workedDays: 0, purchaseCount: 0, crops: [] };
+                            combined[key].labor     += parseFloat(a.total_labor_cost || 0);
+                            combined[key].workedDays = parseFloat(a.worked_days || 0);
+                        });
+                        invActivityBreakdown.forEach(a => {
+                            const key = a.activity_type;
+                            combined[key] = combined[key] || { labor: 0, materials: 0, workedDays: 0, purchaseCount: 0, crops: [] };
+                            combined[key].materials     += parseFloat(a.total_material_cost || 0);
+                            combined[key].purchaseCount += parseInt(a.purchase_count || 0);
+                            combined[key].crops          = a.crops || [];
+                        });
+
+                        const entries = Object.entries(combined).sort(
+                            ([, a], [, b]) => (b.labor + b.materials) - (a.labor + a.materials)
+                        );
+
+                        return (
+                            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                                <h2 className="text-lg font-bold text-gray-800 mb-1">⚡ Cost Breakdown by Activity</h2>
+                                <p className="text-xs text-gray-400 mb-4">Labor wages + material purchases combined per activity</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {entries.map(([activity, data]) => {
+                                        const emoji = ACTIVITY_EMOJIS[activity] || '🔖';
+                                        const label = activity.charAt(0) + activity.slice(1).toLowerCase();
+                                        const total = data.labor + data.materials;
+                                        const laborPct  = total > 0 ? Math.round((data.labor / total) * 100) : 0;
+                                        const matPct    = total > 0 ? 100 - laborPct : 0;
+                                        return (
+                                            <div key={activity} className="border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-shadow">
+                                                {/* Header */}
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <span className="text-2xl">{emoji}</span>
+                                                    <div>
+                                                        <p className="font-bold text-gray-800 text-sm">{label}</p>
+                                                        <p className="text-[10px] text-gray-400">
+                                                            {data.workedDays > 0 && `${data.workedDays} worker-days`}
+                                                            {data.workedDays > 0 && data.purchaseCount > 0 && ' · '}
+                                                            {data.purchaseCount > 0 && `${data.purchaseCount} purchase${data.purchaseCount > 1 ? 's' : ''}`}
+                                                        </p>
+                                                    </div>
+                                                    <p className="ml-auto text-base font-extrabold text-gray-800">₹{fmt(total)}</p>
+                                                </div>
+
+                                                {/* Sub-rows */}
+                                                <div className="space-y-1.5">
+                                                    {data.labor > 0 && (
+                                                        <div className="flex justify-between items-center text-xs">
+                                                            <span className="flex items-center gap-1 text-gray-500">
+                                                                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> Labor
+                                                            </span>
+                                                            <span className="font-semibold text-emerald-700">₹{fmt(data.labor)}</span>
+                                                        </div>
+                                                    )}
+                                                    {data.materials > 0 && (
+                                                        <div className="flex justify-between items-center text-xs">
+                                                            <span className="flex items-center gap-1 text-gray-500">
+                                                                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Materials
+                                                            </span>
+                                                            <span className="font-semibold text-amber-700">₹{fmt(data.materials)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Mini stacked bar */}
+                                                {total > 0 && (
+                                                    <div className="mt-3 h-1.5 rounded-full bg-gray-100 overflow-hidden flex">
+                                                        <div className="bg-emerald-400 h-full transition-all" style={{ width: `${laborPct}%` }}></div>
+                                                        <div className="bg-amber-400 h-full transition-all" style={{ width: `${matPct}%` }}></div>
+                                                    </div>
+                                                )}
+
+                                                {/* Crops tag */}
+                                                {data.crops.length > 0 && (
+                                                    <p className="mt-2 text-[10px] text-gray-400">
+                                                        🌾 {data.crops.join(', ')}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Legend */}
+                                <div className="flex items-center gap-4 mt-4 text-xs text-gray-400">
+                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> Labor wages</span>
+                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Material purchases</span>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {/* Live Worker Finance Connection Info */}
                     <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">

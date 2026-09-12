@@ -3,8 +3,21 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
     getInventoryCategories, createInventoryCategory,
     getInventoryItems, createInventoryItem,
-    updateInventoryItem, buyInventoryItem, sellInventoryItem
+    updateInventoryItem, buyInventoryItem, sellInventoryItem,
+    getActiveCrops,
 } from '../../utils/farmApi';
+
+// ── Activity Types (shared with Worker attendance) ────────────────────────────
+const ACTIVITY_TYPES = [
+    { value: 'GENERAL',       label: 'General',       emoji: '👷' },
+    { value: 'PLUCKING',      label: 'Plucking',      emoji: '🌿' },
+    { value: 'FERTILISATION', label: 'Fertilisation', emoji: '🌱' },
+    { value: 'SPRAY',         label: 'Spraying',      emoji: '💦' },
+    { value: 'MULCHING',      label: 'Mulching',      emoji: '🍂' },
+    { value: 'PRUNING',       label: 'Pruning',       emoji: '✂️' },
+    { value: 'SORTING',       label: 'Sorting',       emoji: '📦' },
+    { value: 'IRRIGATION',    label: 'Irrigation',    emoji: '💧' },
+];
 
 const Spinner = () => (
     <div className="flex justify-center items-center py-20">
@@ -75,10 +88,24 @@ const AddItemModal = ({ farmId, categories, onClose, onSaved }) => {
 
 // ── Modal: Buy / Sell Stock ────────────────────────────────────────────────────
 const TransactionModal = ({ item, type, onClose, onSaved }) => {
+    const { currentFarm } = useAuth();
     const today = new Date().toISOString().split('T')[0];
-    const [form, setForm] = useState({ quantity: '', unit_price: '', transaction_date: today, notes: '' });
+    const [form, setForm] = useState({
+        quantity: '', unit_price: '', transaction_date: today,
+        notes: '', activity_type: '', crop_id: '',
+    });
+    const [crops, setCrops] = useState([]);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+
+    // Fetch active crops for the crop dropdown (buy only)
+    useEffect(() => {
+        if (type === 'buy' && currentFarm?.id) {
+            getActiveCrops(currentFarm.id).then(({ data }) => {
+                setCrops((data || []).filter(c => c.status === 'growing'));
+            });
+        }
+    }, [type, currentFarm?.id]);
 
     const total = form.quantity && form.unit_price
         ? (parseFloat(form.quantity) * parseFloat(form.unit_price)).toLocaleString('en-IN')
@@ -88,7 +115,13 @@ const TransactionModal = ({ item, type, onClose, onSaved }) => {
         e.preventDefault();
         setSaving(true);
         const fn = type === 'buy' ? buyInventoryItem : sellInventoryItem;
-        const { data, error: err } = await fn(item.id, { ...form, farm_id: item.farm_id });
+        const payload = { ...form, farm_id: item.farm_id };
+        // Only include activity fields for buy
+        if (type !== 'buy') {
+            delete payload.activity_type;
+            delete payload.crop_id;
+        }
+        const { data, error: err } = await fn(item.id, payload);
         setSaving(false);
         if (err) { setError(err); return; }
         onSaved(data);
@@ -130,12 +163,63 @@ const TransactionModal = ({ item, type, onClose, onSaved }) => {
                                 className="w-full border border-gray-300 rounded-lg p-2.5" placeholder="Supplier, buyer, etc." />
                         </div>
                     </div>
+
+                    {/* Activity + Crop tagging — BUY only */}
+                    {isBuy && (
+                        <div className="border-t border-gray-100 pt-4 space-y-3">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tag this purchase (optional)</p>
+
+                            {/* Activity selector */}
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1.5">📌 Activity</label>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {ACTIVITY_TYPES.map(act => (
+                                        <button
+                                            key={act.value}
+                                            type="button"
+                                            onClick={() => setForm(p => ({
+                                                ...p,
+                                                activity_type: p.activity_type === act.value ? '' : act.value
+                                            }))}
+                                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                                form.activity_type === act.value
+                                                    ? 'bg-green-600 text-white border-green-600'
+                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-700'
+                                            }`}>
+                                            {act.emoji} {act.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Crop dropdown */}
+                            {crops.length > 0 && (
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1.5">🌾 Intended Crop</label>
+                                    <select
+                                        value={form.crop_id}
+                                        onChange={e => setForm(p => ({ ...p, crop_id: e.target.value }))}
+                                        className="w-full border border-gray-300 rounded-lg p-2.5 text-sm">
+                                        <option value="">No specific crop</option>
+                                        {crops.map(c => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.name}{c.variety ? ` (${c.variety})` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className={`rounded-lg p-3 border ${isBuy ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                         <p className={`text-sm font-semibold ${isBuy ? 'text-red-800' : 'text-green-800'}`}>
                             {isBuy ? 'Total Expense' : 'Total Income'}: ₹{total}
                         </p>
                         <p className={`text-xs mt-0.5 ${isBuy ? 'text-red-600' : 'text-green-600'}`}>
-                            {isBuy ? 'Recorded as an expense in Finance' : 'Recorded as income in Finance'}
+                            {isBuy
+                                ? `Recorded as an expense${form.activity_type ? ` under ${form.activity_type.charAt(0) + form.activity_type.slice(1).toLowerCase()}` : ''} in Finance`
+                                : 'Recorded as income in Finance'}
                         </p>
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
