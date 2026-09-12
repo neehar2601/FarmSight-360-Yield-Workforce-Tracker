@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getFinanceSummary, getFinanceTransactions } from '../../utils/farmApi';
-import { getFinanceTransactions as getWorkerTransactions } from '../../utils/workerApi';
+import { getFinanceTransactions as getWorkerTransactions, getActivityBreakdown } from '../../utils/workerApi';
 
 const Spinner = () => (
     <div className="flex justify-center items-center py-20">
@@ -25,6 +25,7 @@ export default function FinancePage() {
     const [summary, setSummary] = useState(null);
     const [transactions, setTransactions] = useState([]);
     const [workerTransactions, setWorkerTransactions] = useState([]);
+    const [activityBreakdown, setActivityBreakdown] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
@@ -34,16 +35,18 @@ export default function FinancePage() {
         if (!currentFarm?.id) return;
         setLoading(true);
         setError('');
-        const [sumRes, txRes, wTxRes] = await Promise.all([
+        const [sumRes, txRes, wTxRes, actRes] = await Promise.all([
             getFinanceSummary(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
             getFinanceTransactions(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
             getWorkerTransactions(currentFarm.id),
+            getActivityBreakdown(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
         ]);
         setLoading(false);
         if (sumRes.error) { setError(sumRes.error); return; }
         setSummary(sumRes.data);
         setTransactions(txRes.data || []);
         setWorkerTransactions(wTxRes.data || []);
+        setActivityBreakdown(actRes.data || []);
     }, [currentFarm?.id, dateRange.from, dateRange.to]);
 
     useEffect(() => { load(); }, [load]);
@@ -175,6 +178,32 @@ export default function FinancePage() {
                             <span className="text-2xl mt-2 block">{netProfit >= 0 ? '✅' : '⚠️'}</span>
                         </div>
                     </div>
+
+                    {/* Activity Cost Breakdown */}
+                    {activityBreakdown.length > 0 && (
+                        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                            <h2 className="text-lg font-bold text-gray-800 mb-4">⚡ Labor Cost by Activity</h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                {activityBreakdown.map(act => {
+                                    const ACTIVITY_EMOJIS = {
+                                        GENERAL: '👷', PLUCKING: '🌿', FERTILISATION: '🌱',
+                                        SPRAY: '💦', MULCHING: '🍂', PRUNING: '✂️',
+                                        SORTING: '📦', IRRIGATION: '💧',
+                                    };
+                                    const emoji = ACTIVITY_EMOJIS[act.activity_type] || '🔖';
+                                    const label = act.activity_type.charAt(0) + act.activity_type.slice(1).toLowerCase();
+                                    return (
+                                        <div key={act.activity_type} className="bg-gradient-to-br from-green-50 to-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
+                                            <div className="text-2xl mb-1">{emoji}</div>
+                                            <p className="text-xs font-bold text-gray-700">{label}</p>
+                                            <p className="text-lg font-extrabold text-emerald-700 mt-1">₹{fmt(act.total_labor_cost)}</p>
+                                            <p className="text-[10px] text-gray-500 mt-0.5">{act.worked_days} worker-days</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Live Worker Finance Connection Info */}
                     <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
