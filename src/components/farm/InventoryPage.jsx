@@ -4,7 +4,7 @@ import {
     getInventoryCategories, createInventoryCategory,
     getInventoryItems, createInventoryItem,
     updateInventoryItem, buyInventoryItem, sellInventoryItem,
-    useInventoryItem, getActiveCrops,
+    useInventoryItem, getActiveCrops, getInventoryItemById,
 } from '../../utils/farmApi';
 
 // ── Activity Types (shared with Worker attendance) ────────────────────────────
@@ -24,6 +24,204 @@ const Spinner = () => (
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600" />
     </div>
 );
+
+// ── Activity emoji map (shared across modals) ─────────────────────────────────
+const ACTIVITY_EMOJI = {
+    GENERAL: '👷', PLUCKING: '🌿', FERTILISATION: '🌱',
+    SPRAY: '💦', MULCHING: '🍂', PRUNING: '✂️',
+    SORTING: '📦', IRRIGATION: '💧',
+};
+
+// ── Modal: Item Detail / Usage Tracker ────────────────────────────────────────
+const ItemDetailModal = ({ itemId, farmId, onClose, onAction }) => {
+    const [item, setItem] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [tab, setTab] = useState('usage'); // 'usage' | 'purchases' | 'sales' | 'all'
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        const { data } = await getInventoryItemById(itemId, farmId);
+        setLoading(false);
+        if (data) setItem(data);
+    }, [itemId, farmId]);
+
+    useEffect(() => { load(); }, [load]);
+
+    if (!item && loading) return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-2xl p-10"><Spinner /></div>
+        </div>
+    );
+    if (!item) return null;
+
+    const s = item.stock_summary || {};
+    const totalBought = parseFloat(s.total_bought || 0);
+    const totalUsed   = parseFloat(s.total_used   || 0);
+    const totalSold   = parseFloat(s.total_sold   || 0);
+    const totalOut    = totalUsed + totalSold;
+    const inStock     = parseFloat(item.current_quantity);
+    const totalSpent  = parseFloat(s.total_spent  || 0);
+    const avgCost     = totalBought > 0 ? totalSpent / totalBought : 0;
+
+    // usage % of total bought
+    const usedPct  = totalBought > 0 ? Math.round((totalUsed / totalBought) * 100) : 0;
+    const soldPct  = totalBought > 0 ? Math.round((totalSold / totalBought) * 100) : 0;
+    const stockPct = totalBought > 0 ? Math.max(0, 100 - usedPct - soldPct) : 100;
+
+    const fmt = (n) => parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    const fmtQty = (n) => parseFloat(n || 0).toFixed(2);
+
+    const TX_FILTERS = { usage: 'use', purchases: 'buy', sales: 'sell', all: null };
+    const txFilter = TX_FILTERS[tab];
+    const visibleTx = txFilter
+        ? item.transactions.filter(t => t.type === txFilter)
+        : item.transactions;
+
+    const txConfig = {
+        buy:  { label: 'Purchased',  color: 'text-blue-700',  bg: 'bg-blue-50',  border: 'border-blue-200',  emoji: '🛒', sign: '+' },
+        use:  { label: 'Used',       color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', emoji: '🪣', sign: '-' },
+        sell: { label: 'Sold',       color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200', emoji: '💸', sign: '-' },
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+
+                {/* Header */}
+                <div className="p-6 border-b flex items-start justify-between">
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{item.category_name}</p>
+                        <h2 className="text-2xl font-bold text-gray-800">{item.name}</h2>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                            {item.unit} · Avg cost ₹{fmt(avgCost)} per {item.unit}
+                        </p>
+                    </div>
+                    <div className="text-right">
+                        <p className={`text-3xl font-extrabold ${inStock <= 5 ? 'text-orange-500' : 'text-gray-800'}`}>
+                            {fmtQty(inStock)}
+                        </p>
+                        <p className="text-xs text-gray-400">{item.unit} in stock</p>
+                    </div>
+                </div>
+
+                {/* Stock flow summary */}
+                <div className="px-6 pt-5">
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+                            <p className="text-xs text-blue-500 font-medium">Total Bought</p>
+                            <p className="text-lg font-bold text-blue-800 mt-0.5">{fmtQty(totalBought)} {item.unit}</p>
+                            <p className="text-[10px] text-blue-400">₹{fmt(totalSpent)} spent</p>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                            <p className="text-xs text-amber-600 font-medium">Total Used</p>
+                            <p className="text-lg font-bold text-amber-800 mt-0.5">{fmtQty(totalUsed)} {item.unit}</p>
+                            <p className="text-[10px] text-amber-400">{usedPct}% of purchased</p>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                            <p className="text-xs text-green-600 font-medium">Total Sold</p>
+                            <p className="text-lg font-bold text-green-800 mt-0.5">{fmtQty(totalSold)} {item.unit}</p>
+                            <p className="text-[10px] text-green-400">{soldPct}% of purchased</p>
+                        </div>
+                    </div>
+
+                    {/* Visual stock flow bar */}
+                    {totalBought > 0 && (
+                        <div className="mb-4">
+                            <div className="flex h-3 rounded-full overflow-hidden bg-gray-100">
+                                <div className="bg-amber-400 h-full transition-all" style={{ width: `${usedPct}%` }} title={`Used: ${usedPct}%`} />
+                                <div className="bg-green-400 h-full transition-all" style={{ width: `${soldPct}%` }} title={`Sold: ${soldPct}%`} />
+                                <div className="bg-gray-300 h-full transition-all" style={{ width: `${stockPct}%` }} title={`In stock: ${stockPct}%`} />
+                            </div>
+                            <div className="flex gap-4 mt-1.5 text-[10px] text-gray-400">
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>Used {usedPct}%</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>Sold {soldPct}%</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>In stock {stockPct}%</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tabs */}
+                    <div className="flex gap-1 border-b">
+                        {[['usage', '🪣 Usage'], ['purchases', '🛒 Purchases'], ['sales', '💸 Sales'], ['all', '📋 All']].map(([key, label]) => (
+                            <button key={key} onClick={() => setTab(key)}
+                                className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all ${
+                                    tab === key
+                                        ? 'border-green-600 text-green-700'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                }`}>
+                                {label}
+                                <span className="ml-1 text-[10px] text-gray-400">
+                                    ({item.transactions.filter(t => !TX_FILTERS[key] || t.type === TX_FILTERS[key]).length})
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Transaction list */}
+                <div className="overflow-y-auto flex-1 px-6 py-4 space-y-2">
+                    {visibleTx.length === 0 ? (
+                        <div className="text-center py-10 text-gray-400">
+                            <p className="text-4xl mb-2">{tab === 'usage' ? '🪣' : tab === 'purchases' ? '🛒' : '📋'}</p>
+                            <p className="text-sm">No {tab === 'all' ? 'transactions' : tab} recorded yet</p>
+                        </div>
+                    ) : visibleTx.map(tx => {
+                        const cfg = txConfig[tx.type] || txConfig.buy;
+                        const actEmoji = ACTIVITY_EMOJI[tx.activity_type] || '';
+                        const cropLabel = tx.crop_name
+                            ? `${tx.crop_name}${tx.crop_variety ? ` (${tx.crop_variety})` : ''}`
+                            : null;
+                        return (
+                            <div key={tx.id} className={`flex items-start gap-3 p-3 rounded-xl border ${cfg.bg} ${cfg.border}`}>
+                                <span className="text-lg mt-0.5">{cfg.emoji}</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className={`text-xs font-bold ${cfg.color}`}>{cfg.label}</span>
+                                        {tx.activity_type && (
+                                            <span className="text-[10px] bg-white border border-gray-200 rounded-full px-2 py-0.5 text-gray-600">
+                                                {actEmoji} {tx.activity_type.charAt(0) + tx.activity_type.slice(1).toLowerCase()}
+                                            </span>
+                                        )}
+                                        {cropLabel && (
+                                            <span className="text-[10px] bg-white border border-gray-200 rounded-full px-2 py-0.5 text-gray-600">
+                                                🌾 {cropLabel}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">
+                                        {new Date(tx.transaction_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </p>
+                                    {tx.notes && <p className="text-xs text-gray-500 mt-0.5 italic truncate">{tx.notes}</p>}
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <p className={`text-sm font-bold ${cfg.color}`}>
+                                        {cfg.sign}{fmtQty(tx.quantity)} {item.unit}
+                                    </p>
+                                    {tx.total_amount > 0 && (
+                                        <p className="text-[10px] text-gray-400">₹{fmt(tx.total_amount)}</p>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Footer actions */}
+                <div className="p-4 border-t flex gap-2 justify-between">
+                    <button onClick={onClose} className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Close</button>
+                    <div className="flex gap-2">
+                        <button onClick={() => { onClose(); onAction('buy', item); }}
+                            className="px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100">🛒 Buy</button>
+                        <button onClick={() => { onClose(); onAction('use', item); }}
+                            className="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100">🪣 Use</button>
+                        <button onClick={() => { onClose(); onAction('sell', item); }}
+                            className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100">💸 Sell</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // ── Modal: Add Inventory Item ──────────────────────────────────────────────────
 const AddItemModal = ({ farmId, categories, onClose, onSaved }) => {
@@ -500,6 +698,12 @@ export default function InventoryPage() {
                                     </p>
                                 )}
                                 {item.notes && <p className="text-xs text-gray-400 italic mb-3">{item.notes}</p>}
+                                {/* History shortcut — click item name area */}
+                                <button
+                                    onClick={() => setModal({ type: 'history', itemId: item.id })}
+                                    className="w-full text-left text-[10px] text-gray-400 hover:text-green-600 transition-colors mb-3 flex items-center gap-1">
+                                    <span>📋</span> View full history & usage tracker
+                                </button>
                                 <div className="flex gap-2 pt-3 border-t">
                                     <button onClick={() => setModal({ type: 'buy', item })}
                                         className="flex-1 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-all">
@@ -525,6 +729,14 @@ export default function InventoryPage() {
             )}
             {modal === 'category' && (
                 <CategoryModal farmId={currentFarm.id} onClose={() => setModal(null)} onSaved={load} />
+            )}
+            {modal?.type === 'history' && (
+                <ItemDetailModal
+                    itemId={modal.itemId}
+                    farmId={currentFarm.id}
+                    onClose={() => setModal(null)}
+                    onAction={(type, item) => setModal({ type, item })}
+                />
             )}
             {modal?.type === 'use' && (
                 <UseStockModal item={modal.item} onClose={() => setModal(null)} onSaved={load} />
