@@ -6,6 +6,7 @@ import {
     getAttendance, recordAdvance, recordBonus, recordLoanSettlement,
     processPayout, getFinanceTransactions,
 } from '../../utils/workerApi';
+import { getActiveCrops } from '../../utils/farmApi';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const today = () => new Date().toISOString().split('T')[0];
@@ -504,21 +505,23 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
 
 // ─── AllInOneWorkerCard ───────────────────────────────────────────────────────
 const AllInOneWorkerCard = ({
-    worker, farmId, onMarkAttendance, onEdit, onArchive,
+    worker, farmId, crops, onMarkAttendance, onEdit, onArchive,
     onPaySalary, onAdvance, onBonus, onSettleLoan
 }) => {
     const [savingAtt, setSavingAtt] = useState(false);
     const [activityType, setActivityType] = useState(worker.today_activity_type || 'GENERAL');
+    const [cropId, setCropId] = useState(worker.today_crop_id || '');
     const todayStr = today();
 
-    // Sync activity if the worker prop changes (e.g., after reload)
+    // Sync activity/crop if the worker prop changes (e.g., after reload)
     useEffect(() => {
         setActivityType(worker.today_activity_type || 'GENERAL');
-    }, [worker.today_activity_type]);
+        setCropId(worker.today_crop_id || '');
+    }, [worker.today_activity_type, worker.today_crop_id]);
 
     const handleAttendance = async (status) => {
         setSavingAtt(true);
-        await onMarkAttendance(worker.id, status, activityType);
+        await onMarkAttendance(worker.id, status, activityType, cropId);
         setSavingAtt(false);
     };
 
@@ -527,7 +530,15 @@ const AllInOneWorkerCard = ({
         if (!worker.today_status || worker.today_status === 'A') return;
         setActivityType(newActivity);
         setSavingAtt(true);
-        await onMarkAttendance(worker.id, worker.today_status, newActivity);
+        await onMarkAttendance(worker.id, worker.today_status, newActivity, cropId);
+        setSavingAtt(false);
+    };
+
+    const handleCropChange = async (newCropId) => {
+        if (!worker.today_status || worker.today_status === 'A') return;
+        setCropId(newCropId);
+        setSavingAtt(true);
+        await onMarkAttendance(worker.id, worker.today_status, activityType, newCropId);
         setSavingAtt(false);
     };
 
@@ -581,24 +592,44 @@ const AllInOneWorkerCard = ({
                     </div>
                 </div>
 
-                {/* Activity Selector — only shown when worker is P or H */}
+                {/* Activity Selector + Crop Tagger — only shown when worker is P or H */}
                 {worker.today_status && worker.today_status !== 'A' && (
-                    <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
-                        <span className="text-[11px] text-gray-500 font-medium whitespace-nowrap">📌 Task:</span>
-                        <div className="flex flex-wrap gap-1">
-                            {ACTIVITY_TYPES.map(act => (
-                                <button
-                                    key={act.value}
-                                    onClick={() => handleActivityChange(act.value)}
-                                    className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all ${
-                                        activityType === act.value
-                                            ? 'bg-green-600 text-white border-green-600'
-                                            : 'bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-700'
-                                    }`}>
-                                    {act.emoji} {act.label}
-                                </button>
-                            ))}
+                    <div className="space-y-2 pt-1 border-t border-gray-200">
+                        {/* Activity pills */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-gray-500 font-medium whitespace-nowrap">📌 Task:</span>
+                            <div className="flex flex-wrap gap-1">
+                                {ACTIVITY_TYPES.map(act => (
+                                    <button
+                                        key={act.value}
+                                        onClick={() => handleActivityChange(act.value)}
+                                        className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all ${
+                                            activityType === act.value
+                                                ? 'bg-green-600 text-white border-green-600'
+                                                : 'bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-700'
+                                        }`}>
+                                        {act.emoji} {act.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+                        {/* Crop dropdown — only if farm has active crops */}
+                        {crops && crops.length > 0 && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-gray-500 font-medium whitespace-nowrap">🌾 Crop:</span>
+                                <select
+                                    value={cropId}
+                                    onChange={e => handleCropChange(e.target.value)}
+                                    className="flex-1 text-[11px] border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:border-green-400 focus:outline-none">
+                                    <option value="">No specific crop</option>
+                                    {crops.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name}{c.variety ? ` (${c.variety})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -888,6 +919,7 @@ export default function WorkersPage() {
     const [tab, setTab]           = useState('workers');     // 'workers' | 'monthly' | 'ledger' | 'inactive'
     const [workers, setWorkers]   = useState([]);
     const [inactive, setInactive] = useState([]);
+    const [crops, setCrops]       = useState([]);  // active (growing) crops for attendance crop-tagging
     const [loading, setLoading]   = useState(true);
 
     const [workerModal, setWorkerModal]       = useState(null);  // null | { worker? }
@@ -900,22 +932,29 @@ export default function WorkersPage() {
     const loadWorkers = useCallback(async () => {
         if (!farmId) return;
         setLoading(true);
-        const [{ data: active }, { data: arch }] = await Promise.all([
+        const [{ data: active }, { data: arch }, { data: cropList }] = await Promise.all([
             getWorkersOverview(farmId),
             getInactiveWorkers(farmId),
+            getActiveCrops(farmId),
         ]);
         setWorkers(active || []);
         setInactive(arch || []);
+        setCrops((cropList || []).filter(c => c.status === 'growing'));
         setLoading(false);
     }, [farmId]);
 
     useEffect(() => { loadWorkers(); }, [loadWorkers]);
 
-    const handleMarkAttendance = async (workerId, status, activityType = 'GENERAL') => {
-        await upsertAttendance({ worker_id: workerId, farm_id: farmId, date: today(), status, activity_type: activityType });
-        // Optimistically update today_status and today_activity_type
+    const handleMarkAttendance = async (workerId, status, activityType = 'GENERAL', cropId = null) => {
+        await upsertAttendance({
+            worker_id: workerId, farm_id: farmId,
+            date: today(), status,
+            activity_type: activityType,
+            crop_id: cropId || null,
+        });
+        // Optimistically update today_status, today_activity_type, today_crop_id
         setWorkers(prev => prev.map(w => w.id === workerId
-            ? { ...w, today_status: status, today_activity_type: activityType }
+            ? { ...w, today_status: status, today_activity_type: activityType, today_crop_id: cropId || null }
             : w
         ));
         loadWorkers();
@@ -1015,7 +1054,7 @@ export default function WorkersPage() {
                             ) : (
                                 <div className="grid md:grid-cols-2 gap-5">
                                     {workers.map(w => (
-                                        <AllInOneWorkerCard key={w.id} worker={w} farmId={farmId}
+                                        <AllInOneWorkerCard key={w.id} worker={w} farmId={farmId} crops={crops}
                                             onMarkAttendance={handleMarkAttendance}
                                             onEdit={(w) => setWorkerModal({ worker: w })}
                                             onArchive={(w) => setArchiveModal(w)}
