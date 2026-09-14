@@ -300,7 +300,7 @@ const TransactionModal = ({ item, type, onClose, onSaved }) => {
     useEffect(() => {
         if (type === 'buy' && currentFarm?.id) {
             getActiveCrops(currentFarm.id).then(({ data }) => {
-                setCrops((data || []).filter(c => c.status === 'growing'));
+                setCrops((data || []));
             });
         }
     }, [type, currentFarm?.id]);
@@ -451,7 +451,7 @@ const UseStockModal = ({ item, onClose, onSaved }) => {
     useEffect(() => {
         if (currentFarm?.id) {
             getActiveCrops(currentFarm.id).then(({ data }) => {
-                setCrops((data || []).filter(c => c.status === 'growing'));
+                setCrops((data || []));
             });
         }
     }, [currentFarm?.id]);

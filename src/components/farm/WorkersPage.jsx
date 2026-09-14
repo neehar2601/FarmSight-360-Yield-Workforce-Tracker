@@ -939,7 +939,7 @@ export default function WorkersPage() {
         ]);
         setWorkers(active || []);
         setInactive(arch || []);
-        setCrops((cropList || []).filter(c => c.status === 'growing'));
+        setCrops((cropList || []));
         setLoading(false);
     }, [farmId]);
 
