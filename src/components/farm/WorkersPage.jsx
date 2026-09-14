@@ -682,15 +682,135 @@ const AllInOneWorkerCard = ({
     );
 };
 
+// ─── CellEditPopover ─────────────────────────────────────────────────────────
+// Compact floating panel for editing a single day's attendance entry.
+const CellEditPopover = ({ worker, date, cell, crops, farmId, onSaved, onClose }) => {
+    const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-IN', {
+        weekday: 'short', day: 'numeric', month: 'short'
+    });
+    const [status,   setStatus]   = useState(cell?.status   || 'P');
+    const [activity, setActivity] = useState(cell?.activity || 'GENERAL');
+    const [cropId,   setCropId]   = useState(cell?.cropId   || '');
+    const [saving,   setSaving]   = useState(false);
+
+    const save = async () => {
+        setSaving(true);
+        await upsertAttendance({
+            worker_id:     worker.id,
+            farm_id:       farmId,
+            date,
+            status,
+            activity_type: status === 'A' ? null : activity,
+            crop_id:       status === 'A' ? null : (cropId || null),
+        });
+        setSaving(false);
+        onSaved();
+    };
+
+    const clear = async () => {
+        // Marking absent effectively clears activity / crop
+        setSaving(true);
+        await upsertAttendance({
+            worker_id: worker.id, farm_id: farmId, date,
+            status: 'A', activity_type: null, crop_id: null,
+        });
+        setSaving(false);
+        onSaved();
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-80 p-5 space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="font-bold text-gray-800 text-sm">{worker.name}</p>
+                        <p className="text-xs text-gray-400">{dateLabel}</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+                </div>
+
+                {/* Status */}
+                <div>
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Attendance</p>
+                    <div className="flex gap-2">
+                        {[
+                            { s: 'P', label: 'Present',  cls: 'bg-emerald-500 text-white border-emerald-500' },
+                            { s: 'H', label: 'Half Day', cls: 'bg-amber-400 text-white border-amber-400' },
+                            { s: 'A', label: 'Absent',   cls: 'bg-rose-500 text-white border-rose-500' },
+                        ].map(btn => (
+                            <button key={btn.s} onClick={() => setStatus(btn.s)}
+                                className={`flex-1 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                                    status === btn.s ? btn.cls : 'bg-white border-gray-200 text-gray-500 hover:border-gray-400'
+                                }`}>
+                                {btn.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Activity + Crop — hidden when Absent */}
+                {status !== 'A' && (
+                    <>
+                        <div>
+                            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">📌 Activity</p>
+                            <div className="flex flex-wrap gap-1">
+                                {ACTIVITY_TYPES.map(act => (
+                                    <button key={act.value} onClick={() => setActivity(act.value)}
+                                        className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all ${
+                                            activity === act.value
+                                                ? 'bg-green-600 text-white border-green-600'
+                                                : 'bg-white text-gray-600 border-gray-200 hover:border-green-400'
+                                        }`}>
+                                        {act.emoji} {act.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {crops && crops.length > 0 && (
+                            <div>
+                                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">🌾 Crop</p>
+                                <select value={cropId} onChange={e => setCropId(e.target.value)}
+                                    className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:border-green-400 focus:outline-none">
+                                    <option value="">No specific crop</option>
+                                    {crops.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name}{c.variety ? ` (${c.variety})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-1">
+                    <button onClick={onClose}
+                        className="flex-1 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <button onClick={save} disabled={saving}
+                        className="flex-1 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50">
+                        {saving ? 'Saving…' : '✓ Save'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ─── MonthlyAttendance ────────────────────────────────────────────────────────
-const MonthlyAttendance = ({ workers, farmId }) => {
+const MonthlyAttendance = ({ workers, farmId, crops }) => {
     const now = new Date();
     const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const [month, setMonth] = useState(defaultMonth);
+    const [month,   setMonth]   = useState(defaultMonth);
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(false);
+    // editing: { worker, date, cell } | null
+    const [editing, setEditing] = useState(null);
 
-    useEffect(() => {
+    const loadRecords = useCallback(() => {
         if (!farmId || !month) return;
         setLoading(true);
         getAttendance(farmId, month).then(({ data }) => {
@@ -699,18 +819,24 @@ const MonthlyAttendance = ({ workers, farmId }) => {
         });
     }, [farmId, month]);
 
+    useEffect(() => { loadRecords(); }, [loadRecords]);
+
     // Build calendar: days in month
     const [year, mon] = month.split('-').map(Number);
     const daysInMonth = new Date(year, mon, 0).getDate();
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-    // Map: { workerId: { date: { status, activity_type } } }
+    // Map: { workerId: { dayNum: { status, activity, cropId } } }
     const attMap = {};
     records.forEach(r => {
         if (!attMap[r.worker_id]) attMap[r.worker_id] = {};
         const d = new Date(r.date);
         const dayNum = d.getUTCDate();
-        attMap[r.worker_id][dayNum] = { status: r.status, activity: r.activity_type };
+        attMap[r.worker_id][dayNum] = {
+            status:   r.status,
+            activity: r.activity_type,
+            cropId:   r.crop_id,
+        };
     });
 
     const STATUS_STYLE = {
@@ -791,17 +917,31 @@ const MonthlyAttendance = ({ workers, farmId }) => {
                                         {days.map(d => {
                                             const cell = attMap[w.id]?.[d];
                                             const actInfo = cell?.activity ? ACTIVITY_MAP[cell.activity] : null;
+                                            const dateStr = `${year}-${String(mon).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                                            const cropName = cell?.cropId
+                                                ? crops?.find(c => c.id === cell.cropId)?.name
+                                                : null;
+                                            const tooltip = [
+                                                cell ? (cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent') : 'Not marked',
+                                                actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
+                                                cropName ? `🌾 ${cropName}` : null,
+                                            ].filter(Boolean).join(' · ');
                                             return (
                                                 <td key={d} className="p-0.5 text-center">
-                                                    {cell ? (
-                                                        <div
-                                                            title={`${cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent'}${actInfo ? ` — ${actInfo.emoji} ${actInfo.label}` : ''}`}
-                                                            className={`w-6 h-6 rounded-md mx-auto flex items-center justify-center text-[10px] font-bold cursor-default ${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'}`}>
-                                                            {cell.status}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="w-6 h-6 rounded-md mx-auto bg-gray-100"></div>
-                                                    )}
+                                                    <button
+                                                        title={tooltip}
+                                                        onClick={() => setEditing({ worker: w, date: dateStr, cell })}
+                                                        className={`w-6 h-6 rounded-md mx-auto flex items-center justify-center text-[10px] font-bold transition-all hover:ring-2 hover:ring-offset-1 hover:ring-green-400 ${
+                                                            cell
+                                                                ? (STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400')
+                                                                : 'bg-gray-100 hover:bg-gray-200'
+                                                        }`}>
+                                                        {cell ? (
+                                                            actInfo ? actInfo.emoji : cell.status
+                                                        ) : (
+                                                            <span className="text-gray-300">·</span>
+                                                        )}
+                                                    </button>
                                                 </td>
                                             );
                                         })}
@@ -843,6 +983,19 @@ const MonthlyAttendance = ({ workers, farmId }) => {
                         ))}
                     </div>
                 </>
+            )}
+
+            {/* Cell edit popover */}
+            {editing && (
+                <CellEditPopover
+                    worker={editing.worker}
+                    date={editing.date}
+                    cell={editing.cell}
+                    crops={crops}
+                    farmId={farmId}
+                    onSaved={() => { setEditing(null); loadRecords(); }}
+                    onClose={() => setEditing(null)}
+                />
             )}
         </div>
     );
@@ -1069,7 +1222,7 @@ export default function WorkersPage() {
 
                         {/* Tab 2: Attendance Calendar */}
                         {tab === 'monthly' && (
-                            <MonthlyAttendance workers={workers} farmId={farmId} />
+                            <MonthlyAttendance workers={workers} farmId={farmId} crops={crops} />
                         )}
 
                         {/* Tab 3: Financial History Ledger */}
