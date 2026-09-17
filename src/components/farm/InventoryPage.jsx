@@ -5,6 +5,7 @@ import {
     getInventoryItems, createInventoryItem,
     updateInventoryItem, buyInventoryItem, sellInventoryItem,
     useInventoryItem, getActiveCrops, getInventoryItemById,
+    tagInventoryTransaction, getInventoryUsages,
 } from '../../utils/farmApi';
 
 // ── Activity Types (shared with Worker attendance) ────────────────────────────
@@ -32,11 +33,183 @@ const ACTIVITY_EMOJI = {
     SORTING: '📦', IRRIGATION: '💧',
 };
 
+// ── Modal: Tag Inventory Transaction to Crop / Activity ─────────────────────
+const TagCropModal = ({ tx, item, farmId, crops = [], onClose, onSaved }) => {
+    const [cropsList, setCropsList] = useState(crops);
+    const [cropId, setCropId] = useState(tx.crop_id || '');
+    const [activityType, setActivityType] = useState(tx.activity_type || 'FERTILISATION');
+    const [notes, setNotes] = useState(tx.notes || '');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (crops && crops.length > 0) {
+            setCropsList(crops);
+        } else if (farmId) {
+            getActiveCrops(farmId).then(({ data }) => setCropsList(data || []));
+        }
+    }, [crops, farmId]);
+
+    const itemName = tx.item_name || item?.name || 'Inventory Item';
+    const itemUnit = tx.item_unit || item?.unit || '';
+    const dateFormatted = tx.transaction_date
+        ? new Date(tx.transaction_date).toLocaleDateString('en-IN', {
+            day: 'numeric', month: 'short', year: 'numeric'
+        })
+        : '—';
+
+    const currentCropName = tx.crop_name || cropsList.find(c => c.id === tx.crop_id)?.name;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        setError('');
+        const { data, error: err } = await tagInventoryTransaction(tx.id, {
+            farm_id: farmId,
+            crop_id: cropId || null,
+            activity_type: activityType || null,
+            notes: notes || null,
+        });
+        setSaving(false);
+        if (err) {
+            setError(err);
+            return;
+        }
+        if (onSaved) onSaved(data);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4"
+            onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in duration-150">
+                {/* Header */}
+                <div className="flex items-start justify-between border-b pb-3">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <span>🏷️</span> Tag to Crop & Activity
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            {itemName} · <strong>{parseFloat(tx.quantity).toFixed(2)} {itemUnit}</strong> on {dateFormatted}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+                </div>
+
+                {/* Current Tag Status Notice */}
+                <div className="flex items-center justify-between text-xs px-3 py-2 rounded-xl bg-gray-50 border border-gray-200">
+                    <span className="text-gray-500">Current Status:</span>
+                    {currentCropName ? (
+                        <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span>🌾</span> Tagged to {currentCropName}
+                        </span>
+                    ) : (
+                        <span className="font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span>⚠️</span> Untagged (Missed Crop)
+                        </span>
+                    )}
+                </div>
+
+                {error && (
+                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Crop selection */}
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                            🌾 Applied to Crop
+                        </label>
+                        <select
+                            value={cropId}
+                            onChange={e => setCropId(e.target.value)}
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-green-500 focus:outline-none">
+                            <option value="">No specific crop (untagged)</option>
+                            {cropsList.map(c => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}{c.variety ? ` (${c.variety})` : ''}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-[11px] text-gray-400 mt-1">
+                            Links this utilisation to crop yield analytics and Finance cost breakdowns.
+                        </p>
+                    </div>
+
+                    {/* Activity Type */}
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                            📌 Activity / Task
+                        </label>
+                        <div className="flex flex-wrap gap-1.5">
+                            {ACTIVITY_TYPES.map(act => (
+                                <button
+                                    key={act.value}
+                                    type="button"
+                                    onClick={() => setActivityType(act.value)}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                        activityType === act.value
+                                            ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:text-amber-700'
+                                    }`}>
+                                    {act.emoji} {act.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Notes */}
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">
+                            📝 Notes (optional)
+                        </label>
+                        <input
+                            type="text"
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            placeholder="e.g. Applied 2 bags after morning weeding"
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-green-500 focus:outline-none"
+                        />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex justify-end gap-2 pt-2 border-t">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 border rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50">
+                            {saving ? 'Saving…' : '✓ Save Tag'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 // ── Modal: Item Detail / Usage Tracker ────────────────────────────────────────
-const ItemDetailModal = ({ itemId, farmId, onClose, onAction }) => {
+const ItemDetailModal = ({ itemId, farmId, crops = [], onClose, onAction, onUpdated }) => {
     const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('usage'); // 'usage' | 'purchases' | 'sales' | 'all'
+    const [taggingTx, setTaggingTx] = useState(null);
+    const [cropsList, setCropsList] = useState(crops);
+
+    useEffect(() => {
+        if (crops && crops.length > 0) {
+            setCropsList(crops);
+        } else if (farmId) {
+            getActiveCrops(farmId).then(({ data }) => setCropsList(data || []));
+        }
+    }, [crops, farmId]);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -171,6 +344,7 @@ const ItemDetailModal = ({ itemId, farmId, onClose, onAction }) => {
                         const cropLabel = tx.crop_name
                             ? `${tx.crop_name}${tx.crop_variety ? ` (${tx.crop_variety})` : ''}`
                             : null;
+                        const canTag = tx.type === 'use' || tx.type === 'buy';
                         return (
                             <div key={tx.id} className={`flex items-start gap-3 p-3 rounded-xl border ${cfg.bg} ${cfg.border}`}>
                                 <span className="text-lg mt-0.5">{cfg.emoji}</span>
@@ -182,11 +356,27 @@ const ItemDetailModal = ({ itemId, farmId, onClose, onAction }) => {
                                                 {actEmoji} {tx.activity_type.charAt(0) + tx.activity_type.slice(1).toLowerCase()}
                                             </span>
                                         )}
-                                        {cropLabel && (
-                                            <span className="text-[10px] bg-white border border-gray-200 rounded-full px-2 py-0.5 text-gray-600">
+                                        {cropLabel ? (
+                                            <span className="text-[10px] bg-white border border-emerald-300 text-emerald-800 rounded-full px-2.5 py-0.5 font-semibold flex items-center gap-1">
                                                 🌾 {cropLabel}
+                                                {canTag && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setTaggingTx(tx)}
+                                                        title="Change crop tag"
+                                                        className="hover:text-emerald-950 font-bold ml-0.5">
+                                                        ✏️
+                                                    </button>
+                                                )}
                                             </span>
-                                        )}
+                                        ) : canTag ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setTaggingTx(tx)}
+                                                className="text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 rounded-full px-2.5 py-0.5 font-bold transition-all flex items-center gap-1 shadow-sm">
+                                                <span>🏷️</span> Tag Crop
+                                            </button>
+                                        ) : null}
                                     </div>
                                     <p className="text-[10px] text-gray-400 mt-0.5">
                                         {new Date(tx.transaction_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -199,6 +389,14 @@ const ItemDetailModal = ({ itemId, farmId, onClose, onAction }) => {
                                     </p>
                                     {tx.total_amount > 0 && (
                                         <p className="text-[10px] text-gray-400">₹{fmt(tx.total_amount)}</p>
+                                    )}
+                                    {canTag && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setTaggingTx(tx)}
+                                            className="text-[10px] text-gray-400 hover:text-green-700 font-semibold block mt-1 ml-auto">
+                                            {tx.crop_id ? '✏️ Edit Tag' : '🏷️ Tag to Crop'}
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -218,6 +416,25 @@ const ItemDetailModal = ({ itemId, farmId, onClose, onAction }) => {
                             className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100">💸 Sell</button>
                     </div>
                 </div>
+
+                {/* Tag Crop Modal when triggered from transaction row */}
+                {taggingTx && (
+                    <TagCropModal
+                        tx={taggingTx}
+                        item={item}
+                        farmId={farmId}
+                        crops={cropsList}
+                        onClose={() => setTaggingTx(null)}
+                        onSaved={(updatedTx) => {
+                            setItem(prev => ({
+                                ...prev,
+                                transactions: prev.transactions.map(t => t.id === updatedTx.id ? { ...t, ...updatedTx } : t),
+                            }));
+                            setTaggingTx(null);
+                            if (onUpdated) onUpdated();
+                        }}
+                    />
+                )}
             </div>
         </div>
     );
@@ -599,30 +816,302 @@ const CategoryModal = ({ farmId, onClose, onSaved }) => {
     );
 };
 
+// ── Component: Usage Tracker & Crop Tagging Section ──────────────────────────
+const UsageTrackerSection = ({
+    usages,
+    crops,
+    loading,
+    onTagClick,
+    onUseClick,
+}) => {
+    const [filter, setFilter] = useState('all'); // 'all' | 'untagged' | cropId
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const untaggedCount = usages.filter(u => !u.crop_id).length;
+    const taggedCount = usages.length - untaggedCount;
+
+    const filtered = usages.filter(u => {
+        if (filter === 'untagged' && u.crop_id) return false;
+        if (filter !== 'all' && filter !== 'untagged' && u.crop_id !== filter) return false;
+        if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase();
+            const matchesItem = (u.item_name || '').toLowerCase().includes(term);
+            const matchesNotes = (u.notes || '').toLowerCase().includes(term);
+            const matchesCrop = (u.crop_name || '').toLowerCase().includes(term);
+            const matchesCat = (u.category_name || '').toLowerCase().includes(term);
+            if (!matchesItem && !matchesNotes && !matchesCrop && !matchesCat) return false;
+        }
+        return true;
+    });
+
+    return (
+        <div className="space-y-6">
+            {/* Untagged Alert Banner */}
+            {untaggedCount > 0 && (
+                <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 p-4 rounded-r-2xl flex items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl">⚠️</span>
+                        <div>
+                            <h4 className="text-sm font-bold text-amber-900">
+                                {untaggedCount} {untaggedCount === 1 ? 'Usage' : 'Usages'} Not Tagged to Any Crop
+                            </h4>
+                            <p className="text-xs text-amber-700 mt-0.5">
+                                Missed tagging when applying fertiliser or pesticides? Click <strong>“🏷️ Tag to Crop”</strong> below to link them now so your crop costs and reports remain accurate.
+                            </p>
+                        </div>
+                    </div>
+                    {filter !== 'untagged' && (
+                        <button
+                            onClick={() => setFilter('untagged')}
+                            className="shrink-0 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm transition-all">
+                            View Untagged Only
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* Quick Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Usages Recorded</p>
+                        <p className="text-2xl font-bold text-gray-800 mt-0.5">{usages.length}</p>
+                    </div>
+                    <span className="text-3xl p-2.5 bg-amber-50 rounded-2xl">🪣</span>
+                </div>
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Tagged to Crops</p>
+                        <p className="text-2xl font-bold text-emerald-600 mt-0.5">{taggedCount}</p>
+                    </div>
+                    <span className="text-3xl p-2.5 bg-emerald-50 rounded-2xl">🌾</span>
+                </div>
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Missing Crop Tag</p>
+                        <p className={`text-2xl font-bold mt-0.5 ${untaggedCount > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                            {untaggedCount}
+                        </p>
+                    </div>
+                    <span className="text-3xl p-2.5 bg-orange-50 rounded-2xl">🏷️</span>
+                </div>
+            </div>
+
+            {/* Filter toolbar */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        onClick={() => setFilter('all')}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                            filter === 'all'
+                                ? 'bg-green-600 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}>
+                        All Usages ({usages.length})
+                    </button>
+                    <button
+                        onClick={() => setFilter('untagged')}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                            filter === 'untagged'
+                                ? 'bg-amber-500 text-white shadow-sm'
+                                : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                        }`}>
+                        <span>⚠️ Untagged Only</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                            filter === 'untagged' ? 'bg-amber-600 text-white' : 'bg-amber-200 text-amber-900 font-bold'
+                        }`}>
+                            {untaggedCount}
+                        </span>
+                    </button>
+                    {crops.length > 0 && (
+                        <div className="flex items-center gap-1.5 pl-2 border-l border-gray-200 flex-wrap">
+                            <span className="text-xs text-gray-400 font-medium">Crop:</span>
+                            {crops.map(c => (
+                                <button
+                                    key={c.id}
+                                    onClick={() => setFilter(c.id)}
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                                        filter === c.id
+                                            ? 'bg-emerald-600 text-white shadow-sm'
+                                            : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                                    }`}>
+                                    🌾 {c.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="w-full sm:w-64">
+                    <input
+                        type="text"
+                        placeholder="Search item, crop, notes…"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    />
+                </div>
+            </div>
+
+            {/* Usages Table */}
+            {loading ? (
+                <Spinner />
+            ) : filtered.length === 0 ? (
+                <div className="bg-white rounded-2xl shadow-sm p-12 text-center border border-gray-100">
+                    <div className="text-5xl mb-3">🪣</div>
+                    <h3 className="text-base font-bold text-gray-700">No usage records found</h3>
+                    <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                        {filter === 'untagged'
+                            ? 'Great job! All your used inventory is currently tagged to crops.'
+                            : 'When you consume items (like applying fertilizer or pesticides), they will appear here.'}
+                    </p>
+                </div>
+            ) : (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b bg-gray-50/75 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                    <th className="py-3.5 px-4">Date</th>
+                                    <th className="py-3.5 px-4">Item & Category</th>
+                                    <th className="py-3.5 px-4">Quantity Used</th>
+                                    <th className="py-3.5 px-4">Activity</th>
+                                    <th className="py-3.5 px-4">Tagged Crop</th>
+                                    <th className="py-3.5 px-4">Notes</th>
+                                    <th className="py-3.5 px-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
+                                {filtered.map(u => {
+                                    const dateFormatted = u.transaction_date
+                                        ? new Date(u.transaction_date).toLocaleDateString('en-IN', {
+                                            day: 'numeric', month: 'short', year: 'numeric'
+                                        })
+                                        : '—';
+                                    const actEmoji = ACTIVITY_EMOJI[u.activity_type] || '🌱';
+                                    const cropText = u.crop_name
+                                        ? `${u.crop_name}${u.crop_variety ? ` (${u.crop_variety})` : ''}`
+                                        : null;
+
+                                    return (
+                                        <tr key={u.id} className="hover:bg-gray-50/80 transition-colors">
+                                            {/* Date */}
+                                            <td className="py-3 px-4 font-medium text-gray-600 whitespace-nowrap">
+                                                {dateFormatted}
+                                            </td>
+
+                                            {/* Item & Category */}
+                                            <td className="py-3 px-4">
+                                                <div className="font-bold text-gray-800">{u.item_name}</div>
+                                                <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded font-medium">
+                                                    {u.category_name}
+                                                </span>
+                                            </td>
+
+                                            {/* Quantity Used */}
+                                            <td className="py-3 px-4 whitespace-nowrap">
+                                                <span className="font-extrabold text-amber-700">
+                                                    -{parseFloat(u.quantity).toFixed(2)}
+                                                </span>{' '}
+                                                <span className="text-gray-500">{u.item_unit}</span>
+                                            </td>
+
+                                            {/* Activity */}
+                                            <td className="py-3 px-4 whitespace-nowrap">
+                                                {u.activity_type ? (
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
+                                                        <span>{actEmoji}</span>
+                                                        <span>{u.activity_type.charAt(0) + u.activity_type.slice(1).toLowerCase()}</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-300">—</span>
+                                                )}
+                                            </td>
+
+                                            {/* Tagged Crop */}
+                                            <td className="py-3 px-4">
+                                                {cropText ? (
+                                                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-full shadow-sm">
+                                                        <span>🌾</span>
+                                                        <span>{cropText}</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-full animate-pulse">
+                                                        <span>⚠️</span>
+                                                        <span>Untagged</span>
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            {/* Notes */}
+                                            <td className="py-3 px-4 max-w-xs truncate text-gray-500 italic">
+                                                {u.notes || '—'}
+                                            </td>
+
+                                            {/* Action */}
+                                            <td className="py-3 px-4 text-right whitespace-nowrap">
+                                                {cropText ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onTagClick(u)}
+                                                        className="px-3 py-1 bg-white hover:bg-emerald-50 text-emerald-700 hover:text-emerald-900 border border-emerald-300 hover:border-emerald-400 rounded-xl text-xs font-semibold shadow-sm transition-all inline-flex items-center gap-1">
+                                                        <span>✏️</span> Change Tag
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onTagClick(u)}
+                                                        className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all inline-flex items-center gap-1.5">
+                                                        <span>🏷️</span> Tag to Crop
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ── Main InventoryPage ─────────────────────────────────────────────────────────
 export default function InventoryPage() {
     const { currentFarm } = useAuth();
     const [items, setItems] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [crops, setCrops] = useState([]);
+    const [usages, setUsages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [modal, setModal] = useState(null); // null | 'add' | 'category' | { type:'buy'|'sell', item }
+    const [viewMode, setViewMode] = useState('stock'); // 'stock' | 'usages'
+    const [modal, setModal] = useState(null); // null | 'add' | 'category' | { type:'buy'|'sell'|'use'|'history', item }
     const [selectedCategory, setSelectedCategory] = useState('all');
+    const [taggingTx, setTaggingTx] = useState(null); // transaction being tagged from UsageTracker
 
     const load = useCallback(async () => {
         if (!currentFarm?.id) return;
         setLoading(true);
-        const [itemsRes, catRes] = await Promise.all([
+        const [itemsRes, catRes, cropsRes, usagesRes] = await Promise.all([
             getInventoryItems(currentFarm.id),
             getInventoryCategories(currentFarm.id),
+            getActiveCrops(currentFarm.id),
+            getInventoryUsages(currentFarm.id),
         ]);
         setLoading(false);
         if (itemsRes.error) { setError(itemsRes.error); return; }
         setItems(itemsRes.data || []);
         setCategories(catRes.data || []);
+        setCrops(cropsRes.data || []);
+        setUsages(usagesRes.data || []);
     }, [currentFarm?.id]);
 
     useEffect(() => { load(); }, [load]);
+
+    const untaggedUsagesCount = usages.filter(u => !u.crop_id).length;
 
     const filtered = selectedCategory === 'all'
         ? items
@@ -636,10 +1125,11 @@ export default function InventoryPage() {
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Inventory</h1>
-                    <p className="text-gray-500 mt-1">{currentFarm.name} — seeds, fertilisers, tools & more</p>
+                    <p className="text-gray-500 mt-1">{currentFarm.name} — stock, utilisation & crop tagging</p>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={() => setModal('category')}
@@ -653,75 +1143,131 @@ export default function InventoryPage() {
                 </div>
             </div>
 
-            {/* Category filter */}
-            <div className="flex gap-2 flex-wrap">
-                <button onClick={() => setSelectedCategory('all')}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${selectedCategory === 'all' ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50 border'}`}>
-                    All
+            {/* View Mode Switcher: Stock vs Usage Tracker & Tagging */}
+            <div className="flex items-center gap-3 border-b pb-3">
+                <button
+                    onClick={() => setViewMode('stock')}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                        viewMode === 'stock'
+                            ? 'bg-green-600 text-white shadow-md'
+                            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                    }`}>
+                    <span>📦 Stock Overview</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        viewMode === 'stock' ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                        {items.length}
+                    </span>
                 </button>
-                {categories.map(c => (
-                    <button key={c.id} onClick={() => setSelectedCategory(c.id)}
-                        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${selectedCategory === c.id ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50 border'}`}>
-                        {c.name}
-                    </button>
-                ))}
+
+                <button
+                    onClick={() => setViewMode('usages')}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                        viewMode === 'usages'
+                            ? 'bg-green-600 text-white shadow-md'
+                            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                    }`}>
+                    <span>🪣 Usage Tracker & Tagging</span>
+                    {untaggedUsagesCount > 0 ? (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${
+                            viewMode === 'usages'
+                                ? 'bg-amber-400 text-amber-950'
+                                : 'bg-amber-100 text-amber-800 border border-amber-300'
+                        }`}>
+                            <span>⚠️</span> {untaggedUsagesCount} untagged
+                        </span>
+                    ) : (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            viewMode === 'usages' ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                            {usages.length}
+                        </span>
+                    )}
+                </button>
             </div>
 
             {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4">{error}</div>}
 
-            {loading ? <Spinner /> : filtered.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow p-16 text-center">
-                    <div className="text-6xl mb-4">📦</div>
-                    <p className="text-gray-500 text-lg">No items yet. Add your first inventory item!</p>
-                </div>
+            {/* View Mode: Usage Tracker */}
+            {viewMode === 'usages' ? (
+                <UsageTrackerSection
+                    usages={usages}
+                    crops={crops}
+                    loading={loading}
+                    onTagClick={(u) => setTaggingTx(u)}
+                />
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {filtered.map(item => {
-                        const isLow = item.current_quantity <= 5;
-                        return (
-                            <div key={item.id} className={`bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow p-6 ${isLow ? 'border-l-4 border-orange-400' : ''}`}>
-                                <div className="flex items-start justify-between mb-2">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
-                                        <p className="text-xs text-gray-400 mt-0.5">{item.category_name}</p>
+                /* View Mode: Stock Overview */
+                <>
+                    {/* Category filter */}
+                    <div className="flex gap-2 flex-wrap">
+                        <button onClick={() => setSelectedCategory('all')}
+                            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${selectedCategory === 'all' ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50 border'}`}>
+                            All
+                        </button>
+                        {categories.map(c => (
+                            <button key={c.id} onClick={() => setSelectedCategory(c.id)}
+                                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${selectedCategory === c.id ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50 border'}`}>
+                                {c.name}
+                            </button>
+                        ))}
+                    </div>
+
+                    {loading ? <Spinner /> : filtered.length === 0 ? (
+                        <div className="bg-white rounded-2xl shadow p-16 text-center">
+                            <div className="text-6xl mb-4">📦</div>
+                            <p className="text-gray-500 text-lg">No items yet. Add your first inventory item!</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                            {filtered.map(item => {
+                                const isLow = item.current_quantity <= 5;
+                                return (
+                                    <div key={item.id} className={`bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow p-6 ${isLow ? 'border-l-4 border-orange-400' : ''}`}>
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
+                                                <p className="text-xs text-gray-400 mt-0.5">{item.category_name}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`text-2xl font-bold ${isLow ? 'text-orange-500' : 'text-gray-800'}`}>
+                                                    {parseFloat(item.current_quantity).toFixed(2)}
+                                                </p>
+                                                <p className="text-xs text-gray-400">{item.unit}</p>
+                                            </div>
+                                        </div>
+                                        {isLow && (
+                                            <p className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-lg mb-3">
+                                                ⚠️ Low stock
+                                            </p>
+                                        )}
+                                        {item.notes && <p className="text-xs text-gray-400 italic mb-3">{item.notes}</p>}
+                                        {/* History shortcut — click item name area */}
+                                        <button
+                                            onClick={() => setModal({ type: 'history', itemId: item.id })}
+                                            className="w-full text-left text-[10px] text-gray-400 hover:text-green-600 transition-colors mb-3 flex items-center gap-1">
+                                            <span>📋</span> View full history & usage tracker
+                                        </button>
+                                        <div className="flex gap-2 pt-3 border-t">
+                                            <button onClick={() => setModal({ type: 'buy', item })}
+                                                className="flex-1 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-all">
+                                                🛒 Buy
+                                            </button>
+                                            <button onClick={() => setModal({ type: 'use', item })}
+                                                className="flex-1 py-1.5 text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-all">
+                                                🪣 Use
+                                            </button>
+                                            <button onClick={() => setModal({ type: 'sell', item })}
+                                                className="flex-1 py-1.5 text-xs font-medium bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-all">
+                                                💸 Sell
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className={`text-2xl font-bold ${isLow ? 'text-orange-500' : 'text-gray-800'}`}>
-                                            {parseFloat(item.current_quantity).toFixed(2)}
-                                        </p>
-                                        <p className="text-xs text-gray-400">{item.unit}</p>
-                                    </div>
-                                </div>
-                                {isLow && (
-                                    <p className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-lg mb-3">
-                                        ⚠️ Low stock
-                                    </p>
-                                )}
-                                {item.notes && <p className="text-xs text-gray-400 italic mb-3">{item.notes}</p>}
-                                {/* History shortcut — click item name area */}
-                                <button
-                                    onClick={() => setModal({ type: 'history', itemId: item.id })}
-                                    className="w-full text-left text-[10px] text-gray-400 hover:text-green-600 transition-colors mb-3 flex items-center gap-1">
-                                    <span>📋</span> View full history & usage tracker
-                                </button>
-                                <div className="flex gap-2 pt-3 border-t">
-                                    <button onClick={() => setModal({ type: 'buy', item })}
-                                        className="flex-1 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-all">
-                                        🛒 Buy
-                                    </button>
-                                    <button onClick={() => setModal({ type: 'use', item })}
-                                        className="flex-1 py-1.5 text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-all">
-                                        🪣 Use
-                                    </button>
-                                    <button onClick={() => setModal({ type: 'sell', item })}
-                                        className="flex-1 py-1.5 text-xs font-medium bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-all">
-                                        💸 Sell
-                                    </button>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </>
             )}
 
             {modal === 'add' && (
@@ -734,8 +1280,10 @@ export default function InventoryPage() {
                 <ItemDetailModal
                     itemId={modal.itemId}
                     farmId={currentFarm.id}
+                    crops={crops}
                     onClose={() => setModal(null)}
                     onAction={(type, item) => setModal({ type, item })}
+                    onUpdated={load}
                 />
             )}
             {modal?.type === 'use' && (
@@ -743,6 +1291,21 @@ export default function InventoryPage() {
             )}
             {(modal?.type === 'buy' || modal?.type === 'sell') && (
                 <TransactionModal item={modal.item} type={modal.type} onClose={() => setModal(null)} onSaved={load} />
+            )}
+
+            {/* Direct Tag Crop Modal from Usage Tracker table */}
+            {taggingTx && (
+                <TagCropModal
+                    tx={taggingTx}
+                    farmId={currentFarm.id}
+                    crops={crops}
+                    onClose={() => setTaggingTx(null)}
+                    onSaved={(updatedTx) => {
+                        setUsages(prev => prev.map(u => u.id === updatedTx.id ? { ...u, ...updatedTx } : u));
+                        setTaggingTx(null);
+                        load();
+                    }}
+                />
             )}
         </div>
     );

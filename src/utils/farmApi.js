@@ -70,6 +70,16 @@ export const buyInventoryItem = (id, body) => call('POST', `/farm/inventory/${id
 export const sellInventoryItem = (id, body) => call('POST', `/farm/inventory/${id}/sell`, body);
 /** Record on-farm consumption (e.g. fertiliser applied). Reduces stock, no financial amount. */
 export const useInventoryItem = (id, body) => call('POST', `/farm/inventory/${id}/use`, body);
+/** Tag or update crop and activity on an existing inventory transaction */
+export const tagInventoryTransaction = (txId, body) =>
+    call('PATCH', `/farm/inventory/transactions/${txId}/tag`, body);
+/** Get all inventory usage transactions for a farm (with optional untagged filter) */
+export const getInventoryUsages = (farmId, options = {}) => {
+    const params = new URLSearchParams({ farm_id: farmId });
+    if (options.untagged_only) params.append('untagged_only', 'true');
+    if (options.item_id) params.append('item_id', options.item_id);
+    return call('GET', `/farm/inventory/usages?${params}`);
+};
 
 // ── Finance ───────────────────────────────────────────────────────────────────
 export const getFinanceSummary = (farmId, from, to) => {
