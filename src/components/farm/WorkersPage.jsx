@@ -9,7 +9,10 @@ import {
 import { getActiveCrops } from '../../utils/farmApi';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-const today = () => new Date().toISOString().split('T')[0];
+const today = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN') : '—';
 const fmtCurr = (val) => `₹${Number(val || 0).toLocaleString('en-IN')}`;
 
@@ -521,25 +524,30 @@ const AllInOneWorkerCard = ({
 
     const handleAttendance = async (status) => {
         setSavingAtt(true);
-        await onMarkAttendance(worker.id, status, activityType, cropId);
+        const finalActivity = status === 'A' ? 'GENERAL' : activityType;
+        const finalCropId = status === 'A' ? null : (cropId || null);
+        await onMarkAttendance(worker.id, status, finalActivity, finalCropId);
         setSavingAtt(false);
     };
 
     const handleActivityChange = async (newActivity) => {
-        // Only update activity if worker has already been marked P or H today
-        if (!worker.today_status || worker.today_status === 'A') return;
         setActivityType(newActivity);
-        setSavingAtt(true);
-        await onMarkAttendance(worker.id, worker.today_status, newActivity, cropId);
-        setSavingAtt(false);
+        // If already marked P or H today, immediately persist the change
+        if (worker.today_status && worker.today_status !== 'A') {
+            setSavingAtt(true);
+            await onMarkAttendance(worker.id, worker.today_status, newActivity, cropId || null);
+            setSavingAtt(false);
+        }
     };
 
     const handleCropChange = async (newCropId) => {
-        if (!worker.today_status || worker.today_status === 'A') return;
         setCropId(newCropId);
-        setSavingAtt(true);
-        await onMarkAttendance(worker.id, worker.today_status, activityType, newCropId);
-        setSavingAtt(false);
+        // If already marked P or H today, immediately persist the change
+        if (worker.today_status && worker.today_status !== 'A') {
+            setSavingAtt(true);
+            await onMarkAttendance(worker.id, worker.today_status, activityType, newCropId || null);
+            setSavingAtt(false);
+        }
     };
 
     const actInfo = ACTIVITY_MAP[activityType] || ACTIVITY_MAP['GENERAL'];
@@ -592,8 +600,8 @@ const AllInOneWorkerCard = ({
                     </div>
                 </div>
 
-                {/* Activity Selector + Crop Tagger — only shown when worker is P or H */}
-                {worker.today_status && worker.today_status !== 'A' && (
+                {/* Activity Selector + Crop Tagger — shown when unmarked or marked P/H (hidden only when Absent) */}
+                {worker.today_status !== 'A' && (
                     <div className="space-y-2 pt-1 border-t border-gray-200">
                         {/* Activity pills */}
                         <div className="flex items-center gap-2">
@@ -602,6 +610,7 @@ const AllInOneWorkerCard = ({
                                 {ACTIVITY_TYPES.map(act => (
                                     <button
                                         key={act.value}
+                                        type="button"
                                         onClick={() => handleActivityChange(act.value)}
                                         className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all ${
                                             activityType === act.value
@@ -618,7 +627,7 @@ const AllInOneWorkerCard = ({
                             <div className="flex items-center gap-2">
                                 <span className="text-[11px] text-gray-500 font-medium whitespace-nowrap">🌾 Crop:</span>
                                 <select
-                                    value={cropId}
+                                    value={cropId || ''}
                                     onChange={e => handleCropChange(e.target.value)}
                                     className="flex-1 text-[11px] border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:border-green-400 focus:outline-none">
                                     <option value="">No specific crop</option>
@@ -692,29 +701,40 @@ const CellEditPopover = ({ worker, date, cell, crops, farmId, onSaved, onClose }
     const [activity, setActivity] = useState(cell?.activity || 'GENERAL');
     const [cropId,   setCropId]   = useState(cell?.cropId   || '');
     const [saving,   setSaving]   = useState(false);
+    const [error,    setError]    = useState('');
 
     const save = async () => {
         setSaving(true);
-        await upsertAttendance({
+        setError('');
+        const res = await upsertAttendance({
             worker_id:     worker.id,
             farm_id:       farmId,
             date,
             status,
-            activity_type: status === 'A' ? null : activity,
+            activity_type: status === 'A' ? 'GENERAL' : activity,
             crop_id:       status === 'A' ? null : (cropId || null),
         });
         setSaving(false);
+        if (res?.error) {
+            setError(res.error);
+            return;
+        }
         onSaved();
     };
 
     const clear = async () => {
         // Marking absent effectively clears activity / crop
         setSaving(true);
-        await upsertAttendance({
+        setError('');
+        const res = await upsertAttendance({
             worker_id: worker.id, farm_id: farmId, date,
-            status: 'A', activity_type: null, crop_id: null,
+            status: 'A', activity_type: 'GENERAL', crop_id: null,
         });
         setSaving(false);
+        if (res?.error) {
+            setError(res.error);
+            return;
+        }
         onSaved();
     };
 
@@ -730,6 +750,12 @@ const CellEditPopover = ({ worker, date, cell, crops, farmId, onSaved, onClose }
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
                 </div>
+
+                {error && (
+                    <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                        {error}
+                    </div>
+                )}
 
                 {/* Status */}
                 <div>
@@ -801,7 +827,7 @@ const CellEditPopover = ({ worker, date, cell, crops, farmId, onSaved, onClose }
 };
 
 // ─── MonthlyAttendance ────────────────────────────────────────────────────────
-const MonthlyAttendance = ({ workers, farmId, crops }) => {
+const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
     const now = new Date();
     const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const [month,   setMonth]   = useState(defaultMonth);
@@ -830,13 +856,15 @@ const MonthlyAttendance = ({ workers, farmId, crops }) => {
     const attMap = {};
     records.forEach(r => {
         if (!attMap[r.worker_id]) attMap[r.worker_id] = {};
-        const d = new Date(r.date);
-        const dayNum = d.getUTCDate();
-        attMap[r.worker_id][dayNum] = {
-            status:   r.status,
-            activity: r.activity_type,
-            cropId:   r.crop_id,
-        };
+        const dateStr = typeof r.date === 'string' ? r.date.split('T')[0] : '';
+        const dayNum = dateStr ? parseInt(dateStr.split('-')[2], 10) : new Date(r.date).getDate();
+        if (dayNum) {
+            attMap[r.worker_id][dayNum] = {
+                status:   r.status,
+                activity: r.activity_type,
+                cropId:   r.crop_id,
+            };
+        }
     });
 
     const STATUS_STYLE = {
@@ -993,7 +1021,14 @@ const MonthlyAttendance = ({ workers, farmId, crops }) => {
                     cell={editing.cell}
                     crops={crops}
                     farmId={farmId}
-                    onSaved={() => { setEditing(null); loadRecords(); }}
+                    onSaved={() => {
+                        const savedDate = editing?.date;
+                        setEditing(null);
+                        loadRecords();
+                        if (savedDate === today() && typeof onReloadWorkers === 'function') {
+                            onReloadWorkers();
+                        }
+                    }}
                     onClose={() => setEditing(null)}
                 />
             )}
@@ -1099,15 +1134,17 @@ export default function WorkersPage() {
     useEffect(() => { loadWorkers(); }, [loadWorkers]);
 
     const handleMarkAttendance = async (workerId, status, activityType = 'GENERAL', cropId = null) => {
+        const finalActivity = status === 'A' ? 'GENERAL' : (activityType || 'GENERAL');
+        const finalCropId = status === 'A' ? null : (cropId || null);
         await upsertAttendance({
             worker_id: workerId, farm_id: farmId,
             date: today(), status,
-            activity_type: activityType,
-            crop_id: cropId || null,
+            activity_type: finalActivity,
+            crop_id: finalCropId,
         });
         // Optimistically update today_status, today_activity_type, today_crop_id
         setWorkers(prev => prev.map(w => w.id === workerId
-            ? { ...w, today_status: status, today_activity_type: activityType, today_crop_id: cropId || null }
+            ? { ...w, today_status: status, today_activity_type: finalActivity, today_crop_id: finalCropId }
             : w
         ));
         loadWorkers();
@@ -1222,7 +1259,7 @@ export default function WorkersPage() {
 
                         {/* Tab 2: Attendance Calendar */}
                         {tab === 'monthly' && (
-                            <MonthlyAttendance workers={workers} farmId={farmId} crops={crops} />
+                            <MonthlyAttendance workers={workers} farmId={farmId} crops={crops} onReloadWorkers={loadWorkers} />
                         )}
 
                         {/* Tab 3: Financial History Ledger */}
