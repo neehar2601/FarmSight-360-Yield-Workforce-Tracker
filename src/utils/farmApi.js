@@ -94,11 +94,12 @@ export const getFinanceTransactions = (farmId, from, to) => {
     if (to) params.append('to', to);
     return call('GET', `/farm/finance/transactions?${params}`);
 };
-/** Per-activity material cost breakdown from inventory buy transactions */
-export const getInventoryActivityBreakdown = (farmId, from, to) => {
+/** Per-activity material cost breakdown from inventory buy/use transactions, optionally filtered by crop */
+export const getInventoryActivityBreakdown = (farmId, from, to, cropId) => {
     const params = new URLSearchParams({ farm_id: farmId });
     if (from) params.append('from', from);
     if (to) params.append('to', to);
+    if (cropId) params.append('crop_id', cropId);
     return call('GET', `/farm/finance/inventory-activity-breakdown?${params}`);
 };
 /** Active (growing) crops for a farm — used to tag purchases to a specific crop */
