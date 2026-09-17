@@ -414,61 +414,63 @@ export default function FinancePage() {
                                                         )}
                                                     </div>
 
-                                                    {/* Crop Segregation / Breakdown Section */}
-                                                    <div className="mt-3 pt-2.5 border-t border-gray-100">
-                                                        {cropList.length > 0 ? (
-                                                            <div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => toggleExpanded(activity)}
-                                                                    className="w-full flex items-center justify-between text-[11px] font-bold text-gray-600 hover:text-emerald-700 transition-colors py-0.5">
-                                                                    <span className="flex items-center gap-1">
-                                                                        <span>🌾</span> Segregate by Crop ({cropList.length})
-                                                                    </span>
-                                                                    <span className="text-[10px] text-gray-400">
-                                                                        {isExpanded ? '▲ Hide' : '▼ Breakdown'}
-                                                                    </span>
-                                                                </button>
+                                                    {/* Crop Segregation / Breakdown Section — only shown in All Crops view */}
+                                                    {selectedCrop === 'ALL' && (
+                                                        <div className="mt-3 pt-2.5 border-t border-gray-100">
+                                                            {cropList.length > 0 ? (
+                                                                <div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleExpanded(activity)}
+                                                                        className="w-full flex items-center justify-between text-[11px] font-bold text-gray-600 hover:text-emerald-700 transition-colors py-0.5">
+                                                                        <span className="flex items-center gap-1">
+                                                                            <span>🌾</span> Segregate by Crop ({cropList.length})
+                                                                        </span>
+                                                                        <span className="text-[10px] text-gray-400">
+                                                                            {isExpanded ? '▲ Hide' : '▼ Breakdown'}
+                                                                        </span>
+                                                                    </button>
 
-                                                                {/* Expanded Crop Segregation Breakdown */}
-                                                                {isExpanded && (
-                                                                    <div className="mt-2 pt-2 border-t border-dashed border-gray-200 space-y-1.5 animate-in fade-in duration-150">
-                                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
-                                                                            Crop-wise Expenditure:
-                                                                        </p>
-                                                                        {cropList.map(crop => {
-                                                                            const cropTotal = crop.labor + crop.materials;
-                                                                            const pct = total > 0 ? Math.round((cropTotal / total) * 100) : 0;
-                                                                            return (
-                                                                                <div key={crop.crop_id || 'untagged'} className="bg-gray-50/90 rounded-xl p-2 border border-gray-100 text-xs">
-                                                                                    <div className="flex items-center justify-between mb-0.5">
-                                                                                        <span className="font-bold text-gray-800 text-[11px] flex items-center gap-1">
-                                                                                            {crop.crop_name === 'Untagged' ? '⚠️' : '🌾'} {crop.crop_name}
-                                                                                            {crop.crop_variety ? ` (${crop.crop_variety})` : ''}
-                                                                                        </span>
-                                                                                        <span className="font-extrabold text-gray-800 text-[11px]">
-                                                                                            ₹{fmt(cropTotal)}{' '}
-                                                                                            <span className="text-[9px] text-gray-400 font-normal">({pct}%)</span>
-                                                                                        </span>
+                                                                    {/* Expanded Crop Segregation Breakdown */}
+                                                                    {isExpanded && (
+                                                                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 space-y-1.5 animate-in fade-in duration-150">
+                                                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                                                                                Crop-wise Expenditure:
+                                                                            </p>
+                                                                            {cropList.map(crop => {
+                                                                                const cropTotal = crop.labor + crop.materials;
+                                                                                const pct = total > 0 ? Math.round((cropTotal / total) * 100) : 0;
+                                                                                return (
+                                                                                    <div key={crop.crop_id || 'untagged'} className="bg-gray-50/90 rounded-xl p-2 border border-gray-100 text-xs">
+                                                                                        <div className="flex items-center justify-between mb-0.5">
+                                                                                            <span className="font-bold text-gray-800 text-[11px] flex items-center gap-1">
+                                                                                                {crop.crop_name === 'Untagged' ? '⚠️' : '🌾'} {crop.crop_name}
+                                                                                                {crop.crop_variety ? ` (${crop.crop_variety})` : ''}
+                                                                                            </span>
+                                                                                            <span className="font-extrabold text-gray-800 text-[11px]">
+                                                                                                ₹{fmt(cropTotal)}{' '}
+                                                                                                <span className="text-[9px] text-gray-400 font-normal">({pct}%)</span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div className="flex justify-between text-[10px] text-gray-500">
+                                                                                            <span>Labor: <strong className="text-emerald-700">₹{fmt(crop.labor)}</strong></span>
+                                                                                            <span>Materials: <strong className="text-amber-700">₹{fmt(crop.materials)}</strong></span>
+                                                                                        </div>
+                                                                                        {/* Mini percentage bar */}
+                                                                                        <div className="mt-1 h-1 rounded-full bg-gray-200 overflow-hidden">
+                                                                                            <div className="bg-emerald-500 h-full transition-all" style={{ width: `${pct}%` }}></div>
+                                                                                        </div>
                                                                                     </div>
-                                                                                    <div className="flex justify-between text-[10px] text-gray-500">
-                                                                                        <span>Labor: <strong className="text-emerald-700">₹{fmt(crop.labor)}</strong></span>
-                                                                                        <span>Materials: <strong className="text-amber-700">₹{fmt(crop.materials)}</strong></span>
-                                                                                    </div>
-                                                                                    {/* Mini percentage bar */}
-                                                                                    <div className="mt-1 h-1 rounded-full bg-gray-200 overflow-hidden">
-                                                                                        <div className="bg-emerald-500 h-full transition-all" style={{ width: `${pct}%` }}></div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <p className="text-[10px] text-gray-400 italic">No crop tags recorded</p>
-                                                        )}
-                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-[10px] text-gray-400 italic">No crop tags recorded</p>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -479,7 +481,9 @@ export default function FinancePage() {
                                 <div className="flex items-center gap-4 pt-2 text-xs text-gray-400 border-t border-gray-100">
                                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> Labor wages</span>
                                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Material consumption</span>
-                                    <span className="text-[11px] text-gray-400 ml-auto hidden sm:inline">Click "Segregate by Crop" on any card to view detailed crop split</span>
+                                    {selectedCrop === 'ALL' && (
+                                        <span className="text-[11px] text-gray-400 ml-auto hidden sm:inline">Click "Segregate by Crop" on any card to view detailed crop split</span>
+                                    )}
                                 </div>
                             </div>
                         );
