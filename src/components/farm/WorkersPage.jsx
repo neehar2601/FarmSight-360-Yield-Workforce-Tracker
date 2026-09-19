@@ -1042,10 +1042,11 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                     crops={crops}
                     farmId={farmId}
                     onSaved={() => {
-                        const savedDate = editing?.date;
                         setEditing(null);
                         loadRecords();
-                        if (savedDate === today() && typeof onReloadWorkers === 'function') {
+                        // Always reload worker cards so unpaid salary balance updates
+                        // regardless of whether the saved date is today or a past date
+                        if (typeof onReloadWorkers === 'function') {
                             onReloadWorkers();
                         }
                     }}
