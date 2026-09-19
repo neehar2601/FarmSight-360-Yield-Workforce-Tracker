@@ -433,20 +433,54 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                     {err && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3">{err}</p>}
 
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs space-y-1.5">
-                        <div className="flex justify-between">
-                            <span className="text-emerald-800">Total Days Worked:</span>
-                            <span className="font-bold text-emerald-900">{worker.total_days_worked} days</span>
+                    {/* Period breakdown summary */}
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs space-y-2">
+                        {/* Header: last settlement date */}
+                        <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200">
+                            <span className="font-semibold text-emerald-700">
+                                {worker.last_payout_date ? '📅 Last Settlement' : '📅 Since Joining'}
+                            </span>
+                            <span className="font-bold text-emerald-900">
+                                {worker.last_payout_date
+                                    ? new Date(worker.last_payout_date + 'T00:00:00').toLocaleDateString('en-IN')
+                                    : 'First payout'}
+                            </span>
                         </div>
+
+                        {/* Days worked since last payout */}
                         <div className="flex justify-between">
-                            <span className="text-emerald-800">Gross Earned + Bonuses:</span>
-                            <span className="font-bold text-emerald-900">{fmtCurr(worker.total_gross_earned + worker.total_bonus)}</span>
+                            <span className="text-emerald-800">Days worked since then:</span>
+                            <span className="font-bold text-emerald-900">{worker.since_last_payout_days ?? worker.total_days_worked} days</span>
                         </div>
-                        <div className="flex justify-between pt-1 border-t border-emerald-200">
-                            <span className="text-emerald-800 font-semibold">Unpaid Carryforward Salary:</span>
+
+                        {/* Salary earned this period */}
+                        <div className="flex justify-between">
+                            <span className="text-emerald-800">Salary for this period:</span>
+                            <span className="font-bold text-emerald-900">
+                                {fmtCurr((worker.since_last_payout_days ?? worker.total_days_worked) * worker.per_day_salary)}
+                            </span>
+                        </div>
+
+                        {/* Carryforward from previous (only shown if last_payout_date exists) */}
+                        {worker.last_payout_date && (() => {
+                            const periodSalary = (worker.since_last_payout_days ?? 0) * worker.per_day_salary;
+                            const carryforward = Math.max(0, worker.unpaid_carryforward_salary - periodSalary);
+                            return carryforward > 0 ? (
+                                <div className="flex justify-between text-blue-700">
+                                    <span>Carryforward from last settlement:</span>
+                                    <span className="font-bold">{fmtCurr(carryforward)}</span>
+                                </div>
+                            ) : null;
+                        })()}
+
+                        {/* Total due */}
+                        <div className="flex justify-between pt-1.5 border-t border-emerald-200">
+                            <span className="text-emerald-800 font-semibold">Total Due (Unpaid Balance):</span>
                             <span className="font-extrabold text-emerald-900 text-sm">{fmtCurr(worker.unpaid_carryforward_salary)}</span>
                         </div>
-                        <div className="flex justify-between text-amber-700 pt-1">
+
+                        {/* Outstanding loan */}
+                        <div className="flex justify-between text-amber-700">
                             <span>Outstanding Loan Owed:</span>
                             <span className="font-bold">{fmtCurr(worker.loan_balance)}</span>
                         </div>
