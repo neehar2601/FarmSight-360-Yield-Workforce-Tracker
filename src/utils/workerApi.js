@@ -96,10 +96,11 @@ export const getFinanceTransactions = (farmId, workerId, type) => {
     return call('GET', `/finance/transactions?${params}`);
 };
 
-/** Get per-activity labor cost breakdown */
-export const getActivityBreakdown = (farmId, fromDate, toDate) => {
+/** Get per-activity labor cost breakdown, optionally filtered by crop */
+export const getActivityBreakdown = (farmId, fromDate, toDate, cropId) => {
     const params = new URLSearchParams({ farm_id: farmId });
     if (fromDate) params.append('from_date', fromDate);
     if (toDate) params.append('to_date', toDate);
+    if (cropId) params.append('crop_id', cropId);
     return call('GET', `/attendance/activity-breakdown?${params}`);
 };

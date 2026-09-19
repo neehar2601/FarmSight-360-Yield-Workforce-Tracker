@@ -68,6 +68,18 @@ export const getInventoryItemById = (id, farmId) =>
 export const updateInventoryItem = (id, body) => call('PUT', `/farm/inventory/${id}`, body);
 export const buyInventoryItem = (id, body) => call('POST', `/farm/inventory/${id}/buy`, body);
 export const sellInventoryItem = (id, body) => call('POST', `/farm/inventory/${id}/sell`, body);
+/** Record on-farm consumption (e.g. fertiliser applied). Reduces stock, no financial amount. */
+export const useInventoryItem = (id, body) => call('POST', `/farm/inventory/${id}/use`, body);
+/** Tag or update crop and activity on an existing inventory transaction */
+export const tagInventoryTransaction = (txId, body) =>
+    call('PATCH', `/farm/inventory/transactions/${txId}/tag`, body);
+/** Get all inventory usage transactions for a farm (with optional untagged filter) */
+export const getInventoryUsages = (farmId, options = {}) => {
+    const params = new URLSearchParams({ farm_id: farmId });
+    if (options.untagged_only) params.append('untagged_only', 'true');
+    if (options.item_id) params.append('item_id', options.item_id);
+    return call('GET', `/farm/inventory/usages?${params}`);
+};
 
 // ── Finance ───────────────────────────────────────────────────────────────────
 export const getFinanceSummary = (farmId, from, to) => {
@@ -82,3 +94,14 @@ export const getFinanceTransactions = (farmId, from, to) => {
     if (to) params.append('to', to);
     return call('GET', `/farm/finance/transactions?${params}`);
 };
+/** Per-activity material cost breakdown from inventory buy/use transactions, optionally filtered by crop */
+export const getInventoryActivityBreakdown = (farmId, from, to, cropId) => {
+    const params = new URLSearchParams({ farm_id: farmId });
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    if (cropId) params.append('crop_id', cropId);
+    return call('GET', `/farm/finance/inventory-activity-breakdown?${params}`);
+};
+/** Active (growing) crops for a farm — used to tag purchases to a specific crop */
+export const getActiveCrops = (farmId) =>
+    call('GET', `/farm/crops?farm_id=${farmId}&archived=false`);
