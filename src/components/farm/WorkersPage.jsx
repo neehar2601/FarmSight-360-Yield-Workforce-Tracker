@@ -385,13 +385,16 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
     const [loanDeduct, setLoanDeduct] = useState(
         Math.min(worker.loan_balance || 0, worker.unpaid_carryforward_salary || 0)
     );
+    const [extraAdvance, setExtraAdvance] = useState(0);
     const [paymentDate, setPaymentDate] = useState(today());
     const [paymentMode, setPaymentMode] = useState('CASH');
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
 
-    const netPayable = Math.max(0, parseFloat(payoutAmount || 0) - parseFloat(loanDeduct || 0));
+    // Net cash = salary paid - loan deducted + extra given
+    const netPayable = Math.max(0, parseFloat(payoutAmount || 0) - parseFloat(loanDeduct || 0))
+                     + parseFloat(extraAdvance || 0);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -409,6 +412,7 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
             farm_id: farmId,
             amount: amt,
             loan_deducted: deduct,
+            extra_advance: parseFloat(extraAdvance || 0),
             payment_date: paymentDate,
             payment_mode: paymentMode,
             notes,
@@ -498,6 +502,16 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
                             <input type="number" min="0" max={worker.loan_balance} step="0.01"
                                 value={loanDeduct} onChange={(e) => setLoanDeduct(e.target.value)}
                                 className="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Extra Cash Given to Worker (₹)</label>
+                            <input type="number" min="0" step="0.01" value={extraAdvance}
+                                onChange={(e) => setExtraAdvance(e.target.value)}
+                                placeholder="0"
+                                className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+                            {parseFloat(extraAdvance) > 0 && (
+                                <p className="text-[10px] text-blue-600 mt-1">⚠️ Adds ₹{parseFloat(extraAdvance).toLocaleString('en-IN')} to worker's loan balance</p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-xs font-semibold text-gray-600 mb-1">Payment Mode</label>
