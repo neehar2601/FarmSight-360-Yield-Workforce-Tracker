@@ -385,13 +385,16 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
     const [loanDeduct, setLoanDeduct] = useState(
         Math.min(worker.loan_balance || 0, worker.unpaid_carryforward_salary || 0)
     );
+    const [extraAdvance, setExtraAdvance] = useState(0);
     const [paymentDate, setPaymentDate] = useState(today());
     const [paymentMode, setPaymentMode] = useState('CASH');
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
 
-    const netPayable = Math.max(0, parseFloat(payoutAmount || 0) - parseFloat(loanDeduct || 0));
+    // Net cash = salary paid - loan deducted + extra given
+    const netPayable = Math.max(0, parseFloat(payoutAmount || 0) - parseFloat(loanDeduct || 0))
+                     + parseFloat(extraAdvance || 0);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -409,6 +412,7 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
             farm_id: farmId,
             amount: amt,
             loan_deducted: deduct,
+            extra_advance: parseFloat(extraAdvance || 0),
             payment_date: paymentDate,
             payment_mode: paymentMode,
             notes,
@@ -433,20 +437,54 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                     {err && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3">{err}</p>}
 
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs space-y-1.5">
-                        <div className="flex justify-between">
-                            <span className="text-emerald-800">Total Days Worked:</span>
-                            <span className="font-bold text-emerald-900">{worker.total_days_worked} days</span>
+                    {/* Period breakdown summary */}
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs space-y-2">
+                        {/* Header: last settlement date */}
+                        <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200">
+                            <span className="font-semibold text-emerald-700">
+                                {worker.last_payout_date ? '📅 Last Settlement' : '📅 Since Joining'}
+                            </span>
+                            <span className="font-bold text-emerald-900">
+                                {worker.last_payout_date
+                                    ? new Date(worker.last_payout_date + 'T00:00:00').toLocaleDateString('en-IN')
+                                    : 'First payout'}
+                            </span>
                         </div>
+
+                        {/* Days worked since last payout */}
                         <div className="flex justify-between">
-                            <span className="text-emerald-800">Gross Earned + Bonuses:</span>
-                            <span className="font-bold text-emerald-900">{fmtCurr(worker.total_gross_earned + worker.total_bonus)}</span>
+                            <span className="text-emerald-800">Days worked since then:</span>
+                            <span className="font-bold text-emerald-900">{worker.since_last_payout_days ?? worker.total_days_worked} days</span>
                         </div>
-                        <div className="flex justify-between pt-1 border-t border-emerald-200">
-                            <span className="text-emerald-800 font-semibold">Unpaid Carryforward Salary:</span>
+
+                        {/* Salary earned this period */}
+                        <div className="flex justify-between">
+                            <span className="text-emerald-800">Salary for this period:</span>
+                            <span className="font-bold text-emerald-900">
+                                {fmtCurr((worker.since_last_payout_days ?? worker.total_days_worked) * worker.per_day_salary)}
+                            </span>
+                        </div>
+
+                        {/* Carryforward from previous (only shown if last_payout_date exists) */}
+                        {worker.last_payout_date && (() => {
+                            const periodSalary = (worker.since_last_payout_days ?? 0) * worker.per_day_salary;
+                            const carryforward = Math.max(0, worker.unpaid_carryforward_salary - periodSalary);
+                            return carryforward > 0 ? (
+                                <div className="flex justify-between text-blue-700">
+                                    <span>Carryforward from last settlement:</span>
+                                    <span className="font-bold">{fmtCurr(carryforward)}</span>
+                                </div>
+                            ) : null;
+                        })()}
+
+                        {/* Total due */}
+                        <div className="flex justify-between pt-1.5 border-t border-emerald-200">
+                            <span className="text-emerald-800 font-semibold">Total Due (Unpaid Balance):</span>
                             <span className="font-extrabold text-emerald-900 text-sm">{fmtCurr(worker.unpaid_carryforward_salary)}</span>
                         </div>
-                        <div className="flex justify-between text-amber-700 pt-1">
+
+                        {/* Outstanding loan */}
+                        <div className="flex justify-between text-amber-700">
                             <span>Outstanding Loan Owed:</span>
                             <span className="font-bold">{fmtCurr(worker.loan_balance)}</span>
                         </div>
@@ -464,6 +502,16 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
                             <input type="number" min="0" max={worker.loan_balance} step="0.01"
                                 value={loanDeduct} onChange={(e) => setLoanDeduct(e.target.value)}
                                 className="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Extra Cash Given to Worker (₹)</label>
+                            <input type="number" min="0" step="0.01" value={extraAdvance}
+                                onChange={(e) => setExtraAdvance(e.target.value)}
+                                placeholder="0"
+                                className="w-full border border-blue-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+                            {parseFloat(extraAdvance) > 0 && (
+                                <p className="text-[10px] text-blue-600 mt-1">⚠️ Adds ₹{parseFloat(extraAdvance).toLocaleString('en-IN')} to worker's loan balance</p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-xs font-semibold text-gray-600 mb-1">Payment Mode</label>
@@ -852,6 +900,16 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
     const daysInMonth = new Date(year, mon, 0).getDate();
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
+    // Determine today so we can grey out / lock future days
+    const nowObj = new Date();
+    const todayYear  = nowObj.getFullYear();
+    const todayMonth = nowObj.getMonth() + 1; // 1-based
+    const todayDay   = nowObj.getDate();
+    const isFutureDay = (d) =>
+        year > todayYear ||
+        (year === todayYear && mon > todayMonth) ||
+        (year === todayYear && mon === todayMonth && d > todayDay);
+
     // Map: { workerId: { dayNum: { status, activity, cropId } } }
     const attMap = {};
     records.forEach(r => {
@@ -920,9 +978,13 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                                         const dow = date.getDay();
                                         const isSun = dow === 0;
                                         const isSat = dow === 6;
+                                        const future = isFutureDay(d);
                                         return (
                                             <th key={d} className={`p-1.5 text-center font-semibold border-b border-gray-200 min-w-[28px] ${
-                                                isSun ? 'text-rose-500 bg-rose-50' : isSat ? 'text-amber-600 bg-amber-50' : 'text-gray-500'
+                                                future      ? 'text-gray-300 bg-gray-50'
+                                                : isSun     ? 'text-rose-500 bg-rose-50'
+                                                : isSat     ? 'text-amber-600 bg-amber-50'
+                                                            : 'text-gray-500'
                                             }`}>
                                                 <div>{d}</div>
                                                 <div className="text-[9px] font-normal">{['Su','Mo','Tu','We','Th','Fr','Sa'][dow]}</div>
@@ -949,22 +1011,28 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                                             const cropName = cell?.cropId
                                                 ? crops?.find(c => c.id === cell.cropId)?.name
                                                 : null;
-                                            const tooltip = [
-                                                cell ? (cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent') : 'Not marked',
-                                                actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
-                                                cropName ? `🌾 ${cropName}` : null,
-                                            ].filter(Boolean).join(' · ');
+                                            const future = isFutureDay(d);
+                                            const tooltip = future
+                                                ? 'Future date — cannot mark attendance'
+                                                : [
+                                                    cell ? (cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent') : 'Not marked',
+                                                    actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
+                                                    cropName ? `🌾 ${cropName}` : null,
+                                                  ].filter(Boolean).join(' · ');
                                             return (
                                                 <td key={d} className="p-0.5 text-center">
                                                     <button
                                                         title={tooltip}
-                                                        onClick={() => setEditing({ worker: w, date: dateStr, cell })}
-                                                        className={`w-6 h-6 rounded-md mx-auto flex items-center justify-center text-[10px] font-bold transition-all hover:ring-2 hover:ring-offset-1 hover:ring-green-400 ${
-                                                            cell
-                                                                ? (STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400')
-                                                                : 'bg-gray-100 hover:bg-gray-200'
+                                                        disabled={future}
+                                                        onClick={() => { if (!future) setEditing({ worker: w, date: dateStr, cell }); }}
+                                                        className={`w-6 h-6 rounded-md mx-auto flex items-center justify-center text-[10px] font-bold transition-all ${
+                                                            future
+                                                                ? 'bg-gray-50 text-gray-200 cursor-not-allowed'
+                                                                : cell
+                                                                    ? `${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'} hover:ring-2 hover:ring-offset-1 hover:ring-green-400`
+                                                                    : 'bg-gray-100 hover:bg-gray-200 hover:ring-2 hover:ring-offset-1 hover:ring-green-400'
                                                         }`}>
-                                                        {cell ? (
+                                                        {future ? null : cell ? (
                                                             actInfo ? actInfo.emoji : cell.status
                                                         ) : (
                                                             <span className="text-gray-300">·</span>
@@ -1022,10 +1090,11 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                     crops={crops}
                     farmId={farmId}
                     onSaved={() => {
-                        const savedDate = editing?.date;
                         setEditing(null);
                         loadRecords();
-                        if (savedDate === today() && typeof onReloadWorkers === 'function') {
+                        // Always reload worker cards so unpaid salary balance updates
+                        // regardless of whether the saved date is today or a past date
+                        if (typeof onReloadWorkers === 'function') {
                             onReloadWorkers();
                         }
                     }}
