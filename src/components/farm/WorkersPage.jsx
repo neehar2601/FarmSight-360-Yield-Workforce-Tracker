@@ -852,6 +852,16 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
     const daysInMonth = new Date(year, mon, 0).getDate();
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
+    // Determine today so we can grey out / lock future days
+    const nowObj = new Date();
+    const todayYear  = nowObj.getFullYear();
+    const todayMonth = nowObj.getMonth() + 1; // 1-based
+    const todayDay   = nowObj.getDate();
+    const isFutureDay = (d) =>
+        year > todayYear ||
+        (year === todayYear && mon > todayMonth) ||
+        (year === todayYear && mon === todayMonth && d > todayDay);
+
     // Map: { workerId: { dayNum: { status, activity, cropId } } }
     const attMap = {};
     records.forEach(r => {
@@ -920,9 +930,13 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                                         const dow = date.getDay();
                                         const isSun = dow === 0;
                                         const isSat = dow === 6;
+                                        const future = isFutureDay(d);
                                         return (
                                             <th key={d} className={`p-1.5 text-center font-semibold border-b border-gray-200 min-w-[28px] ${
-                                                isSun ? 'text-rose-500 bg-rose-50' : isSat ? 'text-amber-600 bg-amber-50' : 'text-gray-500'
+                                                future      ? 'text-gray-300 bg-gray-50'
+                                                : isSun     ? 'text-rose-500 bg-rose-50'
+                                                : isSat     ? 'text-amber-600 bg-amber-50'
+                                                            : 'text-gray-500'
                                             }`}>
                                                 <div>{d}</div>
                                                 <div className="text-[9px] font-normal">{['Su','Mo','Tu','We','Th','Fr','Sa'][dow]}</div>
@@ -949,22 +963,28 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                                             const cropName = cell?.cropId
                                                 ? crops?.find(c => c.id === cell.cropId)?.name
                                                 : null;
-                                            const tooltip = [
-                                                cell ? (cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent') : 'Not marked',
-                                                actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
-                                                cropName ? `🌾 ${cropName}` : null,
-                                            ].filter(Boolean).join(' · ');
+                                            const future = isFutureDay(d);
+                                            const tooltip = future
+                                                ? 'Future date — cannot mark attendance'
+                                                : [
+                                                    cell ? (cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent') : 'Not marked',
+                                                    actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
+                                                    cropName ? `🌾 ${cropName}` : null,
+                                                  ].filter(Boolean).join(' · ');
                                             return (
                                                 <td key={d} className="p-0.5 text-center">
                                                     <button
                                                         title={tooltip}
-                                                        onClick={() => setEditing({ worker: w, date: dateStr, cell })}
-                                                        className={`w-6 h-6 rounded-md mx-auto flex items-center justify-center text-[10px] font-bold transition-all hover:ring-2 hover:ring-offset-1 hover:ring-green-400 ${
-                                                            cell
-                                                                ? (STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400')
-                                                                : 'bg-gray-100 hover:bg-gray-200'
+                                                        disabled={future}
+                                                        onClick={() => { if (!future) setEditing({ worker: w, date: dateStr, cell }); }}
+                                                        className={`w-6 h-6 rounded-md mx-auto flex items-center justify-center text-[10px] font-bold transition-all ${
+                                                            future
+                                                                ? 'bg-gray-50 text-gray-200 cursor-not-allowed'
+                                                                : cell
+                                                                    ? `${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'} hover:ring-2 hover:ring-offset-1 hover:ring-green-400`
+                                                                    : 'bg-gray-100 hover:bg-gray-200 hover:ring-2 hover:ring-offset-1 hover:ring-green-400'
                                                         }`}>
-                                                        {cell ? (
+                                                        {future ? null : cell ? (
                                                             actInfo ? actInfo.emoji : cell.status
                                                         ) : (
                                                             <span className="text-gray-300">·</span>
