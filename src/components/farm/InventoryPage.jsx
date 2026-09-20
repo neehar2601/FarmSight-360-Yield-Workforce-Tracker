@@ -1111,11 +1111,21 @@ export default function InventoryPage() {
 
     useEffect(() => { load(); }, [load]);
 
-    const untaggedUsagesCount = usages.filter(u => !u.crop_id).length;
+    const isCropCareCategory = (catName = '') => {
+        const c = (catName || '').toLowerCase();
+        return c.includes('fertil') || c.includes('pestic') || c.includes('insectic') ||
+               c.includes('herbic') || c.includes('weed') || c.includes('fungic') ||
+               c.includes('spray') || c.includes('regulat') || c.includes('tonic');
+    };
+
+    const generalCategories = categories.filter(c => !isCropCareCategory(c.name));
+    const generalItems = items.filter(i => !isCropCareCategory(i.category_name));
+    const generalUsages = usages.filter(u => !isCropCareCategory(u.category_name));
+    const untaggedUsagesCount = generalUsages.filter(u => !u.crop_id).length;
 
     const filtered = selectedCategory === 'all'
-        ? items
-        : items.filter(i => i.category_id === selectedCategory);
+        ? generalItems
+        : generalItems.filter(i => i.category_id === selectedCategory);
 
     if (!currentFarm) return (
         <div className="flex items-center justify-center h-full">
@@ -1129,7 +1139,7 @@ export default function InventoryPage() {
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Inventory</h1>
-                    <p className="text-gray-500 mt-1">{currentFarm.name} — stock, utilisation & crop tagging</p>
+                    <p className="text-gray-500 mt-1">{currentFarm.name} — stock, supplies & equipment</p>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={() => setModal('category')}
@@ -1141,6 +1151,22 @@ export default function InventoryPage() {
                         <span className="text-lg">+</span> Add Item
                     </button>
                 </div>
+            </div>
+
+            {/* Banner redirecting to Fertilisers & Sprays */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                    <span className="text-2xl">🌱</span>
+                    <div>
+                        <p className="text-xs font-bold text-emerald-900">Looking for Fertilisers, Pesticides or Sprays?</p>
+                        <p className="text-[11px] text-emerald-700">All soil nutrients, chemicals, and spray logs have been moved to the dedicated Fertilisers & Sprays tab.</p>
+                    </div>
+                </div>
+                <a
+                    href="/farm/crop-care"
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1">
+                    Open Fertilisers & Sprays &rarr;
+                </a>
             </div>
 
             {/* View Mode Switcher: Stock vs Usage Tracker & Tagging */}
@@ -1156,7 +1182,7 @@ export default function InventoryPage() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                         viewMode === 'stock' ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-600'
                     }`}>
-                        {items.length}
+                        {generalItems.length}
                     </span>
                 </button>
 
@@ -1180,7 +1206,7 @@ export default function InventoryPage() {
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                             viewMode === 'usages' ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-600'
                         }`}>
-                            {usages.length}
+                            {generalUsages.length}
                         </span>
                     )}
                 </button>
@@ -1191,7 +1217,7 @@ export default function InventoryPage() {
             {/* View Mode: Usage Tracker */}
             {viewMode === 'usages' ? (
                 <UsageTrackerSection
-                    usages={usages}
+                    usages={generalUsages}
                     crops={crops}
                     loading={loading}
                     onTagClick={(u) => setTaggingTx(u)}
@@ -1205,7 +1231,7 @@ export default function InventoryPage() {
                             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${selectedCategory === 'all' ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50 border'}`}>
                             All
                         </button>
-                        {categories.map(c => (
+                        {generalCategories.map(c => (
                             <button key={c.id} onClick={() => setSelectedCategory(c.id)}
                                 className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${selectedCategory === c.id ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50 border'}`}>
                                 {c.name}
@@ -1271,7 +1297,7 @@ export default function InventoryPage() {
             )}
 
             {modal === 'add' && (
-                <AddItemModal farmId={currentFarm.id} categories={categories} onClose={() => setModal(null)} onSaved={load} />
+                <AddItemModal farmId={currentFarm.id} categories={generalCategories} onClose={() => setModal(null)} onSaved={load} />
             )}
             {modal === 'category' && (
                 <CategoryModal farmId={currentFarm.id} onClose={() => setModal(null)} onSaved={load} />

@@ -7,10 +7,15 @@ import {
     getActiveCrops,
     getInventoryItemById,
     getInventoryActivityBreakdown,
+    createInventoryItem,
+    updateInventoryItem,
+    buyInventoryItem,
+    useInventoryItem,
+    createInventoryCategory,
 } from '../../utils/farmApi';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, Cell
+    ResponsiveContainer
 } from 'recharts';
 
 const fmt = (n) => parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -31,6 +36,16 @@ const CATEGORY_GROUPS = [
     { key: 'FUNGICIDE',  label: 'Fungicides',           emoji: '🍄', desc: 'Bactericides, blight, rust & fungal preventive treatments' },
     { key: 'SPRAY',      label: 'Tonics & Other Sprays', emoji: '💦', desc: 'Plant growth regulators (PGR), foliar nutrition & stickers' },
 ];
+
+const STANDARD_CATEGORIES = [
+    { name: 'Fertiliser',              group: 'FERTILISER', emoji: '🌱' },
+    { name: 'Pesticides',              group: 'PESTICIDE',  emoji: '🐛' },
+    { name: 'Herbicides',              group: 'HERBICIDE',  emoji: '🌿' },
+    { name: 'Fungicides',              group: 'FUNGICIDE',  emoji: '🍄' },
+    { name: 'Bio-stimulants & Sprays', group: 'SPRAY',      emoji: '💦' },
+];
+
+const COMMON_UNITS = ['kg', 'litres', 'bags', 'grams', 'ml', 'packets', 'bottles'];
 
 const matchGroup = (categoryName = '', itemName = '', activityType = '') => {
     const c = (categoryName || '').toLowerCase();
@@ -75,7 +90,600 @@ const matchGroup = (categoryName = '', itemName = '', activityType = '') => {
     return null;
 };
 
-// ── Item History Modal (Read-Only) ───────────────────────────────────────────
+// ── Modal: Add New Crop Care Input ──────────────────────────────────────────
+const AddInputModal = ({ farmId, existingCategories, onClose, onSaved }) => {
+    const [name, setName] = useState('');
+    const [selectedCategoryName, setSelectedCategoryName] = useState('Fertiliser');
+    const [unit, setUnit] = useState('kg');
+    const [notes, setNotes] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        setSaving(true);
+        setError('');
+
+        try {
+            // Check if category exists or needs creation
+            let cat = existingCategories.find(c => c.name.toLowerCase() === selectedCategoryName.toLowerCase());
+            let categoryId = cat?.id;
+
+            if (!categoryId) {
+                const { data: newCat, error: catErr } = await createInventoryCategory({
+                    farm_id: farmId,
+                    name: selectedCategoryName,
+                });
+                if (catErr) {
+                    setError(catErr);
+                    setSaving(false);
+                    return;
+                }
+                categoryId = newCat.id;
+            }
+
+            const { data, error: itemErr } = await createInventoryItem({
+                farm_id: farmId,
+                category_id: categoryId,
+                name: name.trim(),
+                unit,
+                notes: notes.trim() || null,
+            });
+
+            setSaving(false);
+            if (itemErr) {
+                setError(itemErr);
+                return;
+            }
+
+            onSaved(data);
+            onClose();
+        } catch (err) {
+            setSaving(false);
+            setError(err.message || 'Failed to add item');
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
+             onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+                <div className="flex items-start justify-between border-b pb-3">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <span>🌱</span> Add Fertiliser / Spray Input
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">Register a nutrient, chemical, or spray product in your farm catalog</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                </div>
+
+                {error && (
+                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            Input / Product Name *
+                        </label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            placeholder="e.g. Urea 46%, Mancozeb 75 WP, Neem Oil 10000 PPM"
+                            required
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                Category *
+                            </label>
+                            <select
+                                value={selectedCategoryName}
+                                onChange={e => setSelectedCategoryName(e.target.value)}
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                {STANDARD_CATEGORIES.map(c => (
+                                    <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                Measurement Unit *
+                            </label>
+                            <select
+                                value={unit}
+                                onChange={e => setUnit(e.target.value)}
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                {COMMON_UNITS.map(u => (
+                                    <option key={u} value={u}>{u}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            Notes & Recommended Dosage (Optional)
+                        </label>
+                        <textarea
+                            rows={2}
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            placeholder="e.g. Recommended dosage: 2 ml/litre water. Used for foliar spray."
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 border rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50">
+                            {saving ? 'Saving…' : '✓ Save Input'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// ── Modal: Buy / Restock Input ──────────────────────────────────────────────
+const BuyInputModal = ({ item, farmId, onClose, onSaved }) => {
+    const today = new Date().toISOString().split('T')[0];
+    const [quantity, setQuantity] = useState('');
+    const [unitPrice, setUnitPrice] = useState('');
+    const [transactionDate, setTransactionDate] = useState(today);
+    const [notes, setNotes] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const totalAmount = quantity && unitPrice
+        ? (parseFloat(quantity) * parseFloat(unitPrice)).toFixed(2)
+        : '0.00';
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!quantity || !unitPrice) return;
+        setSaving(true);
+        setError('');
+
+        const { data, error: err } = await buyInventoryItem(item.id, {
+            farm_id: farmId,
+            quantity: parseFloat(quantity),
+            unit_price: parseFloat(unitPrice),
+            total_amount: parseFloat(totalAmount),
+            transaction_date: transactionDate,
+            notes: notes.trim() || null,
+        });
+
+        setSaving(false);
+        if (err) {
+            setError(err);
+            return;
+        }
+
+        onSaved(data);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
+             onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+                <div className="flex items-start justify-between border-b pb-3">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <span>🛒</span> Buy / Restock Input
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            {item.name} · Current Stock: <strong className="text-gray-700">{fmtQty(item.current_quantity)} {item.unit}</strong>
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                </div>
+
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800">
+                    💡 This purchase will increment available stock and automatically record an expense under Farm Finance.
+                </div>
+
+                {error && (
+                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                Quantity Bought ({item.unit}) *
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={quantity}
+                                onChange={e => setQuantity(e.target.value)}
+                                placeholder="0.00"
+                                required
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                Price per {item.unit} (₹) *
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={unitPrice}
+                                onChange={e => setUnitPrice(e.target.value)}
+                                placeholder="₹ 0.00"
+                                required
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-50 p-3 rounded-xl flex items-center justify-between border border-gray-200">
+                        <span className="text-xs font-semibold text-gray-600">Total Purchase Amount:</span>
+                        <span className="text-base font-extrabold text-emerald-800">₹{fmt(totalAmount)}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                Purchase Date *
+                            </label>
+                            <input
+                                type="date"
+                                value={transactionDate}
+                                onChange={e => setTransactionDate(e.target.value)}
+                                required
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                Supplier / Vendor
+                            </label>
+                            <input
+                                type="text"
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                placeholder="e.g. Kisan Agro Center"
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 border rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50">
+                            {saving ? 'Processing…' : '✓ Record Purchase'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// ── Modal: Use / Apply Input to Field ────────────────────────────────────────
+const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
+    const today = new Date().toISOString().split('T')[0];
+    const defaultActivity = item.groupKey === 'FERTILISER' ? 'FERTILISATION' : 'SPRAY';
+
+    const [quantity, setQuantity] = useState('');
+    const [transactionDate, setTransactionDate] = useState(today);
+    const [cropId, setCropId] = useState('');
+    const [activityType, setActivityType] = useState(defaultActivity);
+    const [notes, setNotes] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const maxQty = parseFloat(item.current_quantity || 0);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const q = parseFloat(quantity);
+        if (!q || q <= 0) return;
+        if (q > maxQty) {
+            setError(`Cannot apply more than available stock (${maxQty} ${item.unit})`);
+            return;
+        }
+
+        setSaving(true);
+        setError('');
+
+        const { data, error: err } = await useInventoryItem(item.id, {
+            farm_id: farmId,
+            quantity: q,
+            transaction_date: transactionDate,
+            crop_id: cropId || null,
+            activity_type: activityType,
+            notes: notes.trim() || null,
+        });
+
+        setSaving(false);
+        if (err) {
+            setError(err);
+            return;
+        }
+
+        onSaved(data);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
+             onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+                <div className="flex items-start justify-between border-b pb-3">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <span>🪣</span> Apply to Crop / Field
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            {item.name} · Available Stock: <strong className="text-emerald-700">{fmtQty(maxQty)} {item.unit}</strong>
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                    ⚠️ Decrements available inventory and links consumption cost to the selected crop under Finance.
+                </div>
+
+                {error && (
+                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                Qty Applied ({item.unit}) *
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                max={maxQty}
+                                value={quantity}
+                                onChange={e => setQuantity(e.target.value)}
+                                placeholder="0.00"
+                                required
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                Application Date *
+                            </label>
+                            <input
+                                type="date"
+                                value={transactionDate}
+                                onChange={e => setTransactionDate(e.target.value)}
+                                required
+                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            🌾 Target Crop
+                        </label>
+                        <select
+                            value={cropId}
+                            onChange={e => setCropId(e.target.value)}
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="">General Farm (No specific crop)</option>
+                            {crops.map(c => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}{c.variety ? ` (${c.variety})` : ''}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            📌 Task Type
+                        </label>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setActivityType('FERTILISATION')}
+                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                                    activityType === 'FERTILISATION'
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                }`}>
+                                🌱 Fertilisation
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActivityType('SPRAY')}
+                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                                    activityType === 'SPRAY'
+                                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                }`}>
+                                💦 Spraying
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            Dosage / Remarks (Optional)
+                        </label>
+                        <input
+                            type="text"
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            placeholder="e.g. Applied 2 bags after morning weeding"
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 border rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50">
+                            {saving ? 'Recording…' : '✓ Record Application'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// ── Modal: Edit Input Details ───────────────────────────────────────────────
+const EditInputModal = ({ item, farmId, onClose, onSaved }) => {
+    const [name, setName] = useState(item.name || '');
+    const [unit, setUnit] = useState(item.unit || 'kg');
+    const [notes, setNotes] = useState(item.notes || '');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        setSaving(true);
+        setError('');
+
+        const { data, error: err } = await updateInventoryItem(item.id, {
+            farm_id: farmId,
+            name: name.trim(),
+            unit,
+            notes: notes.trim() || null,
+        });
+
+        setSaving(false);
+        if (err) {
+            setError(err);
+            return;
+        }
+
+        onSaved(data);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
+             onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+                <div className="flex items-start justify-between border-b pb-3">
+                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <span>✏️</span> Edit Product Details
+                    </h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                </div>
+
+                {error && (
+                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            Product Name *
+                        </label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            required
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            Measurement Unit *
+                        </label>
+                        <select
+                            value={unit}
+                            onChange={e => setUnit(e.target.value)}
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            {COMMON_UNITS.map(u => (
+                                <option key={u} value={u}>{u}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            Notes / Instructions
+                        </label>
+                        <textarea
+                            rows={2}
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 border rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50">
+                            {saving ? 'Updating…' : '✓ Update Details'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// ── Modal: Item History (Read-Only) ───────────────────────────────────────────
 const ItemDetailModal = ({ itemId, farmId, onClose }) => {
     const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -210,6 +818,7 @@ export default function CropCarePage() {
 
     // Data state
     const [items, setItems] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [usages, setUsages] = useState([]);
     const [crops, setCrops] = useState([]);
     const [activityBreakdown, setActivityBreakdown] = useState([]);
@@ -217,22 +826,25 @@ export default function CropCarePage() {
     const [error, setError] = useState('');
 
     // Filter & view state
-    const [selectedGroup, setSelectedGroup] = useState('ALL'); // ALL | FERTILISER | PESTICIDE | HERBICIDE | FUNGICIDE | SPRAY
+    const [selectedGroup, setSelectedGroup] = useState('ALL');
     const [viewMode, setViewMode] = useState('stock'); // stock | usages | trends
     const [selectedCropFilter, setSelectedCropFilter] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
-    const [detailItemId, setDetailItemId] = useState(null);
+
+    // Modal state: null | 'add' | { type: 'buy'|'use'|'edit'|'history', item }
+    const [modal, setModal] = useState(null);
 
     const loadData = useCallback(async () => {
         if (!currentFarm?.id) return;
         setLoading(true);
         setError('');
 
-        const [itemsRes, usagesRes, cropsRes, actRes] = await Promise.all([
+        const [itemsRes, usagesRes, cropsRes, actRes, catsRes] = await Promise.all([
             getInventoryItems(currentFarm.id),
             getInventoryUsages(currentFarm.id),
             getActiveCrops(currentFarm.id),
             getInventoryActivityBreakdown(currentFarm.id),
+            getInventoryCategories(currentFarm.id),
         ]);
 
         setLoading(false);
@@ -245,6 +857,7 @@ export default function CropCarePage() {
         setUsages(usagesRes.data || []);
         setCrops(cropsRes.data || []);
         setActivityBreakdown(actRes.data || []);
+        setCategories(catsRes.data || []);
     }, [currentFarm?.id]);
 
     useEffect(() => {
@@ -257,7 +870,6 @@ export default function CropCarePage() {
             ...item,
             groupKey: matchGroup(item.category_name, item.name) || 'OTHER',
         })).filter(item => {
-            // Keep items that match one of our crop care groups
             return ['FERTILISER', 'PESTICIDE', 'HERBICIDE', 'FUNGICIDE', 'SPRAY'].includes(item.groupKey);
         });
     }, [items]);
@@ -358,14 +970,19 @@ export default function CropCarePage() {
                         <h1 className="text-2xl font-extrabold text-gray-800">Fertilisers & Sprays</h1>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                        {currentFarm.name} · Operational monitoring of soil nutrients, chemicals, fungicides, and crop sprays
+                        {currentFarm.name} · Soil nutrients, chemicals, fungicides, crop sprays, and field applications
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                     <button
                         onClick={loadData}
                         className="px-3.5 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 text-xs font-semibold flex items-center gap-1.5 transition-all">
-                        <span>🔄</span> Refresh Data
+                        <span>🔄</span> Refresh
+                    </button>
+                    <button
+                        onClick={() => setModal('add')}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all">
+                        <span className="text-sm font-extrabold">+</span> Add Input
                     </button>
                 </div>
             </div>
@@ -465,9 +1082,9 @@ export default function CropCarePage() {
 
                     <div className="pt-3 border-t border-gray-100 px-3">
                         <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-100">
-                            <p className="text-[11px] font-bold text-emerald-800">💡 Read-Only Monitor</p>
+                            <p className="text-[11px] font-bold text-emerald-800">💡 Unified Farm Ledger</p>
                             <p className="text-[10px] text-emerald-700 mt-1 leading-relaxed">
-                                On-farm usage is automatically tracked when marking worker attendance and recording stock consumption in Inventory.
+                                Purchasing or consuming inputs here updates available stock and reflects in Finance automatically.
                             </p>
                         </div>
                     </div>
@@ -538,9 +1155,14 @@ export default function CropCarePage() {
                                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
                                     <p className="text-5xl mb-3">🧪</p>
                                     <p className="text-gray-600 font-bold text-base">No inputs found in this category</p>
-                                    <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
-                                        Items categorized as Fertilisers, Pesticides, Herbicides or Sprays in Inventory will appear here automatically.
+                                    <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto mb-4">
+                                        Click below to add your first fertiliser, pesticide, herbicide or spray input.
                                     </p>
+                                    <button
+                                        onClick={() => setModal('add')}
+                                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all">
+                                        + Add Fertiliser / Spray
+                                    </button>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -550,44 +1172,61 @@ export default function CropCarePage() {
                                         return (
                                             <div
                                                 key={item.id}
-                                                className={`bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5 border ${
+                                                className={`bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5 border flex flex-col justify-between ${
                                                     isLow ? 'border-amber-300 bg-amber-50/20' : 'border-gray-100'
                                                 }`}>
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <div>
-                                                        <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                                                            <span>{group.emoji || '🌱'}</span> {item.category_name}
-                                                        </span>
-                                                        <h3 className="text-base font-bold text-gray-800 mt-1.5">{item.name}</h3>
+                                                <div>
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div>
+                                                            <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                                                                <span>{group.emoji || '🌱'}</span> {item.category_name}
+                                                            </span>
+                                                            <h3 className="text-base font-bold text-gray-800 mt-1.5">{item.name}</h3>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className={`text-2xl font-extrabold ${isLow ? 'text-amber-600' : 'text-gray-800'}`}>
+                                                                {fmtQty(item.current_quantity)}
+                                                            </p>
+                                                            <p className="text-xs text-gray-400 font-medium">{item.unit}</p>
+                                                        </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p className={`text-2xl font-extrabold ${isLow ? 'text-amber-600' : 'text-gray-800'}`}>
-                                                            {fmtQty(item.current_quantity)}
+
+                                                    {isLow && (
+                                                        <div className="mb-3 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-bold flex items-center gap-1.5">
+                                                            <span>⚠️</span> Low Stock Notice — Reorder Recommended
+                                                        </div>
+                                                    )}
+
+                                                    {item.notes && (
+                                                        <p className="text-xs text-gray-500 italic mb-3 line-clamp-2 bg-gray-50 p-2 rounded-lg">
+                                                            {item.notes}
                                                         </p>
-                                                        <p className="text-xs text-gray-400 font-medium">{item.unit}</p>
-                                                    </div>
+                                                    )}
                                                 </div>
 
-                                                {isLow && (
-                                                    <div className="mb-3 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-bold flex items-center gap-1.5">
-                                                        <span>⚠️</span> Low Stock Notice — Reorder Recommended
-                                                    </div>
-                                                )}
-
-                                                {item.notes && (
-                                                    <p className="text-xs text-gray-500 italic mb-3 line-clamp-2 bg-gray-50 p-2 rounded-lg">
-                                                        {item.notes}
-                                                    </p>
-                                                )}
-
-                                                <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                                                    <span className="text-[11px] text-gray-400">
-                                                        Updated {new Date(item.updated_at || item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                                                    </span>
+                                                {/* Action Buttons */}
+                                                <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
                                                     <button
-                                                        onClick={() => setDetailItemId(item.id)}
-                                                        className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1">
-                                                        <span>📋</span> View Application History &rarr;
+                                                        onClick={() => setModal({ type: 'buy', item })}
+                                                        className="flex-1 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 transition-all flex items-center justify-center gap-1">
+                                                        <span>🛒</span> Buy
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setModal({ type: 'use', item })}
+                                                        className="flex-1 py-1.5 text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl border border-amber-200 transition-all flex items-center justify-center gap-1">
+                                                        <span>🪣</span> Use
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setModal({ type: 'edit', item })}
+                                                        className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all"
+                                                        title="Edit Details">
+                                                        ✏️
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setModal({ type: 'history', item })}
+                                                        className="p-1.5 text-gray-400 hover:text-emerald-700 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all"
+                                                        title="View History">
+                                                        📋
                                                     </button>
                                                 </div>
                                             </div>
@@ -629,7 +1268,7 @@ export default function CropCarePage() {
                                 <div className="text-center py-12 text-gray-400">
                                     <p className="text-3xl mb-1.5">🌾</p>
                                     <p className="text-sm font-semibold">No application records found</p>
-                                    <p className="text-xs text-gray-400 mt-0.5">Applications recorded in Inventory or Attendance will show here.</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Applications recorded will show here.</p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
@@ -752,12 +1391,49 @@ export default function CropCarePage() {
                 </div>
             </div>
 
-            {/* Read-Only Item Detail Modal */}
-            {detailItemId && (
-                <ItemDetailModal
-                    itemId={detailItemId}
+            {/* Modals */}
+            {modal === 'add' && (
+                <AddInputModal
                     farmId={currentFarm.id}
-                    onClose={() => setDetailItemId(null)}
+                    existingCategories={categories}
+                    onClose={() => setModal(null)}
+                    onSaved={loadData}
+                />
+            )}
+
+            {modal?.type === 'buy' && (
+                <BuyInputModal
+                    item={modal.item}
+                    farmId={currentFarm.id}
+                    onClose={() => setModal(null)}
+                    onSaved={loadData}
+                />
+            )}
+
+            {modal?.type === 'use' && (
+                <UseInputModal
+                    item={modal.item}
+                    farmId={currentFarm.id}
+                    crops={crops}
+                    onClose={() => setModal(null)}
+                    onSaved={loadData}
+                />
+            )}
+
+            {modal?.type === 'edit' && (
+                <EditInputModal
+                    item={modal.item}
+                    farmId={currentFarm.id}
+                    onClose={() => setModal(null)}
+                    onSaved={loadData}
+                />
+            )}
+
+            {modal?.type === 'history' && (
+                <ItemDetailModal
+                    itemId={modal.item.id}
+                    farmId={currentFarm.id}
+                    onClose={() => setModal(null)}
                 />
             )}
         </div>
