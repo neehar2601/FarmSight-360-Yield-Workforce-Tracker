@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getFinanceSummary, getFinanceTransactions, getInventoryActivityBreakdown, getActiveCrops } from '../../utils/farmApi';
+import {
+    getFinanceSummary,
+    getFinanceTransactions,
+    getCropFinanceSummary,
+    getInventoryActivityBreakdown,
+    getActiveCrops
+} from '../../utils/farmApi';
 import { getFinanceTransactions as getWorkerTransactions, getActivityBreakdown } from '../../utils/workerApi';
 
 const Spinner = () => (
@@ -12,17 +18,27 @@ const Spinner = () => (
 const fmt = (n) => parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
 // ── Summary Card ──────────────────────────────────────────────────────────────
-const SummaryCard = ({ label, value, color, icon }) => (
-    <div className={`bg-white rounded-2xl shadow-md p-6 border-l-4 ${color}`}>
-        <p className="text-sm text-gray-500 font-medium">{label}</p>
-        <p className="text-3xl font-bold text-gray-800 mt-2">₹{fmt(value)}</p>
-        <span className="text-2xl mt-2 block">{icon}</span>
+const SummaryCard = ({ label, value, color, icon, subtitle, subColor }) => (
+    <div className={`bg-white rounded-2xl shadow-md p-6 border-l-4 ${color} flex flex-col justify-between`}>
+        <div>
+            <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-500 font-medium">{label}</p>
+                <span className="text-2xl">{icon}</span>
+            </div>
+            <p className="text-3xl font-bold text-gray-800 mt-2">₹{fmt(value)}</p>
+        </div>
+        {subtitle && (
+            <p className={`text-xs mt-3 font-semibold ${subColor || 'text-gray-400'}`}>
+                {subtitle}
+            </p>
+        )}
     </div>
 );
 
 export default function FinancePage() {
     const { currentFarm } = useAuth();
     const [summary, setSummary] = useState(null);
+    const [cropFinances, setCropFinances] = useState(null);
     const [transactions, setTransactions] = useState([]);
     const [workerTransactions, setWorkerTransactions] = useState([]);
     const [activityBreakdown, setActivityBreakdown] = useState([]);     // labor costs per activity
@@ -40,13 +56,14 @@ export default function FinancePage() {
         setLoading(true);
         setError('');
         const cropFilter = selectedCrop === 'ALL' ? undefined : selectedCrop;
-        const [sumRes, txRes, wTxRes, actRes, invActRes, cropsRes] = await Promise.all([
-            getFinanceSummary(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
-            getFinanceTransactions(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
+        const [sumRes, txRes, wTxRes, actRes, invActRes, cropsRes, cropFinRes] = await Promise.all([
+            getFinanceSummary(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined, cropFilter),
+            getFinanceTransactions(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined, cropFilter),
             getWorkerTransactions(currentFarm.id),
             getActivityBreakdown(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined, cropFilter),
             getInventoryActivityBreakdown(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined, cropFilter),
             getActiveCrops(currentFarm.id),
+            getCropFinanceSummary(currentFarm.id, dateRange.from || undefined, dateRange.to || undefined),
         ]);
         setLoading(false);
         if (sumRes.error) { setError(sumRes.error); return; }
@@ -56,6 +73,7 @@ export default function FinancePage() {
         setActivityBreakdown(actRes.data || []);
         setInvActivityBreakdown(invActRes.data || []);
         setCrops(cropsRes.data || []);
+        setCropFinances(cropFinRes.data || null);
     }, [currentFarm?.id, dateRange.from, dateRange.to, selectedCrop]);
 
     useEffect(() => { load(); }, [load]);
@@ -129,15 +147,54 @@ export default function FinancePage() {
         .filter(t => t.category === 'income')
         .reduce((sum, t) => sum + t.amount, 0);
 
-    // Combine live farm transactions + live worker transactions
-    const allTransactions = [
-        ...(transactions || []),
-        ...mappedWorkerTxs,
-    ].sort((a, b) => new Date(b.date_col) - new Date(a.date_col));
+    // Active crop object and active crop finance record if filtered
+    const selectedCropObj = crops.find(c => c.id === selectedCrop);
+    const selectedCropFinance = (cropFinances?.crops || []).find(c => c.crop_id === selectedCrop);
 
-    const totalIncome = parseFloat(summary?.total_income || 0) + totalWorkerIncome;
-    const totalExpense = parseFloat(summary?.total_expense || 0) + totalWorkerExpenses;
-    const netProfit = totalIncome - totalExpense;
+    const selectedCropLabel = selectedCrop === 'ALL'
+        ? 'All Crops'
+        : selectedCrop === 'UNTAGGED'
+            ? 'Untagged Work'
+            : selectedCropObj ? `${selectedCropObj.name}${selectedCropObj.variety ? ` (${selectedCropObj.variety})` : ''}` : 'Selected Crop';
+
+    // Combine transactions: when a specific crop is selected, only show transactions belonging to that crop
+    const rawTransactions = selectedCrop === 'ALL'
+        ? [...(transactions || []), ...mappedWorkerTxs]
+        : [...(transactions || [])]; // Exclude farm-wide worker salary payouts when viewing a specific crop
+
+    const allTransactions = rawTransactions.sort((a, b) => new Date(b.date_col) - new Date(a.date_col));
+
+    // Summary calculations
+    let displayIncome = 0;
+    let displayExpense = 0;
+    let displayNet = 0;
+    let incomeSubtitle = '';
+    let expenseSubtitle = '';
+    let netSubtitle = '';
+
+    if (selectedCrop === 'ALL') {
+        displayIncome = parseFloat(summary?.total_income || 0) + totalWorkerIncome;
+        displayExpense = parseFloat(summary?.total_expense || 0) + totalWorkerExpenses;
+        displayNet = displayIncome - displayExpense;
+        incomeSubtitle = 'Farm-wide total revenue';
+        expenseSubtitle = `Includes ₹${fmt(totalWorkerExpenses)} live worker payouts`;
+        netSubtitle = displayNet >= 0 ? 'Overall Farm Operating Surplus' : 'Overall Farm Deficit';
+    } else if (selectedCrop === 'UNTAGGED') {
+        displayIncome = parseFloat(summary?.total_income || 0);
+        displayExpense = parseFloat(summary?.total_expense || 0);
+        displayNet = displayIncome - displayExpense;
+        incomeSubtitle = 'Untagged revenue';
+        expenseSubtitle = 'Untagged purchases & usages';
+    } else if (selectedCropFinance) {
+        displayIncome = selectedCropFinance.total_revenue;
+        displayExpense = selectedCropFinance.total_expense;
+        displayNet = selectedCropFinance.net_profit;
+        incomeSubtitle = `${selectedCropFinance.total_sold_qty} kg sold (${selectedCropFinance.sales_count} sales)`;
+        expenseSubtitle = `Labor: ₹${fmt(selectedCropFinance.labor_cost)} · Materials: ₹${fmt(selectedCropFinance.material_cost)}`;
+        netSubtitle = selectedCropFinance.profit_margin_pct !== null
+            ? `${selectedCropFinance.profit_margin_pct >= 0 ? '+' : ''}${selectedCropFinance.profit_margin_pct}% profit margin`
+            : '';
+    }
 
     const filtered = activeTab === 'all'
         ? allTransactions
@@ -147,10 +204,13 @@ export default function FinancePage() {
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
+            {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">Finance</h1>
-                    <p className="text-gray-500 mt-1">{currentFarm.name} — P&amp;L overview & ledger</p>
+                    <p className="text-gray-500 mt-1">
+                        {currentFarm.name} — Crop-level P&amp;L, grade revenue &amp; unified ledger
+                    </p>
                 </div>
 
                 {/* Date range filter */}
@@ -171,22 +231,272 @@ export default function FinancePage() {
                 </div>
             </div>
 
+            {/* Crop Selector Toolbar */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide mr-1">
+                        Select Crop View:
+                    </span>
+                    <button
+                        onClick={() => setSelectedCrop('ALL')}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                            selectedCrop === 'ALL'
+                                ? 'bg-green-600 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}>
+                        🌾 All Crops (Farm Overview)
+                    </button>
+                    {crops.map(c => (
+                        <button
+                            key={c.id}
+                            onClick={() => setSelectedCrop(c.id)}
+                            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                                selectedCrop === c.id
+                                    ? 'bg-emerald-600 text-white shadow-sm'
+                                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                            }`}>
+                            🌾 {c.name}{c.variety ? ` (${c.variety})` : ''}
+                        </button>
+                    ))}
+                    <button
+                        onClick={() => setSelectedCrop('UNTAGGED')}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                            selectedCrop === 'UNTAGGED'
+                                ? 'bg-amber-500 text-white shadow-sm'
+                                : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                        }`}>
+                        ⚠️ Untagged Only
+                    </button>
+                </div>
+
+                {selectedCrop !== 'ALL' && (
+                    <button
+                        onClick={() => setSelectedCrop('ALL')}
+                        className="text-xs font-semibold text-gray-500 hover:text-red-600 bg-gray-50 hover:bg-red-50 border border-gray-200 rounded-xl px-3 py-1.5 transition-all">
+                        ✕ Reset to All Crops
+                    </button>
+                )}
+            </div>
+
             {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 text-sm">{error}</div>}
 
             {loading ? <Spinner /> : (
                 <>
                     {/* Summary cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <SummaryCard label="Total Income" value={totalIncome} color="border-green-500" icon="📈" />
-                        <SummaryCard label="Total Expenses" value={totalExpense} color="border-red-400" icon="📉" />
-                        <div className={`bg-white rounded-2xl shadow-md p-6 border-l-4 ${netProfit >= 0 ? 'border-blue-500' : 'border-orange-400'}`}>
-                            <p className="text-sm text-gray-500 font-medium">Net Profit / Loss</p>
-                            <p className={`text-3xl font-bold mt-2 ${netProfit >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
-                                {netProfit >= 0 ? '+' : ''}₹{fmt(Math.abs(netProfit))}
-                            </p>
-                            <span className="text-2xl mt-2 block">{netProfit >= 0 ? '✅' : '⚠️'}</span>
+                        <SummaryCard
+                            label={selectedCrop === 'ALL' ? 'Total Income' : `Crop Revenue (${selectedCropLabel})`}
+                            value={displayIncome}
+                            color="border-green-500"
+                            icon="📈"
+                            subtitle={incomeSubtitle}
+                            subColor="text-emerald-700"
+                        />
+                        <SummaryCard
+                            label={selectedCrop === 'ALL' ? 'Total Expenses' : `Direct Costs (${selectedCropLabel})`}
+                            value={displayExpense}
+                            color="border-red-400"
+                            icon="📉"
+                            subtitle={expenseSubtitle}
+                            subColor="text-red-600"
+                        />
+                        <div className={`bg-white rounded-2xl shadow-md p-6 border-l-4 ${displayNet >= 0 ? 'border-blue-500' : 'border-orange-400'} flex flex-col justify-between`}>
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm text-gray-500 font-medium">
+                                        {selectedCrop === 'ALL' ? 'Net Profit / Loss' : `Crop Net Profit (${selectedCropLabel})`}
+                                    </p>
+                                    <span className="text-2xl">{displayNet >= 0 ? '✅' : '⚠️'}</span>
+                                </div>
+                                <p className={`text-3xl font-bold mt-2 ${displayNet >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
+                                    {displayNet >= 0 ? '+' : ''}₹{fmt(displayNet)}
+                                </p>
+                            </div>
+                            {netSubtitle && (
+                                <p className={`text-xs mt-3 font-semibold ${displayNet >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                                    {netSubtitle}
+                                </p>
+                            )}
                         </div>
                     </div>
+
+                    {/* 🏷️ Grade-wise Revenue Breakdown — Shown when a specific crop is selected */}
+                    {selectedCrop !== 'ALL' && selectedCrop !== 'UNTAGGED' && selectedCropFinance && (
+                        <div className="bg-white rounded-2xl shadow-md p-6 border border-emerald-100 space-y-4">
+                            <div className="flex items-start justify-between flex-wrap gap-2">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                        <span>🏷️ Grade-wise Sales &amp; Revenue Breakdown</span>
+                                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                            {selectedCropFinance.crop_name}
+                                        </span>
+                                    </h3>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Income tagged to specific grades (e.g. Grade A, Grade B, Unsegregated) with quantities and average selling prices.
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-xs text-gray-400 font-medium">Total Crop Revenue</span>
+                                    <p className="text-xl font-extrabold text-emerald-700">₹{fmt(selectedCropFinance.total_revenue)}</p>
+                                </div>
+                            </div>
+
+                            {selectedCropFinance.grade_breakdown.length === 0 ? (
+                                <div className="text-center py-8 text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed">
+                                    <p className="text-2xl mb-1">🏷️</p>
+                                    <p className="text-sm font-semibold">No crop sales recorded yet for {selectedCropLabel}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">When harvested batches are sold, income and grade will appear here.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                                    {selectedCropFinance.grade_breakdown.map((g, idx) => (
+                                        <div key={g.grade || idx} className="bg-gradient-to-br from-emerald-50/70 to-white border border-emerald-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="px-2.5 py-1 rounded-lg bg-emerald-700 text-white font-bold text-xs tracking-wide shadow-sm flex items-center gap-1">
+                                                        <span>🏷️</span> {g.grade}
+                                                    </span>
+                                                    <span className="text-xs font-extrabold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                                        {g.pct_of_crop_revenue}% revenue
+                                                    </span>
+                                                </div>
+                                                <p className="text-2xl font-bold text-gray-800 mt-1">₹{fmt(g.total_amount)}</p>
+                                                <p className="text-xs text-gray-600 mt-1.5">
+                                                    Sold: <strong className="text-gray-800">{g.quantity} {g.unit}</strong>
+                                                    {g.avg_price > 0 && ` @ avg ₹${fmt(g.avg_price)}/${g.unit}`}
+                                                </p>
+                                            </div>
+                                            <div className="mt-3 pt-2.5 border-t border-emerald-100 flex items-center justify-between text-[11px] text-gray-400">
+                                                <span>{g.sales_count} sale record{g.sales_count > 1 ? 's' : ''}</span>
+                                                <span className="text-emerald-700 font-semibold">{g.pct_of_crop_revenue}%</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 🌾 Crop Financial Performance & Profitability Table — Shown in All Crops View */}
+                    {selectedCrop === 'ALL' && cropFinances?.crops?.length > 0 && (
+                        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
+                            <div className="flex items-start justify-between flex-wrap gap-2">
+                                <div>
+                                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                        <span>🌾 Crop Financial Performance &amp; Profitability</span>
+                                        <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold px-2.5 py-0.5 rounded-full">
+                                            Full Crop P&amp;L
+                                        </span>
+                                    </h2>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                        Track complete finances per crop: Sales revenue vs direct spent (worker wages + input materials/fertilisers/sprays).
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                        <p className="text-[11px] text-gray-400">Total Crop Net Profit</p>
+                                        <p className={`text-base font-extrabold ${cropFinances?.overall?.total_net_profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                                            {cropFinances?.overall?.total_net_profit >= 0 ? '+' : ''}₹{fmt(cropFinances?.overall?.total_net_profit || 0)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-gray-200 text-gray-500 font-semibold uppercase tracking-wider text-[11px]">
+                                            <th className="py-3 px-3">Crop Name</th>
+                                            <th className="py-3 px-3">Grades Sold</th>
+                                            <th className="py-3 px-3 text-right">Income (Sales)</th>
+                                            <th className="py-3 px-3 text-right">Labor Spent</th>
+                                            <th className="py-3 px-3 text-right">Materials Spent</th>
+                                            <th className="py-3 px-3 text-right">Total Spent</th>
+                                            <th className="py-3 px-3 text-right">Net Profit / Loss</th>
+                                            <th className="py-3 px-3 text-right">Margin %</th>
+                                            <th className="py-3 px-3 text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {cropFinances.crops.map(crop => {
+                                            const isProfitable = crop.net_profit >= 0;
+                                            return (
+                                                <tr key={crop.crop_id} className="hover:bg-gray-50/80 transition-colors">
+                                                    <td className="py-3 px-3 font-semibold text-gray-800">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-base">🌾</span>
+                                                            <div>
+                                                                <p className="font-bold text-gray-900 text-sm">{crop.crop_name}</p>
+                                                                {crop.crop_variety && (
+                                                                    <p className="text-[10px] text-gray-400">{crop.crop_variety}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-3">
+                                                        {crop.grade_breakdown.length > 0 ? (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {crop.grade_breakdown.map((g, i) => (
+                                                                    <span key={i} className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold">
+                                                                        {g.grade}: {g.quantity} {g.unit}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400 italic text-[11px]">No sales recorded</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-3 text-right font-extrabold text-emerald-700 text-sm">
+                                                        ₹{fmt(crop.total_revenue)}
+                                                    </td>
+                                                    <td className="py-3 px-3 text-right text-gray-600 font-medium">
+                                                        ₹{fmt(crop.labor_cost)}
+                                                        {crop.worked_days > 0 && (
+                                                            <span className="block text-[10px] text-gray-400">{crop.worked_days} worker-days</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-3 text-right text-gray-600 font-medium">
+                                                        ₹{fmt(crop.material_cost)}
+                                                        {crop.material_use_count > 0 && (
+                                                            <span className="block text-[10px] text-gray-400">{crop.material_use_count} usages</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-3 text-right font-bold text-gray-800">
+                                                        ₹{fmt(crop.total_expense)}
+                                                    </td>
+                                                    <td className="py-3 px-3 text-right font-bold">
+                                                        <span className={`px-2 py-0.5 rounded-lg text-xs font-extrabold ${
+                                                            isProfitable
+                                                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                                                : 'bg-red-50 text-red-700 border border-red-200'
+                                                        }`}>
+                                                            {isProfitable ? '+' : ''}₹{fmt(crop.net_profit)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3 px-3 text-right font-semibold">
+                                                        {crop.profit_margin_pct !== null ? (
+                                                            <span className={crop.profit_margin_pct >= 0 ? 'text-emerald-700 font-bold' : 'text-red-500 font-bold'}>
+                                                                {crop.profit_margin_pct > 0 ? '+' : ''}{crop.profit_margin_pct}%
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-300">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-3 text-center">
+                                                        <button
+                                                            onClick={() => setSelectedCrop(crop.crop_id)}
+                                                            className="text-[11px] font-bold text-emerald-700 hover:text-white bg-emerald-50 hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 px-3 py-1.5 rounded-xl transition-all shadow-sm">
+                                                            View P&amp;L →
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
                     {/* ⚡ Cost Breakdown by Activity (Labor + Materials combined, with Crop Segregation & Filtering) */}
                     {(() => {
@@ -258,13 +568,6 @@ export default function FinancePage() {
                             setExpandedActivities(prev => ({ ...prev, [act]: !prev[act] }));
                         };
 
-                        const selectedCropObj = crops.find(c => c.id === selectedCrop);
-                        const selectedCropLabel = selectedCrop === 'ALL'
-                            ? 'All Crops'
-                            : selectedCrop === 'UNTAGGED'
-                                ? 'Untagged Work'
-                                : selectedCropObj ? `${selectedCropObj.name}${selectedCropObj.variety ? ` (${selectedCropObj.variety})` : ''}` : 'Selected Crop';
-
                         return (
                             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
                                 {/* Header & Active Filter Indicator */}
@@ -279,7 +582,7 @@ export default function FinancePage() {
                                             )}
                                         </h2>
                                         <p className="text-xs text-gray-400 mt-0.5">
-                                            Labor wages + material consumption attributed at time of use. Filter or segregate by crop below.
+                                            Labor wages + material consumption attributed at time of use.
                                         </p>
                                     </div>
                                     {selectedCrop !== 'ALL' && (
@@ -290,57 +593,6 @@ export default function FinancePage() {
                                         </button>
                                     )}
                                 </div>
-
-                                {/* Crop Filter Toolbar */}
-                                <div className="pt-2 pb-1 border-t border-gray-100 flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide mr-1">
-                                        Filter by Crop:
-                                    </span>
-                                    <button
-                                        onClick={() => setSelectedCrop('ALL')}
-                                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                                            selectedCrop === 'ALL'
-                                                ? 'bg-green-600 text-white shadow-sm'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}>
-                                        🌾 All Crops
-                                    </button>
-                                    {crops.map(c => (
-                                        <button
-                                            key={c.id}
-                                            onClick={() => setSelectedCrop(c.id)}
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                                                selectedCrop === c.id
-                                                    ? 'bg-emerald-600 text-white shadow-sm'
-                                                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-                                            }`}>
-                                            🌾 {c.name}{c.variety ? ` (${c.variety})` : ''}
-                                        </button>
-                                    ))}
-                                    <button
-                                        onClick={() => setSelectedCrop('UNTAGGED')}
-                                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                                            selectedCrop === 'UNTAGGED'
-                                                ? 'bg-amber-500 text-white shadow-sm'
-                                                : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
-                                        }`}>
-                                        ⚠️ Untagged Only
-                                    </button>
-                                </div>
-
-                                {/* Notice if filtered to a specific crop */}
-                                {selectedCrop !== 'ALL' && (
-                                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl px-3.5 py-2 text-xs text-emerald-800 flex items-center justify-between">
-                                        <span>
-                                            Showing work expenditure specifically attributed to <strong>{selectedCropLabel}</strong>.
-                                        </span>
-                                        <button
-                                            onClick={() => setSelectedCrop('ALL')}
-                                            className="text-[11px] underline hover:text-emerald-950 font-bold ml-2">
-                                            View all crops
-                                        </button>
-                                    </div>
-                                )}
 
                                 {/* Activity Cards Grid */}
                                 {entries.length === 0 ? (
@@ -489,23 +741,37 @@ export default function FinancePage() {
                         );
                     })()}
 
-                    {/* Live Worker Finance Connection Info */}
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <span className="text-emerald-600 text-2xl">👷</span>
-                            <div>
-                                <p className="text-sm font-bold text-emerald-900">Live Worker Service Finance Connected</p>
-                                <p className="text-xs text-emerald-700 mt-0.5">
-                                    Total Live Worker Cash Outflows: <strong>₹{fmt(totalWorkerExpenses)}</strong> (Includes Net Payouts, Advances & Bonuses)
-                                </p>
+                    {/* Live Worker Finance Connection Info (Only shown in All Crops view) */}
+                    {selectedCrop === 'ALL' && (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <span className="text-emerald-600 text-2xl">👷</span>
+                                <div>
+                                    <p className="text-sm font-bold text-emerald-900">Live Worker Service Finance Connected</p>
+                                    <p className="text-xs text-emerald-700 mt-0.5">
+                                        Total Live Worker Cash Outflows: <strong>₹{fmt(totalWorkerExpenses)}</strong> (Includes Net Payouts, Advances &amp; Bonuses)
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Transactions table */}
+                    {/* Unified Financial Transactions Ledger */}
                     <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
                         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b">
-                            <h2 className="text-xl font-bold text-gray-800">Unified Financial Transactions</h2>
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                    <span>Unified Financial Transactions</span>
+                                    {selectedCrop !== 'ALL' && (
+                                        <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-300 font-semibold px-2.5 py-0.5 rounded-full">
+                                            {selectedCropLabel}
+                                        </span>
+                                    )}
+                                </h2>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Income tagged with crop &amp; grade · Purchases &amp; usages tagged to crop
+                                </p>
+                            </div>
                             <div className="flex gap-1">
                                 {['all', 'income', 'expense'].map(tab => (
                                     <button key={tab} onClick={() => setActiveTab(tab)}
@@ -521,14 +787,14 @@ export default function FinancePage() {
                         {filtered.length === 0 ? (
                             <div className="text-center py-16 text-gray-400">
                                 <p className="text-4xl mb-3">💸</p>
-                                <p>No transactions found</p>
+                                <p>No transactions found {selectedCrop !== 'ALL' ? `for ${selectedCropLabel}` : ''}</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-100">
                                 {filtered.map((tx, i) => (
                                     <div key={tx.id || i} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
                                         <div className="flex items-center gap-4">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 ${
                                                 tx.category === 'income' ? 'bg-green-100'
                                                 : tx.category === 'adjusted' ? 'bg-slate-100'
                                                 : 'bg-red-100'
@@ -536,8 +802,38 @@ export default function FinancePage() {
                                                 {tx.icon || (tx.category === 'income' ? '📈' : '📉')}
                                             </div>
                                             <div>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     <p className="font-semibold text-gray-800 text-sm">{tx.source}</p>
+
+                                                    {/* Crop Tag Badge */}
+                                                    {tx.crop_name && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-semibold text-[11px] border border-emerald-200 flex items-center gap-1">
+                                                            <span>🌾</span> {tx.crop_name}{tx.crop_variety ? ` (${tx.crop_variety})` : ''}
+                                                        </span>
+                                                    )}
+
+                                                    {/* Grade Tag Badge */}
+                                                    {tx.grade && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-green-100 text-green-900 font-bold text-[11px] border border-green-300 flex items-center gap-1">
+                                                            <span>🏷️</span> {tx.grade}
+                                                        </span>
+                                                    )}
+
+                                                    {/* Quantity and Unit Price */}
+                                                    {tx.quantity && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-medium text-[11px]">
+                                                            {parseFloat(tx.quantity)} {tx.unit || 'units'}
+                                                            {tx.unit_price ? ` @ ₹${fmt(tx.unit_price)}/${tx.unit || 'unit'}` : ''}
+                                                        </span>
+                                                    )}
+
+                                                    {/* Buyer Tag */}
+                                                    {tx.buyer_name && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 font-medium text-[11px] border border-blue-200">
+                                                            👤 {tx.buyer_name}
+                                                        </span>
+                                                    )}
+
                                                     {tx.isFullyAdjusted && (
                                                         <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px] border border-slate-200">
                                                             Adjusted from Loan
@@ -552,7 +848,7 @@ export default function FinancePage() {
                                                 {tx.notes && <p className="text-xs text-gray-400 mt-0.5">{tx.notes}</p>}
                                             </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-right shrink-0 ml-4">
                                             {tx.isFullyAdjusted ? (
                                                 <div className="flex items-center justify-end">
                                                     <span className="font-bold text-sm text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">

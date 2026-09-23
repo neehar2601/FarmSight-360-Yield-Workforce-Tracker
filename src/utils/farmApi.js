@@ -86,24 +86,34 @@ export const getInventoryUsages = (farmId, options = {}) => {
 };
 
 // ── Finance ───────────────────────────────────────────────────────────────────
-export const getFinanceSummary = (farmId, from, to) => {
+export const getFinanceSummary = (farmId, from, to, cropId) => {
     const params = new URLSearchParams({ farm_id: farmId });
     if (from) params.append('from', from);
     if (to) params.append('to', to);
+    if (cropId && cropId !== 'ALL') params.append('crop_id', cropId);
     return call('GET', `/farm/finance/summary?${params}`);
 };
-export const getFinanceTransactions = (farmId, from, to) => {
+export const getFinanceTransactions = (farmId, from, to, cropId) => {
     const params = new URLSearchParams({ farm_id: farmId });
     if (from) params.append('from', from);
     if (to) params.append('to', to);
+    if (cropId && cropId !== 'ALL') params.append('crop_id', cropId);
     return call('GET', `/farm/finance/transactions?${params}`);
+};
+/** Full crop finance P&L tracking (revenue, grade breakdown, material costs, labor costs, net profit, margin) */
+export const getCropFinanceSummary = (farmId, from, to, cropId) => {
+    const params = new URLSearchParams({ farm_id: farmId });
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    if (cropId && cropId !== 'ALL') params.append('crop_id', cropId);
+    return call('GET', `/farm/finance/crop-summary?${params}`);
 };
 /** Per-activity material cost breakdown from inventory buy/use transactions, optionally filtered by crop */
 export const getInventoryActivityBreakdown = (farmId, from, to, cropId) => {
     const params = new URLSearchParams({ farm_id: farmId });
     if (from) params.append('from', from);
     if (to) params.append('to', to);
-    if (cropId) params.append('crop_id', cropId);
+    if (cropId && cropId !== 'ALL') params.append('crop_id', cropId);
     return call('GET', `/farm/finance/inventory-activity-breakdown?${params}`);
 };
 /** Active (growing) crops for a farm — used to tag purchases to a specific crop */
