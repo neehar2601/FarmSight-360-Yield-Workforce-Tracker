@@ -797,16 +797,47 @@ export default function FinancePage() {
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 ${
                                                 tx.category === 'income' ? 'bg-green-100'
                                                 : tx.category === 'adjusted' ? 'bg-slate-100'
+                                                : tx.tx_subtype === 'MATERIAL_USE' ? 'bg-amber-100'
+                                                : tx.tx_subtype === 'LABOR_WORK' ? 'bg-blue-100'
                                                 : 'bg-red-100'
                                             }`}>
-                                                {tx.icon || (tx.category === 'income' ? '📈' : '📉')}
+                                                {tx.icon || (
+                                                    tx.category === 'income' ? '📈'
+                                                    : tx.tx_subtype === 'MATERIAL_USE' ? '🌱'
+                                                    : tx.tx_subtype === 'LABOR_WORK' ? '👷'
+                                                    : '📉'
+                                                )}
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <p className="font-semibold text-gray-800 text-sm">{tx.source}</p>
 
+                                                    {/* Transaction Subtype Badge */}
+                                                    {tx.tx_subtype === 'MATERIAL_USE' && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-semibold text-[10px] border border-amber-200 flex items-center gap-1">
+                                                            <span>📦</span> Consumed from Bulk Stock
+                                                        </span>
+                                                    )}
+                                                    {tx.tx_subtype === 'LABOR_WORK' && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 font-semibold text-[10px] border border-blue-200 flex items-center gap-1">
+                                                            <span>👷</span> Direct Labor
+                                                        </span>
+                                                    )}
+                                                    {tx.tx_subtype === 'INVENTORY_BUY' && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 font-semibold text-[10px] border border-purple-200 flex items-center gap-1">
+                                                            <span>🛒</span> Bulk Purchase
+                                                        </span>
+                                                    )}
+
+                                                    {/* Activity Type Badge if present */}
+                                                    {tx.activity_type && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-semibold text-[10px] border border-emerald-200">
+                                                            {tx.activity_type}
+                                                        </span>
+                                                    )}
+
                                                     {/* Crop Tag Badge */}
-                                                    {tx.crop_name && (
+                                                    {selectedCrop === 'ALL' && tx.crop_name && (
                                                         <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-semibold text-[11px] border border-emerald-200 flex items-center gap-1">
                                                             <span>🌾</span> {tx.crop_name}{tx.crop_variety ? ` (${tx.crop_variety})` : ''}
                                                         </span>
