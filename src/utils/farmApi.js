@@ -78,6 +78,10 @@ export const getInventoryUsages = (farmId, options = {}) => {
     const params = new URLSearchParams({ farm_id: farmId });
     if (options.untagged_only) params.append('untagged_only', 'true');
     if (options.item_id) params.append('item_id', options.item_id);
+    if (options.activity_type) params.append('activity_type', options.activity_type);
+    if (options.category_id) params.append('category_id', options.category_id);
+    if (options.from) params.append('from', options.from);
+    if (options.to) params.append('to', options.to);
     return call('GET', `/farm/inventory/usages?${params}`);
 };
 

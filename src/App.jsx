@@ -4,6 +4,7 @@ import { useAuth } from './contexts/AuthContext';
 import AccountSettings from './components/settings/AccountSettings';
 import CropsPage from './components/farm/CropsPage';
 import InventoryPage from './components/farm/InventoryPage';
+import CropCarePage from './components/farm/CropCarePage';
 import FinancePage from './components/farm/FinancePage';
 import WorkersPage from './components/farm/WorkersPage';
 
@@ -1866,6 +1867,7 @@ const Sidebar = ({ isSidebarOpen, currentPath }) => (
             <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Farm Service</p>
             <NavLink to="/farm/crops" icon={<YieldIcon />} currentPath={currentPath}>Crops</NavLink>
             <NavLink to="/farm/inventory" icon={<InventoryIcon />} currentPath={currentPath}>Inventory</NavLink>
+            <NavLink to="/farm/crop-care" icon={<FertiliserIcon />} currentPath={currentPath}>Fertilisers & Sprays</NavLink>
             <NavLink to="/farm/finance" icon={<FinancialIcon />} currentPath={currentPath}>Finance</NavLink>
 
             <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Workforce</p>
@@ -1952,6 +1954,7 @@ const routes = {
     // ── Farm Service routes ─────────────────────────────────
     '/farm/crops': CropsPage,
     '/farm/inventory': InventoryPage,
+    '/farm/crop-care': CropCarePage,
     '/farm/finance': FinancePage,
 };
 
