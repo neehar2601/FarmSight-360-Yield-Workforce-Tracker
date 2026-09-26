@@ -1152,112 +1152,126 @@ const CropCard = ({ crop, onAction, onArchive }) => {
                     <span>📅 Planted: {crop.planting_date?.split('T')[0] || crop.planting_date}</span>
                 </div>
 
-                {/* Planting Material & Nursery Stock Box */}
-                {(totalPlanted > 0 || nurseryStock > 0 || crop.planting_material) && (
-                    <div className="bg-gradient-to-r from-emerald-50/80 to-teal-50/60 border border-emerald-200/80 rounded-xl p-3 mb-3 space-y-1.5 shadow-2xs">
-                        <div className="flex justify-between items-center">
-                            <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                🌱 Planting Material
-                            </span>
-                            {crop.planting_material?.item_name && (
-                                <span className="text-[11px] text-emerald-800 font-semibold truncate max-w-[150px]" title={crop.planting_material.item_name}>
-                                    {crop.planting_material.item_name}
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex flex-wrap gap-2 text-xs">
-                            {totalPlanted > 0 && (
-                                <span className="bg-white border border-emerald-300 text-emerald-900 px-2 py-0.5 rounded-lg font-bold shadow-2xs">
-                                    🌱 Sown / Sourced: {totalPlanted} {materialUnit}
-                                </span>
-                            )}
-                            {nurseryStock > 0 ? (
-                                <span className="bg-emerald-600 text-white px-2 py-0.5 rounded-lg font-bold shadow-2xs flex items-center gap-1">
-                                    <span className="inline-block w-2 h-2 rounded-full bg-white animate-pulse" />
-                                    🌿 Nursery Stock: {nurseryStock} {materialUnit}
-                                </span>
-                            ) : (
-                                totalPlanted > 0 && (
-                                    <span className="bg-emerald-100/50 text-emerald-700 px-2 py-0.5 rounded-lg text-[11px]">
-                                        Nursery stock: 0
-                                    </span>
-                                )
-                            )}
-                            {Number(crop.total_seed_spent) > 0 ? (
-                                <span className="bg-white border border-gray-200 text-gray-700 px-2 py-0.5 rounded-lg font-medium">
-                                    Cost: ₹{Number(crop.total_seed_spent).toLocaleString('en-IN')}
-                                </span>
-                            ) : (
-                                (totalPlanted > 0 || nurseryStock > 0) && (
-                                    <span className="bg-emerald-100/80 border border-emerald-300 text-emerald-800 px-2 py-0.5 rounded-lg font-medium">
-                                        Cost: ₹0 (Farm-Saved)
-                                    </span>
-                                )
-                            )}
+                {/* Crop Produce Inventory panel (Harvest & Sales) */}
+                <div className="bg-green-50/70 border border-green-200/90 rounded-xl p-3.5 mb-3">
+                    <div className="flex justify-between items-center mb-1">
+                        <span className="text-[11px] font-bold text-green-900 uppercase tracking-wider flex items-center gap-1">
+                            🌾 Harvested Crop Produce
+                        </span>
+                        <div className="text-right text-[11px] text-green-700 font-medium flex gap-2">
+                            <span>Harvested: <b>{crop.total_harvested}</b></span>
+                            <span>Sold: <b>{crop.total_sold}</b></span>
                         </div>
                     </div>
-                )}
-
-                {/* Inventory panel */}
-                {Number(crop.total_harvested) > 0 ? (
-                    <div className="bg-green-50/80 border border-green-200 rounded-xl p-3 mb-1">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-green-800 font-bold text-base">In Stock: {available}</span>
-                            <div className="text-right text-xs text-green-600 font-medium">
-                                <p>Harvested: {crop.total_harvested}</p>
-                                <p>Sold: {crop.total_sold}</p>
-                            </div>
+                    <div className="flex justify-between items-baseline mb-2">
+                        <div className="flex items-baseline gap-1.5">
+                            <span className="text-xs text-green-800 font-semibold">Available for Sale:</span>
+                            <span className="text-xl font-black text-green-900">{available}</span>
                         </div>
-                        {grades.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                                {grades.map(([grade, qty]) => (
-                                    <span key={grade} className={`text-xs px-2 py-1 rounded-lg font-semibold ${grade === 'Unsegregated' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-white text-green-800 border border-green-200'}`}>
-                                        {grade}: {qty}
-                                    </span>
-                                ))}
-                            </div>
+                        {available === 0 && Number(crop.total_harvested) > 0 && (
+                            <span className="text-[11px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md font-semibold">
+                                Sold Out
+                            </span>
                         )}
                     </div>
-                ) : (
-                    <p className="text-xs text-gray-400 mb-1 italic">No harvests recorded yet.</p>
-                )}
-            </div>
-
-            {/* Actions */}
-            <div className="px-5 pb-5 space-y-2">
-                {/* Nursery stock gap filling button */}
-                {nurseryStock > 0 && (
-                    <button onClick={() => onAction('plantStock')}
-                        className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold text-sm transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5">
-                        <span>🌱</span> Plant / Gap-Fill ({nurseryStock} in stock)
-                    </button>
-                )}
-
-                <div className="flex gap-2">
-                    <button onClick={() => onAction('buyMaterial')}
-                        className="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-semibold text-xs transition-all active:scale-95 flex items-center justify-center gap-1"
-                        title="Add seeds or saplings (Purchased or Farm-Sourced)">
-                        <span>➕</span> Add Seeds / Saplings
-                    </button>
-                    {hasUnsegregated && (
-                        <button onClick={() => onAction('segregate')}
-                            className="flex-1 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl font-semibold text-xs transition-all active:scale-95 flex items-center justify-center gap-1">
-                            <span>🗂️</span> Sort Grade
-                        </button>
+                    {grades.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-green-200/60">
+                            {grades.map(([grade, qty]) => (
+                                <span key={grade} className={`text-xs px-2 py-0.5 rounded-lg font-semibold ${grade === 'Unsegregated' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-white text-green-800 border border-green-200 shadow-2xs'}`}>
+                                    {grade}: {qty}
+                                </span>
+                            ))}
+                        </div>
+                    ) : (
+                        Number(crop.total_harvested) === 0 && (
+                            <p className="text-xs text-gray-400 italic">No harvests recorded yet.</p>
+                        )
                     )}
                 </div>
 
-                <button onClick={() => onAction('harvest')}
-                    className="w-full py-3 bg-amber-400 hover:bg-amber-500 text-white rounded-xl font-bold text-base transition-all shadow-xs active:scale-95">
-                    🌾 Record Harvest
-                </button>
-                {available > 0 && (
-                    <button onClick={() => onAction('sell')}
-                        className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-base transition-all shadow-xs active:scale-95">
-                        💰 Sell Crop
-                    </button>
-                )}
-                
+                {/* Primary Produce Actions (Harvest, Sell, Sort) */}
+                <div className="space-y-2 mb-3">
+                    <div className="flex gap-2">
+                        <button onClick={() => onAction('harvest')}
+                            className="flex-1 py-2.5 bg-amber-400 hover:bg-amber-500 text-white rounded-xl font-bold text-sm transition-all shadow-xs active:scale-95 flex items-center justify-center gap-1.5">
+                            🌾 Record Harvest
+                        </button>
+                        {hasUnsegregated && (
+                            <button onClick={() => onAction('segregate')}
+                                className="py-2.5 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl font-semibold text-xs transition-all active:scale-95 flex items-center justify-center gap-1">
+                                <span>🗂️</span> Sort Grade
+                            </button>
+                        )}
+                    </div>
+                    {available > 0 && (
+                        <button onClick={() => onAction('sell')}
+                            className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-sm transition-all shadow-xs active:scale-95 flex items-center justify-center gap-1.5">
+                            💰 Sell Crop ({available} in stock)
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Bottom Section: Seed & Nursery Material */}
+            <div className="px-5 pb-4 space-y-2">
+                <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3 space-y-2">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                            🌱 Seed & Nursery Stock
+                        </span>
+                        {crop.planting_material?.item_name && (
+                            <span className="text-[11px] text-emerald-800 font-semibold truncate max-w-[140px]" title={crop.planting_material.item_name}>
+                                {crop.planting_material.item_name}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        {totalPlanted > 0 && (
+                            <span className="bg-white border border-emerald-200 text-emerald-900 px-2 py-0.5 rounded-lg text-[11px] font-medium shadow-2xs">
+                                Field Sown: <b>{totalPlanted} {materialUnit}</b>
+                            </span>
+                        )}
+                        {nurseryStock > 0 ? (
+                            <span className="bg-emerald-600 text-white px-2 py-0.5 rounded-lg font-bold text-[11px] shadow-2xs flex items-center gap-1">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                Nursery Stock: {nurseryStock} {materialUnit}
+                            </span>
+                        ) : (
+                            (totalPlanted > 0 || crop.planting_material) && (
+                                <span className="bg-white/80 text-gray-500 border border-gray-200 px-2 py-0.5 rounded-lg text-[11px]">
+                                    Nursery: 0
+                                </span>
+                            )
+                        )}
+                        {Number(crop.total_seed_spent) > 0 ? (
+                            <span className="bg-white border border-gray-200 text-gray-700 px-2 py-0.5 rounded-lg text-[11px] font-medium">
+                                Cost: ₹{Number(crop.total_seed_spent).toLocaleString('en-IN')}
+                            </span>
+                        ) : (
+                            (totalPlanted > 0 || nurseryStock > 0) && (
+                                <span className="bg-emerald-100/90 border border-emerald-200 text-emerald-800 px-2 py-0.5 rounded-lg text-[11px] font-semibold">
+                                    Cost: ₹0 (Farm-Saved)
+                                </span>
+                            )
+                        )}
+                    </div>
+
+                    {/* Seed & Nursery Actions */}
+                    <div className="flex gap-2 pt-0.5">
+                        {nurseryStock > 0 && (
+                            <button onClick={() => onAction('plantStock')}
+                                className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition-all shadow-2xs active:scale-95 flex items-center justify-center gap-1">
+                                <span>🌱</span> Plant / Gap-Fill ({nurseryStock})
+                            </button>
+                        )}
+                        <button onClick={() => onAction('buyMaterial')}
+                            className="flex-1 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-lg font-semibold text-xs transition-all active:scale-95 flex items-center justify-center gap-1"
+                            title="Add seeds or saplings (Purchased or Farm-Sourced)">
+                            <span>➕</span> Add Seeds / Saplings
+                        </button>
+                    </div>
+                </div>
+
                 <button onClick={onArchive}
                     className="w-full py-1 text-gray-400 hover:text-gray-600 text-xs font-medium transition-all">
                     {crop.is_archived ? '📦 Unarchive' : 'Archive this crop'}
