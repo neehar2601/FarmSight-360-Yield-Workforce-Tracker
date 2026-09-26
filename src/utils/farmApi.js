@@ -56,6 +56,7 @@ export const segregateCrop = (id, body) => call('POST', `/farm/crops/${id}/segre
 export const getCropHistory = (id, farmId) => call('GET', `/farm/crops/${id}/history?farm_id=${farmId}`);
 export const plantCropFromStock = (id, body) => call('POST', `/farm/crops/${id}/plant-stock`, body);
 export const buyCropPlantingMaterial = (id, body) => call('POST', `/farm/crops/${id}/buy-planting-material`, body);
+export const addCropPlantingMaterial = buyCropPlantingMaterial;
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 export const getInventoryCategories = (farmId) =>

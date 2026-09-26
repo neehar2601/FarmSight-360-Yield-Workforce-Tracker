@@ -671,7 +671,9 @@ const HistoryModal = ({ crop, onClose }) => {
                                     <div className="flex justify-between items-start">
                                         <p className="font-bold text-gray-800 capitalize">
                                             {h.type === 'planting' 
-                                                ? (h.action === 'buy' ? 'Planting Material Inflow' : 'Field Planting / Sowing') 
+                                                ? (h.action === 'buy' 
+                                                    ? (Number(h.total_amount) > 0 ? 'Seed / Sapling Purchase' : 'Farm-Sourced Seed Inflow') 
+                                                    : 'Field Planting / Sowing') 
                                                 : h.type}
                                         </p>
                                         <p className="text-xs text-gray-400 font-medium">{h.date?.split('T')[0]}</p>
@@ -679,7 +681,11 @@ const HistoryModal = ({ crop, onClose }) => {
                                     {h.type === 'planting' && (
                                         <p className="text-sm text-gray-600 mt-0.5">
                                             {h.action === 'buy' ? (
-                                                <>Bought <b>{h.quantity} {h.unit}</b> {h.total_amount > 0 ? `for ₹${Number(h.total_amount).toLocaleString('en-IN')}` : '(₹0 saved stock)'}{h.notes ? ` · ${h.notes}` : ''}</>
+                                                Number(h.total_amount) > 0 ? (
+                                                    <>Bought <b>{h.quantity} {h.unit}</b> for ₹{Number(h.total_amount).toLocaleString('en-IN')}{h.notes ? ` · ${h.notes}` : ''}</>
+                                                ) : (
+                                                    <>Farm-Sourced <b>{h.quantity} {h.unit}</b> <span className="text-xs bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium">₹0 Farm Stock</span>{h.notes ? ` · ${h.notes}` : ''}</>
+                                                )
                                             ) : (
                                                 <>Planted <b>{h.quantity} {h.unit}</b> in field{h.notes ? ` · ${h.notes}` : ''}</>
                                             )}
@@ -798,13 +804,6 @@ const PlantFromStockModal = ({ crop, onClose, onSaved }) => {
                     />
                 </Field>
 
-                {qty && parseFloat(qty) > 0 && parseFloat(qty) <= availableStock && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-600 flex justify-between">
-                        <span>Remaining in nursery after planting:</span>
-                        <span className="font-bold text-gray-800">{availableStock - parseFloat(qty)} {unit}</span>
-                    </div>
-                )}
-
                 <div className="flex gap-3 pt-2">
                     <button type="button" onClick={onClose} className="flex-1 py-3 border-2 border-gray-200 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 transition-colors">
                         Cancel
@@ -819,12 +818,13 @@ const PlantFromStockModal = ({ crop, onClose, onSaved }) => {
     );
 };
 
-// ── Modal: Buy Planting Material ──────────────────────────────────────────────
+// ── Modal: Buy or Add Planting Material ───────────────────────────────────────
 const BuyPlantingMaterialModal = ({ crop, onClose, onSaved }) => {
     const today = new Date().toISOString().split('T')[0];
     const isPerennial = crop.crop_type === 'perennial';
     const primaryItem = crop.planting_material || (crop.planting_materials && crop.planting_materials[0]);
 
+    const [sourceType, setSourceType] = useState('purchased'); // 'purchased' | 'farm_saved'
     const [category, setCategory] = useState(isPerennial ? 'Plants/Seedlings' : 'Seeds');
     const [itemName, setItemName] = useState(primaryItem?.item_name || `${crop.name} ${isPerennial ? 'Saplings' : 'Seeds'}`);
     const [unit, setUnit] = useState(primaryItem?.item_unit || (isPerennial ? 'saplings' : 'kg'));
@@ -837,31 +837,35 @@ const BuyPlantingMaterialModal = ({ crop, onClose, onSaved }) => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
-    const totalCost = (parseFloat(qtyBought) || 0) * (parseFloat(unitPrice) || 0);
-    const remainingToStock = Math.max(0, (parseFloat(qtyBought) || 0) - (parseFloat(plantNow) || 0));
+    const isFarmSaved = sourceType === 'farm_saved';
+    const totalCost = isFarmSaved ? 0 : (parseFloat(qtyBought) || 0) * (parseFloat(unitPrice) || 0);
+    const plantNowVal = plantNow === '' ? 0 : (parseFloat(plantNow) || 0);
+    const qtyVal = parseFloat(qtyBought) || 0;
+    const remainingToStock = Math.max(0, qtyVal - plantNowVal);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const bought = parseFloat(qtyBought);
-        const price = parseFloat(unitPrice);
+        const price = isFarmSaved ? 0 : parseFloat(unitPrice);
         const planted = plantNow === '' ? 0 : parseFloat(plantNow);
 
         if (!bought || bought <= 0) {
-            setError('Please enter quantity bought.');
+            setError('Please enter a valid quantity.');
             return;
         }
-        if (price === undefined || isNaN(price) || price < 0) {
-            setError('Please enter a valid price.');
+        if (!isFarmSaved && (price === undefined || isNaN(price) || price < 0)) {
+            setError('Please enter a valid price for purchased material.');
             return;
         }
         if (planted < 0 || planted > bought) {
-            setError('Planted quantity must be between 0 and quantity bought.');
+            setError('Planted quantity must be between 0 and total quantity.');
             return;
         }
 
         setSaving(true);
         const { data, error: err } = await buyCropPlantingMaterial(crop.id, {
             farm_id: crop.farm_id,
+            source_type: sourceType,
             item_id: primaryItem?.item_id,
             item_name: itemName.trim(),
             category,
@@ -882,16 +886,60 @@ const BuyPlantingMaterialModal = ({ crop, onClose, onSaved }) => {
     return (
         <Modal onClose={onClose}>
             <div className="flex items-center gap-2 mb-1">
-                <span className="text-2xl">➕</span>
-                <h2 className="text-2xl font-bold text-gray-800">Buy Seeds / Saplings</h2>
+                <span className="text-2xl">{isFarmSaved ? '🌿' : '➕'}</span>
+                <h2 className="text-2xl font-bold text-gray-800">
+                    {isFarmSaved ? 'Add Farm-Sourced Seeds / Saplings' : 'Buy Seeds / Saplings'}
+                </h2>
             </div>
             <p className="text-gray-400 text-sm mb-4">
-                Add planting material for {crop.name}{crop.variety ? ` (${crop.variety})` : ''}
+                {isFarmSaved 
+                    ? `Add self-propagated planting material for ${crop.name}${crop.variety ? ` (${crop.variety})` : ''} at ₹0 material cost`
+                    : `Add planting material purchase for ${crop.name}${crop.variety ? ` (${crop.variety})` : ''}`}
             </p>
 
             {error && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">{error}</p>}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Source Selection Pill Toggle */}
+                <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Planting Material Source</label>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSourceType('purchased');
+                                setError('');
+                            }}
+                            className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${sourceType === 'purchased' ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
+                        >
+                            <span>🛒</span> Purchased New
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSourceType('farm_saved');
+                                setUnitPrice('0');
+                                setError('');
+                            }}
+                            className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${sourceType === 'farm_saved' ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
+                        >
+                            <span>🌿</span> Sourced from Own Farm
+                        </button>
+                    </div>
+                </div>
+
+                {/* Explanatory callout for farm-saved stock */}
+                {isFarmSaved && (
+                    <div className="bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                            <span>💡</span> Material Cost: ₹0 (Self-Produced)
+                        </div>
+                        <p className="text-emerald-700 leading-relaxed">
+                            Worker wages spent on harvesting seed nuts, filling nursery polybags, or sapling preparation are tracked via <b>Workers &rarr; Attendance</b> (tagged to this crop).
+                        </p>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="Category">
                         <select 
@@ -925,38 +973,62 @@ const BuyPlantingMaterialModal = ({ crop, onClose, onSaved }) => {
 
                 <Field label="Variety / Material Name *">
                     <Input 
-                        placeholder="e.g. Mangala Hybrid Arecanut Saplings" 
+                        placeholder={isFarmSaved ? `e.g. Farm-Saved ${crop.name} Saplings` : "e.g. Mangala Hybrid Arecanut Saplings"} 
                         value={itemName} 
                         onChange={e => setItemName(e.target.value)} 
                         required 
                     />
                 </Field>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <Field label={`Quantity Bought (${unit}) *`}>
-                        <Input 
-                            type="number" 
-                            step="any"
-                            placeholder="0" 
-                            value={qtyBought} 
-                            onChange={e => {
-                                setQtyBought(e.target.value);
-                                if (!plantNow) setPlantNow(e.target.value);
-                            }} 
-                            required 
-                        />
-                    </Field>
-                    <Field label="Cost per Unit (₹) *">
-                        <Input 
-                            type="number" 
-                            step="any"
-                            placeholder="0" 
-                            value={unitPrice} 
-                            onChange={e => setUnitPrice(e.target.value)} 
-                            required 
-                        />
-                    </Field>
-                </div>
+                {isFarmSaved ? (
+                    <div className="grid grid-cols-2 gap-3">
+                        <Field label={`Quantity Sourced (${unit}) *`}>
+                            <Input 
+                                type="number" 
+                                step="any"
+                                placeholder="0" 
+                                value={qtyBought} 
+                                onChange={e => {
+                                    setQtyBought(e.target.value);
+                                    if (!plantNow && plantNow !== '0') setPlantNow(e.target.value);
+                                }} 
+                                required 
+                            />
+                        </Field>
+                        <Field label="Material Cost">
+                            <div className="w-full border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-xl p-3 text-base text-emerald-800 font-bold flex items-center justify-between">
+                                <span>₹0</span>
+                                <span className="text-xs bg-emerald-200/80 text-emerald-800 font-semibold px-2 py-0.5 rounded-md">Own Farm Stock</span>
+                            </div>
+                        </Field>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                        <Field label={`Quantity Bought (${unit}) *`}>
+                            <Input 
+                                type="number" 
+                                step="any"
+                                placeholder="0" 
+                                value={qtyBought} 
+                                onChange={e => {
+                                    setQtyBought(e.target.value);
+                                    if (!plantNow && plantNow !== '0') setPlantNow(e.target.value);
+                                }} 
+                                required 
+                            />
+                        </Field>
+                        <Field label="Cost per Unit (₹) *">
+                            <Input 
+                                type="number" 
+                                step="any"
+                                placeholder="0" 
+                                value={unitPrice} 
+                                onChange={e => setUnitPrice(e.target.value)} 
+                                required 
+                            />
+                        </Field>
+                    </div>
+                )}
 
                 {totalCost > 0 && (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex justify-between items-center text-sm">
@@ -971,33 +1043,48 @@ const BuyPlantingMaterialModal = ({ crop, onClose, onSaved }) => {
                             Field Planting vs Nursery Stock
                         </label>
                         <span className="text-xs text-amber-700 font-medium">
-                            {remainingToStock > 0 ? `${remainingToStock} ${unit} to Nursery` : '100% planted'}
+                            {plantNow === '0' || plantNow === 0 
+                                ? `All ${qtyBought || 0} ${unit} to Nursery` 
+                                : remainingToStock > 0 
+                                    ? `${remainingToStock} ${unit} to Nursery` 
+                                    : '100% planted in field'}
                         </span>
                     </div>
                     <Field label={`How many planted in field immediately? (${unit})`}>
                         <Input 
                             type="number" 
                             step="any"
-                            placeholder={qtyBought || "0"} 
+                            placeholder="0 (type 0 if keeping all in nursery)" 
                             value={plantNow} 
                             onChange={e => setPlantNow(e.target.value)} 
+                            min="0"
                             max={qtyBought || undefined}
                         />
                     </Field>
-                    {remainingToStock > 0 && (
+                    {(plantNow === '0' || plantNow === 0) && (parseFloat(qtyBought) > 0) && (
+                        <p className="text-xs text-amber-800 font-medium">
+                            🌿 All <b>{qtyBought} {unit}</b> will be kept in farm nursery stock for future planting or gap-filling.
+                        </p>
+                    )}
+                    {remainingToStock > 0 && parseFloat(plantNow) > 0 && (
                         <p className="text-xs text-amber-800 font-medium">
                             🌿 <b>{remainingToStock} {unit}</b> will be kept in farm nursery stock for future planting or gap-filling.
+                        </p>
+                    )}
+                    {remainingToStock === 0 && parseFloat(plantNow) > 0 && (
+                        <p className="text-xs text-emerald-800 font-medium">
+                            🌱 All <b>{qtyBought} {unit}</b> planted in field immediately.
                         </p>
                     )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                    <Field label="Purchase Date *">
+                    <Field label={isFarmSaved ? 'Sourcing Date *' : 'Purchase Date *'}>
                         <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
                     </Field>
-                    <Field label="Vendor / Nursery Name">
+                    <Field label={isFarmSaved ? 'Mother Tree / Source Plot (Optional)' : 'Vendor / Nursery Name'}>
                         <Input 
-                            placeholder="e.g. Sunrise Nursery" 
+                            placeholder={isFarmSaved ? 'e.g. Plot A mother trees' : 'e.g. Sunrise Nursery'} 
                             value={vendor} 
                             onChange={e => setVendor(e.target.value)} 
                         />
@@ -1006,7 +1093,7 @@ const BuyPlantingMaterialModal = ({ crop, onClose, onSaved }) => {
 
                 <Field label="Notes (Optional)">
                     <Input 
-                        placeholder="e.g. Certified disease-resistant batch" 
+                        placeholder={isFarmSaved ? 'e.g. Harvested from high-yield mother palms' : 'e.g. Certified disease-resistant batch'} 
                         value={notes} 
                         onChange={e => setNotes(e.target.value)} 
                     />
@@ -1018,7 +1105,7 @@ const BuyPlantingMaterialModal = ({ crop, onClose, onSaved }) => {
                     </button>
                     <button type="submit" disabled={saving || !qtyBought || parseFloat(qtyBought) <= 0} 
                         className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition-all active:scale-95 disabled:opacity-50">
-                        {saving ? 'Recording…' : 'Record Purchase'}
+                        {saving ? 'Recording…' : (isFarmSaved ? 'Record Farm-Saved Seeds' : 'Record Purchase')}
                     </button>
                 </div>
             </form>
@@ -1096,10 +1183,16 @@ const CropCard = ({ crop, onAction, onArchive }) => {
                                     </span>
                                 )
                             )}
-                            {Number(crop.total_seed_spent) > 0 && (
+                            {Number(crop.total_seed_spent) > 0 ? (
                                 <span className="bg-white border border-gray-200 text-gray-700 px-2 py-0.5 rounded-lg font-medium">
                                     Cost: ₹{Number(crop.total_seed_spent).toLocaleString('en-IN')}
                                 </span>
+                            ) : (
+                                (totalPlanted > 0 || nurseryStock > 0) && (
+                                    <span className="bg-emerald-100/80 border border-emerald-300 text-emerald-800 px-2 py-0.5 rounded-lg font-medium">
+                                        Cost: ₹0 (Farm-Saved)
+                                    </span>
+                                )
                             )}
                         </div>
                     </div>
@@ -1142,8 +1235,9 @@ const CropCard = ({ crop, onAction, onArchive }) => {
 
                 <div className="flex gap-2">
                     <button onClick={() => onAction('buyMaterial')}
-                        className="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-semibold text-xs transition-all active:scale-95 flex items-center justify-center gap-1">
-                        <span>➕</span> Buy Seeds/Saplings
+                        className="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl font-semibold text-xs transition-all active:scale-95 flex items-center justify-center gap-1"
+                        title="Add seeds or saplings (Purchased or Farm-Sourced)">
+                        <span>➕</span> Add Seeds / Saplings
                     </button>
                     {hasUnsegregated && (
                         <button onClick={() => onAction('segregate')}
