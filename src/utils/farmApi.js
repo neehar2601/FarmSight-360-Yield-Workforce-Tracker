@@ -122,3 +122,17 @@ export const getInventoryActivityBreakdown = (farmId, from, to, cropId) => {
 /** Active (growing) crops for a farm — used to tag purchases to a specific crop */
 export const getActiveCrops = (farmId) =>
     call('GET', `/farm/crops?farm_id=${farmId}&archived=false`);
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+/**
+ * Aggregated dashboard summary.
+ * farmIds: array of farm ID strings. If empty, all farms are included.
+ * from/to: optional ISO date strings for the finance KPI date filter.
+ */
+export const getDashboardSummary = (farmIds = [], from, to) => {
+    const params = new URLSearchParams();
+    if (farmIds.length) params.set('farm_ids', farmIds.join(','));
+    if (from) params.set('from', from);
+    if (to)   params.set('to', to);
+    return call('GET', `/farm/dashboard/summary?${params}`);
+};
