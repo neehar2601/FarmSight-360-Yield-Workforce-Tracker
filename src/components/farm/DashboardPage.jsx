@@ -476,34 +476,31 @@ export default function DashboardPage() {
                         >
                             {loading ? <Spinner /> : lowStockItems.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '16px 0', color: '#22c55e', fontSize: 13 }}>
-                                    ✅ All items well-stocked
+                                    ✅ No items out of stock
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                     {lowStockItems.map(item => {
-                                        const pct = item.reorder_level > 0 ? (item.stock / item.reorder_level) * 100 : 0;
-                                        const isOut = item.stock <= 0;
+                                        const lastBought = item.last_purchased
+                                            ? new Date(item.last_purchased).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+                                            : 'Never';
                                         return (
                                             <div key={item.id} style={{
                                                 display: 'flex', alignItems: 'center', gap: 10,
                                                 padding: '8px 10px', borderRadius: 10,
-                                                background: isOut ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.06)',
-                                                border: `1px solid ${isOut ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.12)'}`
+                                                background: 'rgba(239,68,68,0.08)',
+                                                border: '1px solid rgba(239,68,68,0.15)'
                                             }}>
+                                                <span style={{ fontSize: 18 }}>⚠️</span>
                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                     <p style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
-                                                    <p style={{ fontSize: 10, color: '#64748b' }}>{item.category}</p>
+                                                    <p style={{ fontSize: 10, color: '#64748b' }}>{item.category} · Last bought: {lastBought}</p>
                                                 </div>
                                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                    <p style={{ fontSize: 12, fontWeight: 700, color: isOut ? '#f87171' : '#fbbf24' }}>
-                                                        {item.stock} {item.unit}
-                                                    </p>
-                                                    <p style={{ fontSize: 10, color: '#475569' }}>/ {item.reorder_level}</p>
+                                                    <p style={{ fontSize: 12, fontWeight: 700, color: '#f87171' }}>Out of stock</p>
+                                                    <p style={{ fontSize: 10, color: '#475569' }}>{item.unit}</p>
                                                 </div>
-                                                <div style={{
-                                                    width: 4, height: 32, borderRadius: 2, flexShrink: 0,
-                                                    background: isOut ? '#ef4444' : pct < 50 ? '#f59e0b' : '#22c55e'
-                                                }} />
+                                                <div style={{ width: 4, height: 32, borderRadius: 2, flexShrink: 0, background: '#ef4444' }} />
                                             </div>
                                         );
                                     })}
