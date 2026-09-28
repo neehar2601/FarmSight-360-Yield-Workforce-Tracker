@@ -35,20 +35,50 @@ const ACTIVITY_META = {
     GENERAL:       { label: 'General',        emoji: '👷', color: '#94a3b8' },
 };
 
+// ─── Theme Tokens Helper ──────────────────────────────────────────────────────
+const getThemeTokens = (theme) => {
+    const isDark = theme === 'dark';
+    return {
+        pageBg:         isDark ? 'linear-gradient(135deg, #0f172a 0%, #0d1f2d 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%)',
+        headerBg:       isDark ? 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(59,130,246,0.08) 100%)' : 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(59,130,246,0.04) 100%)',
+        headerBorder:   isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e5e7eb',
+        cardBg:         isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+        cardBorder:     isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #e5e7eb',
+        cardShadow:     isDark ? 'none' : '0 1px 6px rgba(0,0,0,0.06)',
+        statCardBg:     isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)' : '#ffffff',
+        statCardBorder: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e5e7eb',
+        titleColor:     isDark ? '#f1f5f9' : '#111827',
+        subColor:       isDark ? '#94a3b8' : '#6b7280',
+        mutedColor:     isDark ? '#64748b' : '#9ca3af',
+        textColor:      isDark ? '#e2e8f0' : '#374151',
+        labelColor:     isDark ? '#64748b' : '#9ca3af',
+        gridStroke:     isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+        tooltipBg:      isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.97)',
+        tooltipBorder:  isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
+        tooltipText:    isDark ? '#e2e8f0' : '#374151',
+        tooltipLabel:   isDark ? '#94a3b8' : '#6b7280',
+        tableRowBorder: isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid #f3f4f6',
+        chipBg:         isDark ? 'rgba(255,255,255,0.06)' : '#f9fafb',
+        chipBorder:     isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
+        divider:        isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
+        hoverShadow:    isDark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.1)',
+    };
+};
+
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
 const ChartTooltip = ({ active, payload, label, currencyMode }) => {
     const { theme } = useTheme();
-    const isDark = theme === 'dark';
+    const T = getThemeTokens(theme);
     if (!active || !payload?.length) return null;
     return (
         <div style={{
-            background: isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.97)',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
+            background: T.tooltipBg,
+            border: `1px solid ${T.tooltipBorder}`,
             borderRadius: 10, padding: '10px 14px',
-            color: isDark ? '#e2e8f0' : '#374151', fontSize: 13,
+            color: T.tooltipText, fontSize: 13,
             boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
         }}>
-            <p style={{ fontWeight: 700, marginBottom: 6, color: isDark ? '#94a3b8' : '#6b7280' }}>{label}</p>
+            <p style={{ fontWeight: 700, marginBottom: 6, color: T.tooltipLabel }}>{label}</p>
             {payload.map(p => (
                 <p key={p.dataKey} style={{ color: p.color, margin: '2px 0' }}>
                     <span style={{ fontWeight: 600 }}>{p.name}: </span>
@@ -60,70 +90,84 @@ const ChartTooltip = ({ active, payload, label, currencyMode }) => {
 };
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-const StatCard = ({ icon, title, value, sub, accent, trend }) => (
-    <div style={{
-        background: T.statCardBg,
-        border: T.statCardBorder,
-        borderRadius: 16, padding: '20px 24px',
-        backdropFilter: 'blur(8px)',
-        position: 'relative', overflow: 'hidden',
-        transition: 'transform 0.2s, box-shadow 0.2s',
-    }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = T.hoverShadow; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-    >
+const StatCard = ({ icon, title, value, sub, accent, trend }) => {
+    const { theme } = useTheme();
+    const T = getThemeTokens(theme);
+    return (
         <div style={{
-            position: 'absolute', top: -20, right: -20, width: 80, height: 80,
-            borderRadius: '50%', background: accent, opacity: 0.12, filter: 'blur(16px)'
-        }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-                <p style={{ fontSize: 12, color: T.subColor, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</p>
-                <p style={{ fontSize: 26, fontWeight: 800, color: T.titleColor, marginTop: 4, lineHeight: 1.2 }}>{value}</p>
-                {sub && <p style={{ fontSize: 12, color: T.mutedColor, marginTop: 6 }}>{sub}</p>}
-            </div>
+            background: T.statCardBg,
+            border: T.statCardBorder,
+            borderRadius: 16, padding: '20px 24px',
+            backdropFilter: 'blur(8px)',
+            position: 'relative', overflow: 'hidden',
+            boxShadow: T.cardShadow,
+            transition: 'transform 0.2s, box-shadow 0.2s',
+        }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = T.hoverShadow; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = T.cardShadow; }}
+        >
             <div style={{
-                width: 42, height: 42, borderRadius: 12,
-                background: `${accent}22`, display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-                fontSize: 20, flexShrink: 0
-            }}>
-                {icon}
+                position: 'absolute', top: -20, right: -20, width: 80, height: 80,
+                borderRadius: '50%', background: accent, opacity: 0.12, filter: 'blur(16px)'
+            }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <p style={{ fontSize: 12, color: T.subColor, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</p>
+                    <p style={{ fontSize: 26, fontWeight: 800, color: T.titleColor, marginTop: 4, lineHeight: 1.2 }}>{value}</p>
+                    {sub && <p style={{ fontSize: 12, color: T.mutedColor, marginTop: 6 }}>{sub}</p>}
+                </div>
+                <div style={{
+                    width: 42, height: 42, borderRadius: 12,
+                    background: `${accent}22`, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: 20, flexShrink: 0
+                }}>
+                    {icon}
+                </div>
             </div>
+            {trend !== undefined && (
+                <div style={{
+                    marginTop: 12, paddingTop: 12,
+                    borderTop: `1px solid ${T.divider}`,
+                    fontSize: 12,
+                    color: trend >= 0 ? '#4ade80' : '#f87171'
+                }}>
+                    {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% vs last month
+                </div>
+            )}
         </div>
-        {trend !== undefined && (
-            <div style={{
-                marginTop: 12, paddingTop: 12,
-                borderTop: `1px solid ${T.divider}`,
-                fontSize: 12,
-                color: trend >= 0 ? '#4ade80' : '#f87171'
-            }}>
-                {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% vs last month
-            </div>
-        )}
-    </div>
-);
+    );
+};
 
 // ─── Section Header ───────────────────────────────────────────────────────────
-const SectionHeader = ({ title, action }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ color: T.textColor, fontWeight: 700, fontSize: 15, letterSpacing: '0.02em' }}>{title}</h3>
-        {action}
-    </div>
-);
+const SectionHeader = ({ title, action }) => {
+    const { theme } = useTheme();
+    const T = getThemeTokens(theme);
+    return (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ color: T.textColor, fontWeight: 700, fontSize: 15, letterSpacing: '0.02em' }}>{title}</h3>
+            {action}
+        </div>
+    );
+};
 
 // ─── Chart Card ───────────────────────────────────────────────────────────────
-const ChartCard = ({ title, children, action }) => (
-    <div style={{
-        background: T.cardBg,
-        border: T.cardBorder,
-        borderRadius: 16, padding: '20px 24px',
-        backdropFilter: 'blur(8px)',
-    }}>
-        <SectionHeader title={title} action={action} />
-        {children}
-    </div>
-);
+const ChartCard = ({ title, children, action }) => {
+    const { theme } = useTheme();
+    const T = getThemeTokens(theme);
+    return (
+        <div style={{
+            background: T.cardBg,
+            border: T.cardBorder,
+            borderRadius: 16, padding: '20px 24px',
+            boxShadow: T.cardShadow,
+            backdropFilter: 'blur(8px)',
+        }}>
+            <SectionHeader title={title} action={action} />
+            {children}
+        </div>
+    );
+};
 
 // ─── Spinner ──────────────────────────────────────────────────────────────────
 const Spinner = () => (
@@ -181,6 +225,8 @@ const FarmSelector = ({ farms, selected, onChange }) => {
 
 // ─── Crop Status Badge ────────────────────────────────────────────────────────
 const HarvestBadge = ({ expectedDate }) => {
+    const { theme } = useTheme();
+    const T = getThemeTokens(theme);
     const days = daysBetween(expectedDate);
     if (days === null) return <span style={{ color: T.mutedColor, fontSize: 12 }}>—</span>;
     if (days < 0)  return <span style={{ background: '#1e293b', color: '#94a3b8', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>Overdue</span>;
@@ -194,34 +240,8 @@ export default function DashboardPage() {
     const { currentUser, currentFarm } = useAuth();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const T = getThemeTokens(theme);
     const farms = currentUser?.farms || [];
-
-    // ── Theme tokens ──────────────────────────────────────────────────────────
-    const T = {
-        pageBg:      isDark ? 'linear-gradient(135deg, #0f172a 0%, #0d1f2d 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%)',
-        headerBg:    isDark ? 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(59,130,246,0.08) 100%)' : 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(59,130,246,0.04) 100%)',
-        headerBorder:isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e5e7eb',
-        cardBg:      isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
-        cardBorder:  isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #e5e7eb',
-        cardShadow:  isDark ? 'none' : '0 1px 6px rgba(0,0,0,0.06)',
-        statCardBg:  isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)' : '#ffffff',
-        statCardBorder: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e5e7eb',
-        titleColor:  isDark ? '#f1f5f9' : '#111827',
-        subColor:    isDark ? '#94a3b8' : '#6b7280',
-        mutedColor:  isDark ? '#64748b' : '#9ca3af',
-        textColor:   isDark ? '#e2e8f0' : '#374151',
-        labelColor:  isDark ? '#64748b' : '#9ca3af',
-        gridStroke:  isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-        tooltipBg:   isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.97)',
-        tooltipBorder: isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
-        tooltipText: isDark ? '#e2e8f0' : '#374151',
-        tooltipLabel:isDark ? '#94a3b8' : '#6b7280',
-        tableRowBorder: isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid #f3f4f6',
-        chipBg:      isDark ? 'rgba(255,255,255,0.06)' : '#f9fafb',
-        chipBorder:  isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
-        divider:     isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
-        hoverShadow: isDark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.1)',
-    };
 
     const [selectedFarmIds, setSelectedFarmIds] = useState([]);
     const [data, setData] = useState(null);
