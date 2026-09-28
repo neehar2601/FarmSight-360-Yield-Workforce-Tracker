@@ -1978,6 +1978,39 @@ const routes = {
     '/farm/finance': FinancePage,
 };
 
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error, errorInfo) {
+        console.error('ErrorBoundary caught error:', error, errorInfo);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div style={{ padding: 40, textAlign: 'center', maxWidth: 540, margin: '60px auto', background: '#ffffff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', border: '1px solid #fee2e2' }}>
+                    <div style={{ fontSize: 44, marginBottom: 16 }}>⚠️</div>
+                    <h2 style={{ fontSize: 20, fontWeight: 700, color: '#dc2626', marginBottom: 8 }}>Something went wrong</h2>
+                    <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 20, wordBreak: 'break-word' }}>
+                        {this.state.error?.message || 'An unexpected error occurred.'}
+                    </p>
+                    <button
+                        onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+                        style={{ padding: '10px 24px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                    >
+                        Reload Page
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
 export default function App() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -1992,9 +2025,11 @@ export default function App() {
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                     <Header toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
                     <main style={{ flex: 1, overflowX: 'hidden', overflowY: 'auto', background: isDark ? '#0f172a' : '#f3f4f6', padding: currentPath === '/' ? 0 : 24 }}>
-                        <Suspense fallback={<Spinner />}>
-                            <Page />
-                        </Suspense>
+                        <ErrorBoundary>
+                            <Suspense fallback={<Spinner />}>
+                                <Page />
+                            </Suspense>
+                        </ErrorBoundary>
                     </main>
                 </div>
             </div>
