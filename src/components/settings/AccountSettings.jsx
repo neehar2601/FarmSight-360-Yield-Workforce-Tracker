@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import api from '../../utils/apiClient';
 import { getArchivedFarms, getArchivedFarmData } from '../../utils/farmApi';
 
 const AccountSettings = ({ onClose }) => {
     const { currentUser, currentFarm, updateProfile, changePassword, addFarm, updateFarm, deleteFarm, switchFarm, logout } = useAuth();
-    const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'password', 'farms', 'danger'
+    const { theme, setTheme } = useTheme();
+    const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'password', 'farms', 'appearance', 'danger'
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -379,7 +381,7 @@ const AccountSettings = ({ onClose }) => {
 
                     {/* Tabs */}
                     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                        <div className="flex border-b">
+                        <div className="flex border-b" style={{ flexWrap: 'wrap' }}>
                             <button
                                 onClick={() => setActiveTab('profile')}
                                 className={`flex-1 px-6 py-4 font-medium ${activeTab === 'profile'
@@ -394,6 +396,9 @@ const AccountSettings = ({ onClose }) => {
                             </button>
                             <button onClick={() => setActiveTab('farms')} className={`flex-1 px-6 py-4 font-medium ${activeTab === 'farms' ? 'bg-green-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
                                 Farms
+                            </button>
+                            <button onClick={() => setActiveTab('appearance')} className={`flex-1 px-6 py-4 font-medium ${activeTab === 'appearance' ? 'bg-green-600 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
+                                🎨 Appearance
                             </button>
                             <button onClick={() => setActiveTab('danger')} className={`flex-1 px-6 py-4 font-medium ${activeTab === 'danger' ? 'bg-red-600 text-white' : 'bg-gray-50 text-red-600 hover:bg-red-50'}`}>
                                 Danger Zone
@@ -504,6 +509,55 @@ const AccountSettings = ({ onClose }) => {
                                         {isLoading ? 'Updating...' : 'Update Profile'}
                                     </button>
                                 </form>
+                            )}
+
+                            {/* Appearance Tab */}
+                            {activeTab === 'appearance' && (
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Appearance</h3>
+                                    <p className="text-sm text-gray-500 mb-6">Choose how FarmSight 360 looks for you. Your preference is saved locally.</p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                        {/* Light Mode */}
+                                        <button
+                                            onClick={() => setTheme('light')}
+                                            style={{
+                                                padding: '20px 16px', borderRadius: 16, border: `2px solid ${theme === 'light' ? '#16a34a' : '#e5e7eb'}`,
+                                                background: theme === 'light' ? '#f0fdf4' : '#f9fafb',
+                                                cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+                                                boxShadow: theme === 'light' ? '0 0 0 3px rgba(22,163,74,0.15)' : 'none'
+                                            }}
+                                        >
+                                            <div style={{ fontSize: 32, marginBottom: 10 }}>☀️</div>
+                                            <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 4 }}>Light Mode</div>
+                                            <div style={{ fontSize: 12, color: '#6b7280' }}>Clean white background, ideal for bright environments</div>
+                                            {theme === 'light' && (
+                                                <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 4, background: '#16a34a', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
+                                                    ✓ Active
+                                                </div>
+                                            )}
+                                        </button>
+                                        {/* Dark Mode */}
+                                        <button
+                                            onClick={() => setTheme('dark')}
+                                            style={{
+                                                padding: '20px 16px', borderRadius: 16, border: `2px solid ${theme === 'dark' ? '#16a34a' : '#e5e7eb'}`,
+                                                background: theme === 'dark' ? '#0f172a' : '#f9fafb',
+                                                cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+                                                boxShadow: theme === 'dark' ? '0 0 0 3px rgba(22,163,74,0.25)' : 'none'
+                                            }}
+                                        >
+                                            <div style={{ fontSize: 32, marginBottom: 10 }}>🌙</div>
+                                            <div style={{ fontWeight: 700, fontSize: 15, color: theme === 'dark' ? '#f1f5f9' : '#111827', marginBottom: 4 }}>Dark Mode</div>
+                                            <div style={{ fontSize: 12, color: theme === 'dark' ? '#64748b' : '#6b7280' }}>Dark background, easy on the eyes at night</div>
+                                            {theme === 'dark' && (
+                                                <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 4, background: '#16a34a', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
+                                                    ✓ Active
+                                                </div>
+                                            )}
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-4">💡 Tip: Your preference is saved in your browser and applied instantly across all pages.</p>
+                                </div>
                             )}
 
                             {/* Password Tab */}

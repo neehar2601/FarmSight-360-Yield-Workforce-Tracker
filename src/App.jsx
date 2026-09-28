@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext, Suspense, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { useAuth } from './contexts/AuthContext';
+import { useTheme } from './contexts/ThemeContext';
 import AccountSettings from './components/settings/AccountSettings';
 import CropsPage from './components/farm/CropsPage';
 import InventoryPage from './components/farm/InventoryPage';
@@ -1856,33 +1857,38 @@ const WorkerManagement = () => {
 
 // --- LAYOUT & APP ROUTING ---
 const NavLink = ({ to, icon, children, currentPath }) => { const isActive = (currentPath === '/' && to === '/') || (currentPath === to); return (<a href={to} className={`flex items-center px-4 py-3 text-lg rounded-lg ${isActive ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700'}`}>{icon}<span className="ml-4">{children}</span></a>); }
-const Sidebar = ({ isSidebarOpen, currentPath }) => (
-    <aside className={`bg-green-800 text-white w-64 space-y-1 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30 overflow-y-auto`}>
-        <div className="px-4 mb-6 text-center">
-            <h1 className="text-3xl font-bold">FarmSight 360</h1>
-            <p className="text-sm text-green-200">Yield & Workforce Tracker</p>
-        </div>
-        <nav>
-            <NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink>
-
-            <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Farm Service</p>
-            <NavLink to="/farm/crops" icon={<YieldIcon />} currentPath={currentPath}>Crops</NavLink>
-            <NavLink to="/farm/inventory" icon={<InventoryIcon />} currentPath={currentPath}>Inventory</NavLink>
-            <NavLink to="/farm/crop-care" icon={<FertiliserIcon />} currentPath={currentPath}>Fertilisers & Sprays</NavLink>
-            <NavLink to="/farm/finance" icon={<FinancialIcon />} currentPath={currentPath}>Finance</NavLink>
-
-            <p className="px-4 pt-4 pb-1 text-xs font-semibold text-green-400 uppercase tracking-widest">Workforce</p>
-            <NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink>
-        </nav>
-    </aside>
-);
+const Sidebar = ({ isSidebarOpen, currentPath }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+    return (
+        <aside className={`w-64 space-y-1 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30 overflow-y-auto`}
+            style={{ background: isDark ? '#14532d' : '#15803d', color: '#fff' }}>
+            <div className="px-4 mb-6 text-center">
+                <h1 className="text-3xl font-bold">FarmSight 360</h1>
+                <p className="text-sm" style={{ color: isDark ? '#86efac' : '#bbf7d0' }}>Yield &amp; Workforce Tracker</p>
+            </div>
+            <nav>
+                <NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink>
+                <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Farm Service</p>
+                <NavLink to="/farm/crops" icon={<YieldIcon />} currentPath={currentPath}>Crops</NavLink>
+                <NavLink to="/farm/inventory" icon={<InventoryIcon />} currentPath={currentPath}>Inventory</NavLink>
+                <NavLink to="/farm/crop-care" icon={<FertiliserIcon />} currentPath={currentPath}>Fertilisers &amp; Sprays</NavLink>
+                <NavLink to="/farm/finance" icon={<FinancialIcon />} currentPath={currentPath}>Finance</NavLink>
+                <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Workforce</p>
+                <NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink>
+            </nav>
+        </aside>
+    );
+};
 const Header = ({ toggleSidebar }) => {
     const { currentUser, currentFarm, logout } = useAuth();
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [showDropdown, setShowDropdown] = useState(false);
 
     const handleLogout = () => {
         logout();
-        window.location.reload(); // Reload to show login page
+        window.location.reload();
     };
 
     const navigateToSettings = () => {
@@ -1892,49 +1898,62 @@ const Header = ({ toggleSidebar }) => {
     };
 
     return (
-        <header className="bg-white shadow-sm p-4 flex justify-between items-center z-10">
-            <button onClick={toggleSidebar} className="text-gray-500 focus:outline-none md:hidden">
+        <header style={{
+            background: isDark ? '#1e293b' : '#ffffff',
+            borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : '#e5e7eb'}`,
+            padding: '16px 24px', display: 'flex', justifyContent: 'space-between',
+            alignItems: 'center', zIndex: 10, boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.06)'
+        }}>
+            <button onClick={toggleSidebar} style={{ color: isDark ? '#94a3b8' : '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }} className="md:hidden">
                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
             </button>
-            <div className="text-2xl font-bold text-gray-700 hidden md:block">
+            <div className="hidden md:block" style={{ fontSize: 20, fontWeight: 700, color: isDark ? '#f1f5f9' : '#374151' }}>
                 Welcome, {currentUser ? currentUser.name : 'Guest'}!
             </div>
             {currentUser && (
-                <div className="relative">
-                    <div
-                        className="flex items-center cursor-pointer"
-                        onClick={() => setShowDropdown(!showDropdown)}
-                    >
-                        <div className="text-right mr-4">
-                            <p className="font-semibold">{currentUser.name}</p>
-                            <p className="text-sm text-gray-500">{currentFarm?.name || 'No Farm Selected'}</p>
+                <div style={{ position: 'relative' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 12 }}
+                        onClick={() => setShowDropdown(!showDropdown)}>
+                        <div style={{ textAlign: 'right' }}>
+                            <p style={{ fontWeight: 600, color: isDark ? '#f1f5f9' : '#111827', fontSize: 14 }}>{currentUser.name}</p>
+                            <p style={{ fontSize: 12, color: isDark ? '#64748b' : '#6b7280' }}>{currentFarm?.name || 'No Farm Selected'}</p>
                         </div>
                         <img
-                            className="h-12 w-12 rounded-full object-cover"
+                            style={{ height: 44, width: 44, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${isDark ? '#334155' : '#e5e7eb'}` }}
                             src={currentUser.profilePicture || `https://i.pravatar.cc/150?u=${currentUser.name}`}
                             alt="User Avatar"
                         />
                     </div>
 
                     {showDropdown && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
-                            <button
-                                onClick={navigateToSettings}
-                                className="w-full text-left px-4 py-2 text-sm text-700 hover:bg-gray-100 flex items-center"
-                            >
-                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div style={{
+                            position: 'absolute', right: 0, top: '100%', marginTop: 8,
+                            width: 192, borderRadius: 12, padding: '6px 0',
+                            background: isDark ? '#1e293b' : '#ffffff',
+                            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 50
+                        }}>
+                            <button onClick={navigateToSettings}
+                                style={{ width: '100%', textAlign: 'left', padding: '8px 16px', fontSize: 14,
+                                    color: isDark ? '#e2e8f0' : '#374151', background: 'none', border: 'none',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                                onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : '#f9fafb'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                                 Settings
                             </button>
-                            <button
-                                onClick={handleLogout}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                            >
-                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button onClick={handleLogout}
+                                style={{ width: '100%', textAlign: 'left', padding: '8px 16px', fontSize: 14,
+                                    color: isDark ? '#e2e8f0' : '#374151', background: 'none', border: 'none',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                                onMouseEnter={e => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : '#f9fafb'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                 </svg>
                                 Logout
@@ -1962,15 +1981,17 @@ const routes = {
 export default function App() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [currentPath, setCurrentPath] = useState(window.location.pathname);
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     useEffect(() => { const onLocationChange = () => setCurrentPath(window.location.pathname); window.addEventListener('popstate', onLocationChange); const handleLinkClick = (e) => { if (e.target.tagName === 'A' && e.target.href.startsWith(window.location.origin) && e.target.target !== '_blank') { e.preventDefault(); window.history.pushState({}, '', e.target.href); onLocationChange(); } }; window.addEventListener('click', handleLinkClick); return () => { window.removeEventListener('popstate', onLocationChange); window.removeEventListener('click', handleLinkClick); }; }, []);
     const Page = routes[currentPath] || routes['/'];
     return (
         <DataProvider>
-            <div className="flex h-screen bg-gray-100 font-sans">
+            <div style={{ display: 'flex', height: '100vh', background: isDark ? '#0f172a' : '#f3f4f6', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
                 <Sidebar isSidebarOpen={isSidebarOpen} currentPath={currentPath} />
-                <div className="flex-1 flex flex-col overflow-hidden">
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                     <Header toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
-                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                    <main style={{ flex: 1, overflowX: 'hidden', overflowY: 'auto', background: isDark ? '#0f172a' : '#f3f4f6', padding: currentPath === '/' ? 0 : 24 }}>
                         <Suspense fallback={<Spinner />}>
                             <Page />
                         </Suspense>

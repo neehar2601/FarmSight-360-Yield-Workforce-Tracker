@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
@@ -126,9 +127,11 @@ const AuthenticatedApp = () => {
 
 const AuthApp = () => {
     return (
-        <AuthProvider>
-            <AuthenticatedApp />
-        </AuthProvider>
+        <ThemeProvider>
+            <AuthProvider>
+                <AuthenticatedApp />
+            </AuthProvider>
+        </ThemeProvider>
     );
 };
 

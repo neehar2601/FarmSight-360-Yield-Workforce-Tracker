@@ -4,6 +4,7 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { getDashboardSummary } from '../../utils/farmApi';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -36,13 +37,18 @@ const ACTIVITY_META = {
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
 const ChartTooltip = ({ active, payload, label, currencyMode }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     if (!active || !payload?.length) return null;
     return (
         <div style={{
-            background: 'rgba(15,23,42,0.92)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 10, padding: '10px 14px', color: '#e2e8f0', fontSize: 13
+            background: isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.97)',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
+            borderRadius: 10, padding: '10px 14px',
+            color: isDark ? '#e2e8f0' : '#374151', fontSize: 13,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
         }}>
-            <p style={{ fontWeight: 700, marginBottom: 6, color: '#94a3b8' }}>{label}</p>
+            <p style={{ fontWeight: 700, marginBottom: 6, color: isDark ? '#94a3b8' : '#6b7280' }}>{label}</p>
             {payload.map(p => (
                 <p key={p.dataKey} style={{ color: p.color, margin: '2px 0' }}>
                     <span style={{ fontWeight: 600 }}>{p.name}: </span>
@@ -56,14 +62,14 @@ const ChartTooltip = ({ active, payload, label, currencyMode }) => {
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 const StatCard = ({ icon, title, value, sub, accent, trend }) => (
     <div style={{
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: T.statCardBg,
+        border: T.statCardBorder,
         borderRadius: 16, padding: '20px 24px',
         backdropFilter: 'blur(8px)',
         position: 'relative', overflow: 'hidden',
         transition: 'transform 0.2s, box-shadow 0.2s',
     }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.3)'; }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = T.hoverShadow; }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
     >
         <div style={{
@@ -72,9 +78,9 @@ const StatCard = ({ icon, title, value, sub, accent, trend }) => (
         }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-                <p style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</p>
-                <p style={{ fontSize: 26, fontWeight: 800, color: '#f1f5f9', marginTop: 4, lineHeight: 1.2 }}>{value}</p>
-                {sub && <p style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>{sub}</p>}
+                <p style={{ fontSize: 12, color: T.subColor, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</p>
+                <p style={{ fontSize: 26, fontWeight: 800, color: T.titleColor, marginTop: 4, lineHeight: 1.2 }}>{value}</p>
+                {sub && <p style={{ fontSize: 12, color: T.mutedColor, marginTop: 6 }}>{sub}</p>}
             </div>
             <div style={{
                 width: 42, height: 42, borderRadius: 12,
@@ -88,7 +94,7 @@ const StatCard = ({ icon, title, value, sub, accent, trend }) => (
         {trend !== undefined && (
             <div style={{
                 marginTop: 12, paddingTop: 12,
-                borderTop: '1px solid rgba(255,255,255,0.06)',
+                borderTop: `1px solid ${T.divider}`,
                 fontSize: 12,
                 color: trend >= 0 ? '#4ade80' : '#f87171'
             }}>
@@ -101,7 +107,7 @@ const StatCard = ({ icon, title, value, sub, accent, trend }) => (
 // ─── Section Header ───────────────────────────────────────────────────────────
 const SectionHeader = ({ title, action }) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 15, letterSpacing: '0.02em' }}>{title}</h3>
+        <h3 style={{ color: T.textColor, fontWeight: 700, fontSize: 15, letterSpacing: '0.02em' }}>{title}</h3>
         {action}
     </div>
 );
@@ -109,8 +115,8 @@ const SectionHeader = ({ title, action }) => (
 // ─── Chart Card ───────────────────────────────────────────────────────────────
 const ChartCard = ({ title, children, action }) => (
     <div style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: T.cardBg,
+        border: T.cardBorder,
         borderRadius: 16, padding: '20px 24px',
         backdropFilter: 'blur(8px)',
     }}>
@@ -176,7 +182,7 @@ const FarmSelector = ({ farms, selected, onChange }) => {
 // ─── Crop Status Badge ────────────────────────────────────────────────────────
 const HarvestBadge = ({ expectedDate }) => {
     const days = daysBetween(expectedDate);
-    if (days === null) return <span style={{ color: '#475569', fontSize: 12 }}>—</span>;
+    if (days === null) return <span style={{ color: T.mutedColor, fontSize: 12 }}>—</span>;
     if (days < 0)  return <span style={{ background: '#1e293b', color: '#94a3b8', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>Overdue</span>;
     if (days <= 14) return <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>In {days}d</span>;
     if (days <= 60) return <span style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>In {days}d</span>;
@@ -186,7 +192,36 @@ const HarvestBadge = ({ expectedDate }) => {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
     const { currentUser, currentFarm } = useAuth();
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const farms = currentUser?.farms || [];
+
+    // ── Theme tokens ──────────────────────────────────────────────────────────
+    const T = {
+        pageBg:      isDark ? 'linear-gradient(135deg, #0f172a 0%, #0d1f2d 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%)',
+        headerBg:    isDark ? 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(59,130,246,0.08) 100%)' : 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(59,130,246,0.04) 100%)',
+        headerBorder:isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e5e7eb',
+        cardBg:      isDark ? 'rgba(255,255,255,0.04)' : '#ffffff',
+        cardBorder:  isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #e5e7eb',
+        cardShadow:  isDark ? 'none' : '0 1px 6px rgba(0,0,0,0.06)',
+        statCardBg:  isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)' : '#ffffff',
+        statCardBorder: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e5e7eb',
+        titleColor:  isDark ? '#f1f5f9' : '#111827',
+        subColor:    isDark ? '#94a3b8' : '#6b7280',
+        mutedColor:  isDark ? '#64748b' : '#9ca3af',
+        textColor:   isDark ? '#e2e8f0' : '#374151',
+        labelColor:  isDark ? '#64748b' : '#9ca3af',
+        gridStroke:  isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+        tooltipBg:   isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.97)',
+        tooltipBorder: isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
+        tooltipText: isDark ? '#e2e8f0' : '#374151',
+        tooltipLabel:isDark ? '#94a3b8' : '#6b7280',
+        tableRowBorder: isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid #f3f4f6',
+        chipBg:      isDark ? 'rgba(255,255,255,0.06)' : '#f9fafb',
+        chipBorder:  isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
+        divider:     isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
+        hoverShadow: isDark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.1)',
+    };
 
     const [selectedFarmIds, setSelectedFarmIds] = useState([]);
     const [data, setData] = useState(null);
@@ -229,7 +264,7 @@ export default function DashboardPage() {
     return (
         <div style={{
             minHeight: '100%',
-            background: 'linear-gradient(135deg, #0f172a 0%, #0d1f2d 100%)',
+            background: T.pageBg,
             fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
             padding: '0 0 40px 0',
         }}>
@@ -243,21 +278,21 @@ export default function DashboardPage() {
 
             {/* ─── Header ─────────────────────────────────────────────────────── */}
             <div style={{
-                background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(59,130,246,0.08) 100%)',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                background: T.headerBg,
+                borderBottom: T.headerBorder,
                 padding: '28px 32px 24px',
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                             <span style={{ fontSize: 28 }}>🌾</span>
-                            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>
+                            <h1 style={{ fontSize: 22, fontWeight: 800, color: T.titleColor, letterSpacing: '-0.02em' }}>
                                 Farm Dashboard
                             </h1>
                         </div>
-                        <p style={{ color: '#64748b', fontSize: 13 }}>
+                        <p style={{ color: T.subColor, fontSize: 13 }}>
                             {activeFarmLabel}
-                            {lastUpdated && <span style={{ marginLeft: 8, color: '#334155' }}>· Updated {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                            {lastUpdated && <span style={{ marginLeft: 8, color: T.mutedColor }}>· Updated {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
                         </p>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
@@ -332,8 +367,8 @@ export default function DashboardPage() {
                                             <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                    <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={T.gridStroke} />
+                                    <XAxis dataKey="label" tick={{ fill: T.labelColor, fontSize: 11 }} axisLine={false} tickLine={false} />
                                     <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}`} />
                                     <Tooltip content={<ChartTooltip currencyMode />} />
                                     <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8', paddingTop: 8 }} />
@@ -405,10 +440,10 @@ export default function DashboardPage() {
                                     </thead>
                                     <tbody>
                                         {activeCrops.map((crop, i) => (
-                                            <tr key={crop.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                                            <tr key={crop.id} style={{ borderTop: T.tableRowBorder }}>
                                                 <td style={{ padding: '10px 12px 10px 0' }}>
-                                                    <p style={{ color: '#e2e8f0', fontWeight: 600, fontSize: 13 }}>{crop.name}</p>
-                                                    {crop.variety && <p style={{ color: '#475569', fontSize: 11 }}>{crop.variety}</p>}
+                                                    <p style={{ color: T.textColor, fontWeight: 600, fontSize: 13 }}>{crop.name}</p>
+                                                    {crop.variety && <p style={{ color: T.mutedColor, fontSize: 11 }}>{crop.variety}</p>}
                                                     {farms.length > 1 && <p style={{ color: '#334155', fontSize: 10 }}>🏡 {crop.farm_name}</p>}
                                                 </td>
                                                 <td style={{ padding: '10px 12px 10px 0', color: '#94a3b8', fontSize: 12 }}>
@@ -452,7 +487,7 @@ export default function DashboardPage() {
                                             }}>👷</div>
                                             <div>
                                                 <p style={{ fontSize: 28, fontWeight: 800, color: '#60a5fa', lineHeight: 1 }}>{workers.working_today}</p>
-                                                <p style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>working today</p>
+                                                <p style={{ fontSize: 12, color: T.subColor, marginTop: 2 }}>working today</p>
                                             </div>
                                             <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.06)' }} />
                                             <div>
@@ -493,7 +528,7 @@ export default function DashboardPage() {
                                             }}>
                                                 <span style={{ fontSize: 18 }}>⚠️</span>
                                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <p style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
+                                                    <p style={{ fontSize: 12, fontWeight: 600, color: T.textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
                                                     <p style={{ fontSize: 10, color: '#64748b' }}>{item.category} · Last bought: {lastBought}</p>
                                                 </div>
                                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -545,7 +580,7 @@ export default function DashboardPage() {
 
                 {/* ─── Quick Links ─────────────────────────────────────────────── */}
                 <div style={{ marginTop: 20 }}>
-                    <p style={{ color: '#475569', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Quick Links</p>
+                    <p style={{ color: T.subColor, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Quick Links</p>
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                         {[
                             { label: '🌾 Crops', href: '/farm/crops', color: '#10b981' },
