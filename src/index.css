@@ -1,3 +1,60 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─── Global Dark Mode Overrides for Tailwind Utilities ─── */
+[data-theme="dark"] .bg-white {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+}
+[data-theme="dark"] .bg-gray-50 {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+}
+[data-theme="dark"] .bg-gray-100 {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+}
+[data-theme="dark"] .bg-gray-200 {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-gray-300 {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+[data-theme="dark"] .text-gray-900,
+[data-theme="dark"] .text-gray-800 {
+    color: #f1f5f9 !important;
+}
+[data-theme="dark"] .text-gray-700 {
+    color: #e2e8f0 !important;
+}
+[data-theme="dark"] .text-gray-600 {
+    color: #cbd5e1 !important;
+}
+[data-theme="dark"] .text-gray-500 {
+    color: #94a3b8 !important;
+}
+[data-theme="dark"] .shadow-sm,
+[data-theme="dark"] .shadow-md,
+[data-theme="dark"] .shadow-lg,
+[data-theme="dark"] .shadow-2xl {
+    box-shadow: none !important;
+}
+[data-theme="dark"] .hover\:bg-gray-50:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-theme="dark"] .hover\:bg-gray-100:hover {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+}
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    color: #f1f5f9 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: #64748b !important;
+}
