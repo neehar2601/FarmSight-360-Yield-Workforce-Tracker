@@ -1,0 +1,288 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import {
+    restoreSession,
+    authenticateUser,
+    registerUser,
+    logoutUser,
+    completeFirstLogin as markFirstLoginComplete,
+    changePassword as updatePassword,
+    updateUserProfile as updateProfile,
+} from '../utils/authUtils';
+import { createFarm, updateFarm as apiUpdateFarm, deleteFarm as apiFarmDelete } from '../utils/farmApi';
+import { tokenStore } from '../utils/apiClient';
+
+const AuthContext = createContext(null);
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
+
+export const AuthProvider = ({ children }) => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [currentFarm, setCurrentFarm] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    // ── Forced logout handler (fired by apiClient when refresh fails) ──────────
+    const handleForcedLogout = useCallback(() => {
+        setCurrentUser(null);
+        setCurrentFarm(null);
+        setIsAuthenticated(false);
+    }, []);
+
+    useEffect(() => {
+        window.addEventListener('auth:logout', handleForcedLogout);
+        return () => window.removeEventListener('auth:logout', handleForcedLogout);
+    }, [handleForcedLogout]);
+
+    // ── Restore session on app startup ────────────────────────────────────────
+    useEffect(() => {
+        const initAuth = async () => {
+            try {
+                const user = await restoreSession();
+                if (user) {
+                    setCurrentUser(user);
+                    setIsAuthenticated(true);
+
+                    // Restore last selected farm from localStorage (farm ID only)
+                    const savedFarmId = localStorage.getItem('farm360_current_farm');
+                    if (savedFarmId && user.farms) {
+                        const farm = user.farms.find((f) => f.id === savedFarmId);
+                        if (farm) setCurrentFarm(farm);
+                    }
+                    // Auto-select the only farm if there is just one
+                    if (!currentFarm && user.farms?.length === 1) {
+                        setCurrentFarm(user.farms[0]);
+                        localStorage.setItem('farm360_current_farm', user.farms[0].id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error restoring auth session:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initAuth();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ── Login ─────────────────────────────────────────────────────────────────
+    const login = async (email, password) => {
+        try {
+            const result = await authenticateUser(email, password);
+
+            if (!result.success) {
+                return { success: false, error: result.error };
+            }
+
+            const user = result.user;
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+
+            // Auto-select single farm
+            if (user.farms?.length === 1) {
+                setCurrentFarm(user.farms[0]);
+                localStorage.setItem('farm360_current_farm', user.farms[0].id);
+                return { success: true, user, requiresFarmSelection: false, isFirstLogin: user.isFirstLogin };
+            }
+
+            return { success: true, user, requiresFarmSelection: true, isFirstLogin: user.isFirstLogin };
+        } catch (error) {
+            console.error('Login error:', error);
+            return { success: false, error: 'Login failed. Please try again.' };
+        }
+    };
+
+    // ── Register ──────────────────────────────────────────────────────────────
+    const register = async (userData, farmData) => {
+        try {
+            const result = await registerUser(userData, farmData);
+
+            if (!result.success) {
+                return result;
+            }
+
+            const user = result.user;
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+
+            // Auto-select the newly created farm
+            if (user.farms?.length > 0) {
+                setCurrentFarm(user.farms[0]);
+                localStorage.setItem('farm360_current_farm', user.farms[0].id);
+            }
+
+            return { success: true, user, isFirstLogin: true };
+        } catch (error) {
+            console.error('Registration error:', error);
+            return { success: false, error: 'Registration failed. Please try again.' };
+        }
+    };
+
+    // ── Logout ────────────────────────────────────────────────────────────────
+    const logout = () => {
+        // Clear local state immediately (optimistic) so the UI updates on the
+        // very first click and extra clicks are harmless.
+        tokenStore.clear();
+        localStorage.removeItem('farm360_current_farm');
+        setCurrentUser(null);
+        setCurrentFarm(null);
+        setIsAuthenticated(false);
+
+        // Fire-and-forget: invalidate the refresh token server-side.
+        // We don't await this — the user is already "logged out" locally.
+        logoutUser().catch((err) =>
+            console.warn('Server-side logout failed (token already cleared):', err.message)
+        );
+    };
+
+    // ── Switch farm ───────────────────────────────────────────────────────────
+    const switchFarm = (farmId) => {
+        if (!currentUser) return { success: false, error: 'No user logged in' };
+
+        const farm = currentUser.farms?.find((f) => f.id === farmId);
+        if (!farm) return { success: false, error: 'Farm not found' };
+
+        localStorage.setItem('farm360_current_farm', farmId);
+        setCurrentFarm(farm);
+        return { success: true, farm };
+    };
+
+    // ── Add farm ──────────────────────────────────────────────────────────────
+    const addFarm = async (farmData) => {
+        if (!currentUser) return { success: false, error: 'No user logged in' };
+
+        // Hit the Farm Service (which expects totalArea and areaUnit)
+        const { data: newFarm, error } = await createFarm({
+            name: farmData.name,
+            location: farmData.location,
+            totalArea: farmData.area, 
+            areaUnit: farmData.areaUnit
+        });
+        
+        if (error) return { success: false, error };
+
+        // Map backend keys to frontend expected keys (area, areaUnit)
+        const mappedFarm = {
+            ...newFarm,
+            area: newFarm.total_area,
+            areaUnit: newFarm.area_unit
+        };
+
+        const updatedUser = { ...currentUser, farms: [...(currentUser.farms || []), mappedFarm] };
+        setCurrentUser(updatedUser);
+
+        return { success: true, farm: mappedFarm };
+    };
+
+    // ── Update farm ───────────────────────────────────────────────────────────
+    const updateFarm = async (farmId, farmData) => {
+        if (!currentUser) return { success: false, error: 'No user logged in' };
+
+        const { data: updatedFarm, error } = await apiUpdateFarm(farmId, {
+            name: farmData.name,
+            location: farmData.location,
+            totalArea: farmData.area,
+            areaUnit: farmData.areaUnit
+        });
+        
+        if (error) return { success: false, error };
+
+        const mappedFarm = {
+            ...updatedFarm,
+            area: updatedFarm.total_area,
+            areaUnit: updatedFarm.area_unit
+        };
+
+        const updatedFarms = (currentUser.farms || []).map((f) =>
+            f.id === farmId ? mappedFarm : f
+        );
+        setCurrentUser({ ...currentUser, farms: updatedFarms });
+
+        if (currentFarm?.id === farmId) {
+            setCurrentFarm(mappedFarm);
+        }
+
+        return { success: true, farm: mappedFarm };
+    };
+
+    // ── Delete / archive / merge farm ──────────────────────────────────────
+    const deleteFarm = async (farmId, options = {}) => {
+        if (!currentUser) return { success: false, error: 'No user logged in' };
+
+        const { data, error } = await apiFarmDelete(farmId, options);
+        if (error) return { success: false, error };
+
+        // Remove the farm from the active list in React state
+        const updatedFarms = (currentUser.farms || []).filter((f) => f.id !== farmId);
+        setCurrentUser({ ...currentUser, farms: updatedFarms });
+
+        if (currentFarm?.id === farmId) {
+            const nextFarm = updatedFarms[0] || null;
+            setCurrentFarm(nextFarm);
+            if (nextFarm) localStorage.setItem('farm360_current_farm', nextFarm.id);
+            else localStorage.removeItem('farm360_current_farm');
+        }
+
+        return { success: true };
+    };
+
+    // ── Change password ───────────────────────────────────────────────────────
+    const changePassword = async (currentPassword, newPassword) => {
+        if (!currentUser) return { success: false, error: 'No user logged in' };
+        return updatePassword(currentUser.id, currentPassword, newPassword);
+    };
+
+    // ── Update profile ────────────────────────────────────────────────────────
+    const updateUserProfile = async (userData) => {
+        if (!currentUser) return { success: false, error: 'No user logged in' };
+
+        const result = await updateProfile(currentUser.id, userData);
+        if (!result.success) return result;
+
+        setCurrentUser({ ...currentUser, ...result.user, farms: currentUser.farms });
+        return { success: true, user: result.user };
+    };
+
+    // ── Complete first login ───────────────────────────────────────────────────
+    const completeFirstLogin = async () => {
+        if (!currentUser) return false;
+
+        const ok = await markFirstLoginComplete();
+        if (ok) {
+            setCurrentUser({ ...currentUser, isFirstLogin: false });
+        }
+        return ok;
+    };
+
+    const value = {
+        isAuthenticated,
+        currentUser,
+        currentFarm,
+        loading,
+        login,
+        register,
+        logout,
+        switchFarm,
+        addFarm,
+        updateFarm,
+        deleteFarm,
+        changePassword,
+        updateProfile: updateUserProfile,
+        completeFirstLogin,
+        setCurrentUser, // exposed so components can update avatar/name without re-fetching
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    );
+};
+
+export default AuthContext;
