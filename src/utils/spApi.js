@@ -177,10 +177,10 @@ export const spPublicApi = {
 
 export const spFarmerBookingApi = {
     // 1. Create ticket-style hold
-    createHold: async ({ serviceId, startDate, endDate, workersNeeded, farmId, notes }) => {
+    createHold: async ({ serviceId, startDate, endDate, workersNeeded, quantity, farmId, notes }) => {
         return farmUserSpRequest('/bookings/hold', {
             method: 'POST',
-            body: JSON.stringify({ serviceId, startDate, endDate, workersNeeded, farmId, notes }),
+            body: JSON.stringify({ serviceId, startDate, endDate, workersNeeded, quantity, farmId, notes }),
         });
     },
 
