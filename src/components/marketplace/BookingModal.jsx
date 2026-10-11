@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { spFarmerBookingApi } from '../../utils/spApi';
 import { useAuth } from '../../contexts/AuthContext';
+import { billingMode, estimateAmount, formatRate, formatQuantity } from '../../utils/pricing';
 
 const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuccess }) => {
     const { currentFarm } = useAuth();
@@ -16,6 +17,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
     const [startDate, setStartDate] = useState(initialDate || new Date().toISOString().slice(0, 10));
     const [endDate, setEndDate] = useState(initialDate || new Date().toISOString().slice(0, 10));
     const [workersNeeded, setWorkersNeeded] = useState(1);
+    const [quantity, setQuantity] = useState('');
     const [notes, setNotes] = useState('');
 
     // State machine: 'config' | 'held' | 'success' | 'expired'
@@ -69,24 +71,9 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
     }, [stage, heldBooking]);
 
     // Calculation helper
-    const calculateEstimate = () => {
-        if (!selectedService || !startDate || !endDate) return 0;
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        if (end < start) return 0;
-        const days = Math.round((end - start) / 86400000) + 1;
-
-        if (selectedService.unit === 'job' && selectedService.pricePerJob != null) {
-            return Number(selectedService.pricePerJob);
-        }
-        if (selectedService.pricePerDay != null) {
-            return Number(selectedService.pricePerDay) * days * workersNeeded;
-        }
-        if (selectedService.pricePerJob != null) {
-            return Number(selectedService.pricePerJob);
-        }
-        return 0;
-    };
+    const isPerUnit = billingMode(selectedService?.unit) === 'per_unit';
+    const calculateEstimate = () =>
+        estimateAmount(selectedService, { startDate, endDate, workers: workersNeeded, quantity });
 
     // 1. Submit Hold
     const handleStartHold = async (e) => {
@@ -99,6 +86,10 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
             setError('End date cannot be earlier than start date');
             return;
         }
+        if (isPerUnit && !(Number(quantity) > 0)) {
+            setError(`Enter how many ${selectedService.unit} you need`);
+            return;
+        }
 
         setIsSubmitting(true);
         setError(null);
@@ -109,6 +100,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                 startDate,
                 endDate,
                 workersNeeded,
+                quantity: isPerUnit ? Number(quantity) : undefined,
                 farmId: currentFarm?.id || null,
                 notes,
             });
@@ -223,7 +215,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                 >
                                     {services.map(s => (
                                         <option key={s.id} value={s.id}>
-                                            {s.name} ({s.category}) — {s.pricePerDay ? `₹${s.pricePerDay}/day` : `₹${s.pricePerJob}/job`}
+                                            {s.name} ({s.category}) — {formatRate(s)}
                                         </option>
                                     ))}
                                 </select>
@@ -257,6 +249,29 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                     />
                                 </div>
                             </div>
+
+                            {isPerUnit && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                        How many {selectedService.unit}? *
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="any"
+                                            required
+                                            value={quantity}
+                                            onChange={(e) => setQuantity(e.target.value)}
+                                            placeholder="e.g. 200"
+                                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-sm font-medium text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                        />
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                            × {formatRate(selectedService)}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
 
                             <div>
                                 <div className="flex justify-between items-center mb-1">
@@ -366,6 +381,12 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                         {heldBooking?.startDate} → {heldBooking?.endDate}
                                     </span>
                                 </div>
+                                {formatQuantity(heldBooking) && (
+                                    <div className="flex justify-between pb-2 border-b border-gray-200 dark:border-slate-600">
+                                        <span className="text-gray-500 dark:text-gray-400 font-medium">Quantity</span>
+                                        <span className="font-semibold text-gray-900 dark:text-white">{formatQuantity(heldBooking)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between pb-2 border-b border-gray-200 dark:border-slate-600">
                                     <span className="text-gray-500 dark:text-gray-400 font-medium">Workers Reserved</span>
                                     <span className="font-semibold text-gray-900 dark:text-white">{heldBooking?.workersNeeded} Worker(s)</span>

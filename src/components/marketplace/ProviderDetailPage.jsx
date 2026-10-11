@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { spPublicApi } from '../../utils/spApi';
 import AvailabilityCalendar from './AvailabilityCalendar';
 import BookingModal from './BookingModal';
+import { formatRate, describeBilling } from '../../utils/pricing';
 
 const ProviderDetailPage = ({ providerId, onBack }) => {
     const [provider, setProvider] = useState(null);
@@ -190,24 +191,15 @@ const ProviderDetailPage = ({ providerId, onBack }) => {
                                         </div>
 
                                         <div className="text-right shrink-0">
-                                            {s.pricePerDay != null && (
-                                                <div className="text-base font-extrabold text-gray-900 dark:text-white">
-                                                    ₹{Number(s.pricePerDay).toLocaleString('en-IN')}
-                                                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400">/day</span>
-                                                </div>
-                                            )}
-                                            {s.pricePerJob != null && (
-                                                <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                                    ₹{Number(s.pricePerJob).toLocaleString('en-IN')}
-                                                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400">/job</span>
-                                                </div>
-                                            )}
+                                            <div className="text-base font-extrabold text-gray-900 dark:text-white">
+                                                {formatRate(s)}
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700/60 flex items-center justify-between">
                                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                                            Billing Unit: <strong className="capitalize">{s.unit || 'day'}</strong>
+                                            {describeBilling(s)}
                                         </span>
                                         <button
                                             type="button"

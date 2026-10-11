@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSPAuth } from '../../contexts/SPAuthContext';
 import { spProviderApi } from '../../utils/spApi';
 import AvailabilityCalendar from '../marketplace/AvailabilityCalendar';
+import { formatQuantity } from '../../utils/pricing';
 
 const SPDashboard = ({ onNavigateToProfile }) => {
     const { currentSP } = useSPAuth();
@@ -203,6 +204,7 @@ const SPDashboard = ({ onNavigateToProfile }) => {
                                                 </span>
                                                 <span className="text-xs text-gray-500 dark:text-gray-400">
                                                     {b.workersNeeded} Worker{b.workersNeeded > 1 ? 's' : ''}
+                                                    {formatQuantity(b) ? ` • ${formatQuantity(b)}` : ''}
                                                 </span>
                                             </div>
                                         </div>
@@ -273,7 +275,7 @@ const SPDashboard = ({ onNavigateToProfile }) => {
                                                 </span>
                                             </div>
                                             <p className="text-gray-500 dark:text-gray-400 mt-1">
-                                                Dates: <strong>{b.startDate}</strong> to <strong>{b.endDate}</strong> • {b.workersNeeded} Worker(s)
+                                                Dates: <strong>{b.startDate}</strong> to <strong>{b.endDate}</strong> • {b.workersNeeded} Worker(s){formatQuantity(b) ? ` • ${formatQuantity(b)}` : ''}
                                             </p>
                                         </div>
 

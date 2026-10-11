@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatRate } from '../../utils/pricing';
 
 const ProviderCard = ({ provider, onSelect }) => {
     const {
@@ -12,11 +13,10 @@ const ProviderCard = ({ provider, onSelect }) => {
         services = [],
     } = provider;
 
-    // Lowest starting price across services
-    const startingPrice = services.reduce((min, s) => {
-        const p = s.pricePerDay || s.pricePerJob;
-        if (p == null) return min;
-        return min == null ? p : Math.min(min, p);
+    // Cheapest listed rate (units differ, so we show that service's own unit)
+    const cheapest = services.reduce((min, s) => {
+        if (s.price == null) return min;
+        return !min || Number(s.price) < Number(min.price) ? s : min;
     }, null);
 
     const categories = Array.from(new Set(services.map(s => s.category).filter(Boolean)));
@@ -100,8 +100,7 @@ const ProviderCard = ({ provider, onSelect }) => {
                 <div>
                     <span className="block text-[11px] text-gray-400 dark:text-gray-500 font-medium">Starting from</span>
                     <span className="text-base font-bold text-gray-900 dark:text-white">
-                        {startingPrice != null ? `₹${Number(startingPrice).toLocaleString('en-IN')}` : 'Contact for pricing'}
-                        {startingPrice != null && <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-0.5">/unit</span>}
+                        {cheapest ? formatRate(cheapest) : 'Contact for pricing'}
                     </span>
                 </div>
 

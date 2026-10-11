@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSPAuth } from '../../contexts/SPAuthContext';
 import { spProviderApi, spPublicApi } from '../../utils/spApi';
+import { COMMON_UNITS, billingMode, formatRate, describeBilling } from '../../utils/pricing';
+import SPBlockCalendar from './SPBlockCalendar';
 
 const SPProfilePage = ({ onBackToDashboard }) => {
     const { currentSP, updateProfile, refreshProfile } = useSPAuth();
@@ -22,25 +24,10 @@ const SPProfilePage = ({ onBackToDashboard }) => {
     const [categories, setCategories] = useState([]);
     const [loadingServices, setLoadingServices] = useState(false);
     const [editingService, setEditingService] = useState(null); // null or service object or { isNew: true }
-    const [serviceFormData, setServiceFormData] = useState({
-        name: '',
-        category: 'Irrigation',
-        pricePerDay: '',
-        pricePerJob: '',
-        unit: 'day',
-        description: '',
-    });
+    const emptyService = { name: '', category: '', price: '', unit: 'day', unitIsCustom: false, description: '' };
+    const [serviceFormData, setServiceFormData] = useState(emptyService);
     const [savingService, setSavingService] = useState(false);
-
-    // Blocked dates state
-    const [blockedDates, setBlockedDates] = useState([]);
-    const [blockForm, setBlockForm] = useState({
-        from: new Date().toISOString().slice(0, 10),
-        to: new Date().toISOString().slice(0, 10),
-        reason: '',
-    });
-    const [savingBlock, setSavingBlock] = useState(false);
-    const [blockError, setBlockError] = useState(null);
+    const [serviceError, setServiceError] = useState(null);
 
     // Load data
     const loadServices = async () => {
@@ -55,18 +42,8 @@ const SPProfilePage = ({ onBackToDashboard }) => {
         }
     };
 
-    const loadCalendar = async () => {
-        try {
-            const res = await spProviderApi.getMyCalendar();
-            setBlockedDates(res.blockedDates || []);
-        } catch (e) {
-            console.error('Failed to load calendar data:', e);
-        }
-    };
-
     useEffect(() => {
         loadServices();
-        loadCalendar();
         spPublicApi.listCategories()
             .then(res => setCategories(res.categories || []))
             .catch(() => {});
@@ -98,40 +75,40 @@ const SPProfilePage = ({ onBackToDashboard }) => {
     // ── Services Handlers ───────────────────────────────────────────────────────
 
     const handleOpenAddService = () => {
-        setServiceFormData({
-            name: '',
-            category: categories[0] || 'Irrigation',
-            pricePerDay: '',
-            pricePerJob: '',
-            unit: 'day',
-            description: '',
-        });
+        setServiceFormData(emptyService);
+        setServiceError(null);
         setEditingService({ isNew: true });
     };
 
     const handleOpenEditService = (service) => {
+        const unit = service.unit || 'day';
         setServiceFormData({
             name: service.name,
             category: service.category,
-            pricePerDay: service.pricePerDay || '',
-            pricePerJob: service.pricePerJob || '',
-            unit: service.unit || 'day',
+            price: service.price ?? '',
+            unit,
+            unitIsCustom: !COMMON_UNITS.includes(unit),
             description: service.description || '',
         });
+        setServiceError(null);
         setEditingService(service);
     };
 
     const handleSaveService = async (e) => {
         e.preventDefault();
+        setServiceError(null);
+        if (!serviceFormData.category.trim()) return setServiceError('Enter a category for this service');
+        if (!serviceFormData.unit.trim()) return setServiceError('Enter the unit you charge by (e.g. bag, metre)');
+        if (serviceFormData.price === '' || Number(serviceFormData.price) < 0) return setServiceError('Enter a valid price');
+
         setSavingService(true);
         try {
             const payload = {
                 name: serviceFormData.name,
-                category: serviceFormData.category,
+                category: serviceFormData.category.trim(),
                 description: serviceFormData.description,
-                unit: serviceFormData.unit,
-                pricePerDay: serviceFormData.pricePerDay ? Number(serviceFormData.pricePerDay) : null,
-                pricePerJob: serviceFormData.pricePerJob ? Number(serviceFormData.pricePerJob) : null,
+                unit: serviceFormData.unit.trim(),
+                price: Number(serviceFormData.price),
             };
 
             if (editingService?.isNew) {
@@ -143,7 +120,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
             setEditingService(null);
             loadServices();
         } catch (err) {
-            alert(err.message || 'Failed to save service');
+            setServiceError(err.message || 'Failed to save service');
         } finally {
             setSavingService(false);
         }
@@ -156,40 +133,6 @@ const SPProfilePage = ({ onBackToDashboard }) => {
             loadServices();
         } catch (err) {
             alert(err.message || 'Failed to delete service');
-        }
-    };
-
-    // ── Blocked Dates Handlers ──────────────────────────────────────────────────
-
-    const handleBlockDates = async (e) => {
-        e.preventDefault();
-        setSavingBlock(true);
-        setBlockError(null);
-        try {
-            await spProviderApi.blockDates({
-                from: blockForm.from,
-                to: blockForm.to,
-                reason: blockForm.reason,
-            });
-            setBlockForm({
-                from: new Date().toISOString().slice(0, 10),
-                to: new Date().toISOString().slice(0, 10),
-                reason: '',
-            });
-            loadCalendar();
-        } catch (err) {
-            setBlockError(err.message || 'Failed to block dates');
-        } finally {
-            setSavingBlock(false);
-        }
-    };
-
-    const handleUnblockDate = async (blockId) => {
-        try {
-            await spProviderApi.unblockDate(blockId);
-            loadCalendar();
-        } catch (err) {
-            alert(err.message || 'Failed to unblock date');
         }
     };
 
@@ -275,7 +218,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                             <div className="text-3xl">🛠️</div>
                             <h3 className="text-base font-bold text-gray-900 dark:text-white">No Services Listed Yet</h3>
                             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                                You must list at least one service with daily or per-job pricing so farmers can discover and book you.
+                                List at least one service with a price — per day, per job, or per piece/plant — so farmers can discover and book you.
                             </p>
                             <button
                                 type="button"
@@ -303,16 +246,9 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                                 </h3>
                                             </div>
                                             <div className="text-right">
-                                                {s.pricePerDay != null && (
-                                                    <span className="font-bold text-sm text-gray-900 dark:text-white block">
-                                                        ₹{Number(s.pricePerDay).toLocaleString('en-IN')}/day
-                                                    </span>
-                                                )}
-                                                {s.pricePerJob != null && (
-                                                    <span className="text-xs text-gray-600 dark:text-gray-300 block">
-                                                        ₹{Number(s.pricePerJob).toLocaleString('en-IN')}/job
-                                                    </span>
-                                                )}
+                                                <span className="font-bold text-sm text-gray-900 dark:text-white block">
+                                                    {formatRate(s)}
+                                                </span>
                                             </div>
                                         </div>
 
@@ -324,7 +260,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                     </div>
 
                                     <div className="pt-3 border-t border-gray-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
-                                        <span className="text-gray-400 capitalize">Unit: {s.unit || 'day'}</span>
+                                        <span className="text-gray-400">{describeBilling(s)}</span>
                                         <div className="flex gap-2">
                                             <button
                                                 type="button"
@@ -450,108 +386,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
             )}
 
             {/* TAB 3: CALENDAR & BLOCKED DATES */}
-            {activeTab === 'calendar' && (
-                <div className="space-y-6">
-                    {/* Add block form */}
-                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm max-w-2xl">
-                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
-                            Block Out Unavailable Dates
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                            Mark holidays or off-days on your calendar. Dates with active bookings cannot be blocked.
-                        </p>
-
-                        {blockError && (
-                            <div className="mb-4 p-3 bg-rose-50 text-rose-700 rounded-xl text-xs border border-rose-200">
-                                {blockError}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleBlockDates} className="space-y-4 text-xs">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                        From Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        min={new Date().toISOString().slice(0, 10)}
-                                        value={blockForm.from}
-                                        onChange={(e) => setBlockForm({ ...blockForm, from: e.target.value })}
-                                        required
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                        To Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        min={blockForm.from}
-                                        value={blockForm.to}
-                                        onChange={(e) => setBlockForm({ ...blockForm, to: e.target.value })}
-                                        required
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                    Reason (Optional)
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. Festival, Equipment Servicing, Travel"
-                                    value={blockForm.reason}
-                                    onChange={(e) => setBlockForm({ ...blockForm, reason: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100"
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={savingBlock}
-                                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-md transition-colors"
-                            >
-                                {savingBlock ? 'Blocking...' : 'Block Selected Dates'}
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Blocked dates list */}
-                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm max-w-2xl space-y-3">
-                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">
-                            Current Blocked Dates ({blockedDates.length})
-                        </h4>
-
-                        {blockedDates.length === 0 ? (
-                            <p className="text-xs text-gray-400 italic">No dates manually blocked.</p>
-                        ) : (
-                            <div className="divide-y divide-gray-100 dark:divide-slate-700/60">
-                                {blockedDates.map((b) => (
-                                    <div key={b.id} className="py-2.5 flex items-center justify-between text-xs">
-                                        <div>
-                                            <span className="font-bold text-gray-900 dark:text-white">{b.date}</span>
-                                            {b.reason && (
-                                                <span className="text-gray-400 ml-2 italic">({b.reason})</span>
-                                            )}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleUnblockDate(b.id)}
-                                            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
-                                        >
-                                            Unblock
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+            {activeTab === 'calendar' && <SPBlockCalendar />}
 
             {/* Service Modal (Add / Edit) */}
             {editingService && (
@@ -576,63 +411,93 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                        Category *
-                                    </label>
-                                    <select
-                                        value={serviceFormData.category}
-                                        onChange={(e) => setServiceFormData({ ...serviceFormData, category: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                    >
-                                        {(categories.length > 0 ? categories : ['Irrigation', 'Electrical', 'Agronomy', 'Farm Labour', 'Harvesting', 'Plumbing']).map(c => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
-                                    </select>
+                            {serviceError && (
+                                <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs border border-rose-200">
+                                    {serviceError}
                                 </div>
-                                <div>
-                                    <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                        Billing Unit *
-                                    </label>
-                                    <select
-                                        value={serviceFormData.unit}
-                                        onChange={(e) => setServiceFormData({ ...serviceFormData, unit: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                    >
-                                        <option value="day">per Day</option>
-                                        <option value="job">per Job</option>
-                                        <option value="hour">per Hour</option>
-                                    </select>
-                                </div>
+                            )}
+
+                            <div>
+                                <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                    Category *
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    list="sp-category-options"
+                                    maxLength={60}
+                                    placeholder="Pick one or type your own — e.g. Coconut climbing"
+                                    value={serviceFormData.category}
+                                    onChange={(e) => setServiceFormData({ ...serviceFormData, category: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                                <datalist id="sp-category-options">
+                                    {categories.map(c => <option key={c} value={c} />)}
+                                </datalist>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                        Price / Day (₹)
+                                        Charged per *
                                     </label>
-                                    <input
-                                        type="number"
-                                        placeholder="1200"
-                                        value={serviceFormData.pricePerDay}
-                                        onChange={(e) => setServiceFormData({ ...serviceFormData, pricePerDay: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100"
-                                    />
+                                    <select
+                                        value={serviceFormData.unitIsCustom ? '__other__' : serviceFormData.unit}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setServiceFormData(v === '__other__'
+                                                ? { ...serviceFormData, unit: '', unitIsCustom: true }
+                                                : { ...serviceFormData, unit: v, unitIsCustom: false });
+                                        }}
+                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    >
+                                        <option value="day">Day (per worker)</option>
+                                        <option value="job">Job (fixed price)</option>
+                                        <option value="hour">Hour</option>
+                                        <option value="piece">Piece</option>
+                                        <option value="plant">Plant</option>
+                                        <option value="tree">Tree</option>
+                                        <option value="acre">Acre</option>
+                                        <option value="sq ft">Sq ft</option>
+                                        <option value="metre">Metre</option>
+                                        <option value="kg">Kg</option>
+                                        <option value="__other__">Other (type your own)…</option>
+                                    </select>
+                                    {serviceFormData.unitIsCustom && (
+                                        <input
+                                            type="text"
+                                            required
+                                            maxLength={30}
+                                            autoFocus
+                                            placeholder="e.g. bag, bed, pit"
+                                            value={serviceFormData.unit}
+                                            onChange={(e) => setServiceFormData({ ...serviceFormData, unit: e.target.value })}
+                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 mt-2"
+                                        />
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                                        Price / Job (₹)
+                                        Price (₹){serviceFormData.unit ? ` per ${serviceFormData.unit}` : ''} *
                                     </label>
                                     <input
                                         type="number"
-                                        placeholder="5000"
-                                        value={serviceFormData.pricePerJob}
-                                        onChange={(e) => setServiceFormData({ ...serviceFormData, pricePerJob: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100"
+                                        required
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="e.g. 12.50"
+                                        value={serviceFormData.price}
+                                        onChange={(e) => setServiceFormData({ ...serviceFormData, price: e.target.value })}
+                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     />
                                 </div>
                             </div>
+                            <p className="text-[11px] text-gray-400 -mt-2">
+                                {describeBilling({ unit: serviceFormData.unit || 'unit' })}.
+                                {billingMode(serviceFormData.unit) === 'per_unit' && serviceFormData.unit
+                                    ? ` e.g. ₹${serviceFormData.price || '12'} × 200 ${serviceFormData.unit} = ₹${((Number(serviceFormData.price) || 12) * 200).toLocaleString('en-IN')}.`
+                                    : ''}
+                            </p>
 
                             <div>
                                 <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { spFarmerBookingApi } from '../../utils/spApi';
+import { formatQuantity } from '../../utils/pricing';
 
 const MyBookingsPage = () => {
     const [bookings, setBookings] = useState([]);
@@ -201,6 +202,7 @@ const MyBookingsPage = () => {
                                     <span className="text-gray-400 dark:text-gray-500 block font-medium">Workers</span>
                                     <span className="font-semibold text-gray-900 dark:text-white mt-0.5 block">
                                         {b.workersNeeded} Worker{b.workersNeeded > 1 ? 's' : ''}
+                                        {formatQuantity(b) ? ` • ${formatQuantity(b)}` : ''}
                                     </span>
                                 </div>
                                 <div>
