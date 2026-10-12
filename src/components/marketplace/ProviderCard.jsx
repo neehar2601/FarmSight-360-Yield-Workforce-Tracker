@@ -10,6 +10,8 @@ const ProviderCard = ({ provider, onSelect }) => {
         bio,
         isVerified,
         totalWorkers,
+        worksAsTeam,
+        teamSize,
         services = [],
     } = provider;
 
@@ -64,10 +66,15 @@ const ProviderCard = ({ provider, onSelect }) => {
                         </div>
                     </div>
 
-                    <div className="text-right shrink-0">
+                    <div className="text-right shrink-0 flex flex-col items-end gap-1">
                         <span className="inline-block px-2.5 py-1 rounded-xl bg-gray-50 dark:bg-slate-700/60 border border-gray-100 dark:border-slate-600 text-xs font-semibold text-gray-700 dark:text-gray-300">
                             {totalWorkers} {totalWorkers === 1 ? 'Worker' : 'Workers'}
                         </span>
+                        {worksAsTeam && teamSize > 1 && (
+                            <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-[10px] font-bold text-indigo-700 dark:text-indigo-300" title={`Deployed in teams of ${teamSize}`}>
+                                👥 Teams of {teamSize}
+                            </span>
+                        )}
                     </div>
                 </div>
 

@@ -15,9 +15,25 @@ const SPProfilePage = ({ onBackToDashboard }) => {
         location: currentSP?.location || '',
         bio: currentSP?.bio || '',
         totalWorkers: currentSP?.totalWorkers || 1,
+        worksAsTeam: Boolean(currentSP?.worksAsTeam),
+        teamSize: currentSP?.teamSize || 5,
     });
     const [savingProfile, setSavingProfile] = useState(false);
     const [profileFeedback, setProfileFeedback] = useState(null);
+
+    useEffect(() => {
+        if (currentSP) {
+            setProfileData({
+                name: currentSP.name || '',
+                phone: currentSP.phone || '',
+                location: currentSP.location || '',
+                bio: currentSP.bio || '',
+                totalWorkers: currentSP.totalWorkers || 1,
+                worksAsTeam: Boolean(currentSP.worksAsTeam),
+                teamSize: currentSP.teamSize || 5,
+            });
+        }
+    }, [currentSP]);
 
     // Services state
     const [services, setServices] = useState([]);
@@ -56,12 +72,18 @@ const SPProfilePage = ({ onBackToDashboard }) => {
         setSavingProfile(true);
         setProfileFeedback(null);
         try {
+            const workers = currentSP?.type === 'individual' ? 1 : Math.max(1, Number(profileData.totalWorkers) || 1);
+            const isTeam = currentSP?.type === 'firm' && Boolean(profileData.worksAsTeam);
+            const tSize = isTeam ? Math.min(Math.max(1, Number(profileData.teamSize) || 1), workers) : 1;
+
             await updateProfile({
                 name: profileData.name,
                 phone: profileData.phone,
                 location: profileData.location,
                 bio: profileData.bio,
-                totalWorkers: currentSP?.type === 'individual' ? 1 : Number(profileData.totalWorkers),
+                totalWorkers: workers,
+                worksAsTeam: isTeam,
+                teamSize: tSize,
             });
             setProfileFeedback({ type: 'success', message: 'Profile updated successfully!' });
             await refreshProfile();
@@ -358,6 +380,54 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                     <p className="text-[11px] text-gray-400 mt-1">
                                         Note: Capacity cannot be lowered below the number of workers already booked on upcoming days.
                                     </p>
+
+                                    {/* Team Deployment Option */}
+                                    <div className="mt-4 p-4 rounded-xl border border-emerald-100 dark:border-slate-700 bg-emerald-50/50 dark:bg-slate-800/60 space-y-3">
+                                        <div className="flex items-start gap-3">
+                                            <input
+                                                type="checkbox"
+                                                id="worksAsTeamCheckbox"
+                                                checked={profileData.worksAsTeam}
+                                                onChange={(e) => setProfileData({ ...profileData, worksAsTeam: e.target.checked })}
+                                                className="mt-0.5 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
+                                            />
+                                            <div>
+                                                <label htmlFor="worksAsTeamCheckbox" className="font-semibold text-xs text-gray-800 dark:text-gray-200 cursor-pointer block">
+                                                    Deploy workers as a team / set
+                                                </label>
+                                                <p className="text-[11px] text-gray-500 dark:text-slate-400">
+                                                    Workers will be deployed together in fixed sets (e.g. 5 at a time). Farmers must book full teams and cannot book 1 or 2 workers individually.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {profileData.worksAsTeam && (
+                                            <div className="pl-7 space-y-2 pt-2 border-t border-emerald-100/60 dark:border-slate-700">
+                                                <div className="flex items-center gap-3">
+                                                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 min-w-36">
+                                                        Workers per Team (Set size):
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="2"
+                                                        max={Math.max(2, Number(profileData.totalWorkers) || 2)}
+                                                        value={profileData.teamSize}
+                                                        onChange={(e) => setProfileData({ ...profileData, teamSize: Math.max(1, Number(e.target.value)) })}
+                                                        className="w-24 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                                    />
+                                                </div>
+                                                <div className="text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-100/60 dark:bg-emerald-950/60 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                                    💡 <strong>{profileData.totalWorkers}</strong> total workers ={' '}
+                                                    <strong>{Math.floor((Number(profileData.totalWorkers) || 0) / (Number(profileData.teamSize) || 1))} full team(s)</strong> of {profileData.teamSize} workers.
+                                                    {(Number(profileData.totalWorkers) || 0) % (Number(profileData.teamSize) || 1) !== 0 && (
+                                                        <span className="text-amber-700 dark:text-amber-400 block mt-0.5">
+                                                            ⚠️ Note: {Number(profileData.totalWorkers) % Number(profileData.teamSize)} remaining worker(s) cannot form a complete team.
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>

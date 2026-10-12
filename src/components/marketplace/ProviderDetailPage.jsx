@@ -121,8 +121,18 @@ const ProviderDetailPage = ({ providerId, onBack }) => {
                                 )}
                                 <span className="flex items-center gap-1 font-medium">
                                     <span>👥 Capacity:</span>
-                                    <strong className="text-gray-900 dark:text-white">{provider.totalWorkers} Workers</strong>
+                                    <strong className="text-gray-900 dark:text-white">
+                                        {provider.totalWorkers} Workers
+                                        {provider.worksAsTeam && provider.teamSize > 1
+                                            ? ` (${Math.floor(provider.totalWorkers / provider.teamSize)} Teams of ${provider.teamSize})`
+                                            : ''}
+                                    </strong>
                                 </span>
+                                {provider.worksAsTeam && provider.teamSize > 1 && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md font-semibold text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                        🤝 Deploys in teams of {provider.teamSize}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>

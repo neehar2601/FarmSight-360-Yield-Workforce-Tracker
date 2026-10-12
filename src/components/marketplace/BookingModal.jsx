@@ -14,9 +14,13 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
         return services[0] || null;
     });
 
+    const isTeamMode = Boolean(provider.worksAsTeam && provider.teamSize > 1);
+    const teamSize = isTeamMode ? Number(provider.teamSize) : 1;
+    const maxTeams = Math.max(1, Math.floor((Number(provider.totalWorkers) || 1) / teamSize));
+
     const [startDate, setStartDate] = useState(initialDate || new Date().toISOString().slice(0, 10));
     const [endDate, setEndDate] = useState(initialDate || new Date().toISOString().slice(0, 10));
-    const [workersNeeded, setWorkersNeeded] = useState(1);
+    const [workersNeeded, setWorkersNeeded] = useState(() => (isTeamMode ? teamSize : 1));
     const [quantity, setQuantity] = useState('');
     const [notes, setNotes] = useState('');
 
@@ -273,29 +277,82 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                 </div>
                             )}
 
-                            <div>
-                                <div className="flex justify-between items-center mb-1">
-                                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                        Workers Needed
-                                    </label>
-                                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                        Max provider capacity: {provider.totalWorkers}
-                                    </span>
+                            {isTeamMode ? (
+                                <div>
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                                            <span>Team Selection</span>
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                Sets of {teamSize} workers
+                                            </span>
+                                        </label>
+                                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                            Max: {maxTeams} {maxTeams === 1 ? 'Team' : 'Teams'} ({provider.totalWorkers} workers)
+                                        </span>
+                                    </div>
+
+                                    {/* Team Selector options */}
+                                    <div className="grid grid-cols-2 gap-2 mb-2">
+                                        {Array.from({ length: maxTeams }, (_, i) => i + 1).map((teamNum) => {
+                                            const count = teamNum * teamSize;
+                                            const isSelected = workersNeeded === count;
+                                            return (
+                                                <button
+                                                    key={teamNum}
+                                                    type="button"
+                                                    onClick={() => setWorkersNeeded(count)}
+                                                    className={`py-2.5 px-3 rounded-xl border text-left flex items-center justify-between transition-all ${
+                                                        isSelected
+                                                            ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-500 dark:border-emerald-500 text-emerald-950 dark:text-emerald-100 ring-2 ring-emerald-500/30 font-bold'
+                                                            : 'bg-white dark:bg-slate-700/80 border-gray-200 dark:border-slate-600 text-gray-800 dark:text-gray-200 hover:border-gray-300 dark:hover:border-slate-500'
+                                                    }`}
+                                                >
+                                                    <div>
+                                                        <span className="text-xs block">
+                                                            {teamNum} {teamNum === 1 ? 'Team' : 'Teams'}
+                                                        </span>
+                                                        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                                                            {count} workers total
+                                                        </span>
+                                                    </div>
+                                                    {isSelected && (
+                                                        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs">
+                                                            ✓
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[11px] text-gray-500 dark:text-slate-400">
+                                        ℹ️ This provider only deploys in complete teams of {teamSize} workers. Individual bookings (e.g. 1 or 2 workers) are not permitted.
+                                    </p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="range"
-                                        min={1}
-                                        max={provider.totalWorkers || 1}
-                                        value={workersNeeded}
-                                        onChange={(e) => setWorkersNeeded(Number(e.target.value))}
-                                        className="w-full accent-emerald-600"
-                                    />
-                                    <span className="w-12 text-center py-1 px-2 font-bold text-sm bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                        {workersNeeded}
-                                    </span>
+                            ) : (
+                                <div>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                            Workers Needed
+                                        </label>
+                                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                            Max provider capacity: {provider.totalWorkers}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="range"
+                                            min={1}
+                                            max={provider.totalWorkers || 1}
+                                            value={workersNeeded}
+                                            onChange={(e) => setWorkersNeeded(Number(e.target.value))}
+                                            className="w-full accent-emerald-600"
+                                        />
+                                        <span className="w-12 text-center py-1 px-2 font-bold text-sm bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                            {workersNeeded}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
@@ -389,7 +446,12 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                 )}
                                 <div className="flex justify-between pb-2 border-b border-gray-200 dark:border-slate-600">
                                     <span className="text-gray-600 dark:text-gray-300 font-medium">Workers Reserved</span>
-                                    <span className="font-semibold text-gray-900 dark:text-white">{heldBooking?.workersNeeded} Worker(s)</span>
+                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                        {heldBooking?.workersNeeded} Worker(s)
+                                        {isTeamMode && teamSize > 1
+                                            ? ` (${Math.floor(heldBooking?.workersNeeded / teamSize)} Team${Math.floor(heldBooking?.workersNeeded / teamSize) > 1 ? 's' : ''})`
+                                            : ''}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between pt-1 text-sm font-bold text-emerald-800 dark:text-emerald-300">
                                     <span>Total Estimate</span>

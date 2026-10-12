@@ -8,6 +8,8 @@ const AvailabilityCalendar = ({ spId, onSelectDate, selectedStartDate, selectedE
     });
     const [daysData, setDaysData] = useState([]);
     const [totalWorkers, setTotalWorkers] = useState(1);
+    const [worksAsTeam, setWorksAsTeam] = useState(false);
+    const [teamSize, setTeamSize] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -22,6 +24,8 @@ const AvailabilityCalendar = ({ spId, onSelectDate, selectedStartDate, selectedE
                 if (isMounted) {
                     setDaysData(res.days || []);
                     setTotalWorkers(res.totalWorkers || 1);
+                    setWorksAsTeam(Boolean(res.worksAsTeam));
+                    setTeamSize(res.teamSize || 1);
                 }
             } catch (err) {
                 if (isMounted) setError(err.message);
@@ -80,7 +84,9 @@ const AvailabilityCalendar = ({ spId, onSelectDate, selectedStartDate, selectedE
                     <h4 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <span>Availability Calendar</span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-medium">
-                            {totalWorkers} {totalWorkers === 1 ? 'Worker' : 'Workers'} Capacity
+                            {worksAsTeam && teamSize > 1
+                                ? `${totalWorkers} Workers (${Math.floor(totalWorkers / teamSize)} Teams of ${teamSize})`
+                                : `${totalWorkers} ${totalWorkers === 1 ? 'Worker' : 'Workers'} Capacity`}
                         </span>
                     </h4>
                     <p className="text-xs text-gray-600 dark:text-gray-300">Live booking slots & reserved dates</p>
@@ -176,11 +182,21 @@ const AvailabilityCalendar = ({ spId, onSelectDate, selectedStartDate, selectedE
                                         ? 'ring-2 ring-emerald-500 font-bold scale-[1.03] shadow-sm z-10'
                                         : ''
                                 } ${isSelectable ? 'cursor-pointer hover:shadow-md hover:scale-[1.04]' : 'cursor-default'}`}
-                                title={`${d.date}: ${d.blocked ? 'Provider Day Off' : `${d.available}/${d.total} workers available`}`}
+                                title={`${d.date}: ${
+                                    d.blocked
+                                        ? 'Provider Day Off'
+                                        : worksAsTeam && teamSize > 1
+                                            ? `${Math.floor(d.available / teamSize)} team(s) (${d.available} workers) available`
+                                            : `${d.available}/${d.total} workers available`
+                                }`}
                             >
                                 <span className="text-xs leading-none font-semibold">{dayNum}</span>
                                 <span className="text-[10px] leading-tight font-medium mt-0.5">
-                                    {d.blocked ? 'Off' : `${d.available} left`}
+                                    {d.blocked
+                                        ? 'Off'
+                                        : worksAsTeam && teamSize > 1
+                                            ? `${Math.floor(d.available / teamSize)} tm`
+                                            : `${d.available} left`}
                                 </span>
                             </button>
                         );
