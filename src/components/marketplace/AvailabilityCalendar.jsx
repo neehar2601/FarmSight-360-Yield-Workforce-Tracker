@@ -79,30 +79,30 @@ const AvailabilityCalendar = ({ spId, onSelectDate, selectedStartDate, selectedE
                 <div>
                     <h4 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <span>Availability Calendar</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-medium">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-medium">
                             {totalWorkers} {totalWorkers === 1 ? 'Worker' : 'Workers'} Capacity
                         </span>
                     </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Live booking slots & reserved dates</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">Live booking slots & reserved dates</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
                         onClick={handlePrevMonth}
-                        className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 transition-colors"
+                        className="p-1.5 rounded-lg border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition-colors"
                         title="Previous Month"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
                     </button>
-                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 min-w-32 text-center">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 min-w-32 text-center">
                         {monthLabel()}
                     </span>
                     <button
                         type="button"
                         onClick={handleNextMonth}
-                        className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 transition-colors"
+                        className="p-1.5 rounded-lg border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 transition-colors"
                         title="Next Month"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,7 +113,7 @@ const AvailabilityCalendar = ({ spId, onSelectDate, selectedStartDate, selectedE
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-400 mb-3 pt-1 pb-2 border-b border-gray-100 dark:border-slate-700">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-700 dark:text-gray-300 mb-3 pt-1 pb-2 border-b border-gray-100 dark:border-slate-700">
                 <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
                     <span>Available</span>
@@ -129,7 +129,7 @@ const AvailabilityCalendar = ({ spId, onSelectDate, selectedStartDate, selectedE
             </div>
 
             {/* Days of week header */}
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-600 dark:text-slate-400 mb-1">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
                     <div key={d} className="py-1">{d}</div>
                 ))}
@@ -152,15 +152,15 @@ const AvailabilityCalendar = ({ spId, onSelectDate, selectedStartDate, selectedE
                         const past = isPast(d.date);
                         const selected = isSelected(d.date);
 
-                        let badgeBg = 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800';
+                        let badgeBg = 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
                         if (d.status === 'full' || d.blocked) {
-                            badgeBg = 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900/60';
+                            badgeBg = 'bg-rose-50 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/60';
                         } else if (d.status === 'limited') {
-                            badgeBg = 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800';
+                            badgeBg = 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800';
                         }
 
                         if (past) {
-                            badgeBg = 'bg-gray-50 dark:bg-slate-900/40 text-gray-400 dark:text-gray-600 border-transparent opacity-60';
+                            badgeBg = 'bg-gray-100/70 dark:bg-slate-800/40 text-gray-400 dark:text-slate-500 border-transparent';
                         }
 
                         const isSelectable = !past && d.status !== 'full' && !d.blocked && onSelectDate;

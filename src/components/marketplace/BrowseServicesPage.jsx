@@ -155,33 +155,33 @@ const BrowseServicesPage = ({ selectedProviderId = null }) => {
 
                 {/* Date and Worker Availability filter row */}
                 <div className="pt-2 border-t border-gray-100 dark:border-slate-700 flex flex-wrap items-center gap-3 text-xs">
-                    <span className="font-semibold text-gray-500 dark:text-gray-400 shrink-0">Filter by Dates:</span>
+                    <span className="font-semibold text-gray-600 dark:text-gray-300 shrink-0">Filter by Dates:</span>
                     <input
                         type="date"
                         value={fromDate}
                         min={new Date().toISOString().slice(0, 10)}
                         onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
-                        className="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-700 dark:text-gray-200"
+                        className="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-gray-900 dark:text-gray-100"
                     />
-                    <span className="text-gray-400">to</span>
+                    <span className="text-gray-500 dark:text-slate-400 font-medium">to</span>
                     <input
                         type="date"
                         value={toDate}
                         min={fromDate || new Date().toISOString().slice(0, 10)}
                         onChange={(e) => { setToDate(e.target.value); setPage(1); }}
-                        className="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-700 dark:text-gray-200"
+                        className="px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-gray-900 dark:text-gray-100"
                     />
 
                     {(fromDate || toDate) && (
                         <div className="flex items-center gap-2 ml-auto">
-                            <span className="text-gray-500 dark:text-gray-400">Workers:</span>
+                            <span className="text-gray-600 dark:text-gray-300 font-medium">Workers:</span>
                             <input
                                 type="number"
                                 min={1}
                                 max={50}
                                 value={workersNeeded}
                                 onChange={(e) => setWorkersNeeded(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                                className="w-16 px-2 py-1 rounded-lg border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-center font-bold"
+                                className="w-16 px-2 py-1 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-center font-bold text-gray-900 dark:text-gray-100"
                             />
                         </div>
                     )}

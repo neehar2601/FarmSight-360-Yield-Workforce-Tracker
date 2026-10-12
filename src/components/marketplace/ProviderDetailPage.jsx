@@ -141,7 +141,7 @@ const ProviderDetailPage = ({ providerId, onBack }) => {
 
                 {provider.bio && (
                     <div className="mt-5 pt-4 border-t border-gray-100 dark:border-slate-700">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">About the Provider</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-1">About the Provider</h3>
                         <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed max-w-3xl">
                             {provider.bio}
                         </p>
@@ -169,7 +169,7 @@ const ProviderDetailPage = ({ providerId, onBack }) => {
                                     key={s.id}
                                     className={`p-5 rounded-2xl border transition-all ${
                                         selectedServiceId === s.id
-                                            ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-500 dark:border-emerald-700 shadow-md ring-1 ring-emerald-500'
+                                            ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-500 dark:border-emerald-700 shadow-md ring-1 ring-emerald-500'
                                             : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-800'
                                     }`}
                                 >
@@ -198,7 +198,7 @@ const ProviderDetailPage = ({ providerId, onBack }) => {
                                     </div>
 
                                     <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700/60 flex items-center justify-between">
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        <span className="text-xs text-gray-600 dark:text-slate-400 font-medium">
                                             {describeBilling(s)}
                                         </span>
                                         <button

@@ -171,9 +171,9 @@ const SPDashboard = ({ onNavigateToProfile }) => {
                         </div>
 
                         {loading ? (
-                            <div className="py-12 text-center text-xs text-gray-400">Loading requests...</div>
+                            <div className="py-12 text-center text-xs text-gray-500 dark:text-slate-400">Loading requests...</div>
                         ) : pendingBookings.length === 0 ? (
-                            <div className="p-8 text-center text-xs text-gray-500 dark:text-gray-400 italic">
+                            <div className="p-8 text-center text-xs text-gray-600 dark:text-gray-300 italic">
                                 No pending requests awaiting confirmation.
                             </div>
                         ) : (
@@ -192,7 +192,7 @@ const SPDashboard = ({ onNavigateToProfile }) => {
                                                     {b.serviceName} ({b.serviceCategory})
                                                 </p>
                                                 {b.farmUserEmail && (
-                                                    <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                                                    <span className="text-[11px] text-gray-500 dark:text-slate-400 font-medium">
                                                         ✉️ {b.farmUserEmail}
                                                     </span>
                                                 )}
@@ -202,19 +202,19 @@ const SPDashboard = ({ onNavigateToProfile }) => {
                                                 <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400 block">
                                                     ₹{Number(b.totalAmount || 0).toLocaleString('en-IN')}
                                                 </span>
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                <span className="text-xs text-gray-600 dark:text-gray-300">
                                                     {b.workersNeeded} Worker{b.workersNeeded > 1 ? 's' : ''}
                                                     {formatQuantity(b) ? ` • ${formatQuantity(b)}` : ''}
                                                 </span>
                                             </div>
                                         </div>
 
-                                        <div className="text-xs bg-white/80 dark:bg-slate-800/80 p-2.5 rounded-xl text-gray-700 dark:text-gray-300 flex justify-between items-center">
+                                        <div className="text-xs bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-xl text-gray-700 dark:text-gray-200 flex justify-between items-center">
                                             <span>
                                                 📅 Scheduled: <strong>{b.startDate}</strong> → <strong>{b.endDate}</strong>
                                             </span>
                                             {b.notes && (
-                                                <span className="truncate max-w-xs text-gray-500 italic">
+                                                <span className="truncate max-w-xs text-gray-600 dark:text-gray-300 italic">
                                                     "{b.notes}"
                                                 </span>
                                             )}
@@ -338,7 +338,7 @@ const SPDashboard = ({ onNavigateToProfile }) => {
                                     value={declineReason}
                                     onChange={(e) => setDeclineReason(e.target.value)}
                                     placeholder="e.g. Schedule fully committed, equipment maintenance..."
-                                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
                                 />
                             </div>
 
@@ -346,7 +346,7 @@ const SPDashboard = ({ onNavigateToProfile }) => {
                                 <button
                                     type="button"
                                     onClick={() => setDeclineBooking(null)}
-                                    className="px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100"
+                                    className="px-4 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-600"
                                 >
                                     Cancel
                                 </button>

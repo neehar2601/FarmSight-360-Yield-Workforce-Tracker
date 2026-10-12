@@ -84,7 +84,7 @@ const SPApp = () => {
                         <span className="block text-xs font-bold text-gray-900 dark:text-white truncate max-w-48">
                             {currentSP?.name}
                         </span>
-                        <span className="block text-[11px] text-gray-400 truncate max-w-48">
+                        <span className="block text-[11px] text-gray-500 dark:text-slate-400 truncate max-w-48">
                             {currentSP?.email}
                         </span>
                     </div>
@@ -92,7 +92,7 @@ const SPApp = () => {
                     <button
                         type="button"
                         onClick={handleLogout}
-                        className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                        className="px-3 py-1.5 rounded-xl border border-gray-300 dark:border-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
                     >
                         Logout
                     </button>

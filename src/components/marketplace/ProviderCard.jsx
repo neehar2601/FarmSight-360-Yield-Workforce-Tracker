@@ -98,7 +98,7 @@ const ProviderCard = ({ provider, onSelect }) => {
             {/* Footer with Price and Action */}
             <div className="pt-3 border-t border-gray-100 dark:border-slate-700/80 flex items-center justify-between gap-3">
                 <div>
-                    <span className="block text-[11px] text-gray-400 dark:text-gray-500 font-medium">Starting from</span>
+                    <span className="block text-[11px] text-gray-500 dark:text-slate-400 font-medium">Starting from</span>
                     <span className="text-base font-bold text-gray-900 dark:text-white">
                         {cheapest ? formatRate(cheapest) : 'Contact for pricing'}
                     </span>

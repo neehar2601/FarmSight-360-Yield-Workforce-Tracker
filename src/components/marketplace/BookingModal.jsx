@@ -202,7 +202,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                     {stage === 'config' && (
                         <form onSubmit={handleStartHold} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
                                     Select Service
                                 </label>
                                 <select
@@ -211,7 +211,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                         const svc = services.find(s => s.id === e.target.value);
                                         setSelectedService(svc);
                                     }}
-                                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-sm font-medium text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                 >
                                     {services.map(s => (
                                         <option key={s.id} value={s.id}>
@@ -223,7 +223,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
                                         Start Date
                                     </label>
                                     <input
@@ -232,11 +232,11 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                         value={startDate}
                                         onChange={(e) => setStartDate(e.target.value)}
                                         required
-                                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-sm font-medium text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
                                         End Date
                                     </label>
                                     <input
@@ -245,14 +245,14 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                         value={endDate}
                                         onChange={(e) => setEndDate(e.target.value)}
                                         required
-                                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-sm font-medium text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                     />
                                 </div>
                             </div>
 
                             {isPerUnit && (
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
                                         How many {selectedService.unit}? *
                                     </label>
                                     <div className="flex items-center gap-2">
@@ -264,9 +264,9 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                             value={quantity}
                                             onChange={(e) => setQuantity(e.target.value)}
                                             placeholder="e.g. 200"
-                                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-sm font-medium text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                         />
-                                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
                                             × {formatRate(selectedService)}
                                         </span>
                                     </div>
@@ -275,10 +275,10 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
 
                             <div>
                                 <div className="flex justify-between items-center mb-1">
-                                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200">
                                         Workers Needed
                                     </label>
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                                         Max provider capacity: {provider.totalWorkers}
                                     </span>
                                 </div>
@@ -298,7 +298,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
                                     Notes or Specific Requirements (Optional)
                                 </label>
                                 <textarea
@@ -306,19 +306,19 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                     placeholder="e.g. Irrigation filter setup, gate access instructions..."
-                                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-sm text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-none"
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-none"
                                 />
                             </div>
 
                             {/* Cost summary card */}
-                            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between">
+                            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
                                 <div>
-                                    <span className="text-xs text-emerald-800 dark:text-emerald-300 font-medium block">Estimated Cost</span>
-                                    <span className="text-xl font-bold text-emerald-900 dark:text-emerald-200">
+                                    <span className="text-xs text-emerald-800 dark:text-emerald-300 font-semibold block">Estimated Cost</span>
+                                    <span className="text-xl font-bold text-emerald-950 dark:text-emerald-100">
                                         ₹{calculateEstimate().toLocaleString('en-IN')}
                                     </span>
                                 </div>
-                                <div className="text-right text-[11px] text-emerald-700 dark:text-emerald-400">
+                                <div className="text-right text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">
                                     <span>Real-time DB reservation lock</span>
                                 </div>
                             </div>
@@ -349,7 +349,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                     {stage === 'held' && (
                         <div className="space-y-4">
                             {/* Live Timer Banner */}
-                            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800">
+                            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
                                         <span className="flex h-3 w-3 relative">
@@ -360,7 +360,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                             Workers Blocked For You
                                         </span>
                                     </div>
-                                    <div className="px-2.5 py-1 rounded-lg bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 font-mono font-bold text-sm">
+                                    <div className="px-2.5 py-1 rounded-lg bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 font-mono font-bold text-sm">
                                         ⏱️ {formatTimer(timeRemaining)}
                                     </div>
                                 </div>
@@ -370,25 +370,25 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                             </div>
 
                             {/* Booking Details Card */}
-                            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 space-y-2.5 text-xs text-gray-700 dark:text-gray-300">
+                            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 space-y-2.5 text-xs text-gray-700 dark:text-gray-300">
                                 <div className="flex justify-between pb-2 border-b border-gray-200 dark:border-slate-600">
-                                    <span className="text-gray-500 dark:text-gray-400 font-medium">Service</span>
+                                    <span className="text-gray-600 dark:text-gray-300 font-medium">Service</span>
                                     <span className="font-semibold text-gray-900 dark:text-white">{heldBooking?.serviceName}</span>
                                 </div>
                                 <div className="flex justify-between pb-2 border-b border-gray-200 dark:border-slate-600">
-                                    <span className="text-gray-500 dark:text-gray-400 font-medium">Date Range</span>
+                                    <span className="text-gray-600 dark:text-gray-300 font-medium">Date Range</span>
                                     <span className="font-semibold text-gray-900 dark:text-white">
                                         {heldBooking?.startDate} → {heldBooking?.endDate}
                                     </span>
                                 </div>
                                 {formatQuantity(heldBooking) && (
                                     <div className="flex justify-between pb-2 border-b border-gray-200 dark:border-slate-600">
-                                        <span className="text-gray-500 dark:text-gray-400 font-medium">Quantity</span>
+                                        <span className="text-gray-600 dark:text-gray-300 font-medium">Quantity</span>
                                         <span className="font-semibold text-gray-900 dark:text-white">{formatQuantity(heldBooking)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between pb-2 border-b border-gray-200 dark:border-slate-600">
-                                    <span className="text-gray-500 dark:text-gray-400 font-medium">Workers Reserved</span>
+                                    <span className="text-gray-600 dark:text-gray-300 font-medium">Workers Reserved</span>
                                     <span className="font-semibold text-gray-900 dark:text-white">{heldBooking?.workersNeeded} Worker(s)</span>
                                 </div>
                                 <div className="flex justify-between pt-1 text-sm font-bold text-emerald-800 dark:text-emerald-300">
@@ -403,7 +403,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                     type="button"
                                     onClick={handleReleaseHold}
                                     disabled={isSubmitting}
-                                    className="py-2.5 px-4 rounded-xl border border-gray-300 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-semibold text-xs transition-colors"
+                                    className="py-2.5 px-4 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 font-semibold text-xs transition-colors"
                                 >
                                     Cancel & Release
                                 </button>
@@ -436,13 +436,13 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                             </div>
                             <div>
                                 <h4 className="text-lg font-bold text-gray-900 dark:text-white">Booking Placed Successfully!</h4>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
+                                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 max-w-sm mx-auto">
                                     Your request has been submitted to <strong>{provider.name}</strong>. The provider will accept or reach out before the start date.
                                 </p>
                             </div>
-                            <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl text-xs text-gray-600 dark:text-gray-300">
+                            <div className="p-3 bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 rounded-xl text-xs text-gray-700 dark:text-gray-200">
                                 <span>Booking Reference: </span>
-                                <code className="font-mono text-emerald-700 dark:text-emerald-300">{heldBooking?.id?.slice(0, 8)}...</code>
+                                <code className="font-mono text-emerald-700 dark:text-emerald-300 font-bold">{heldBooking?.id?.slice(0, 8)}...</code>
                             </div>
                             <div className="flex justify-center gap-3 pt-2">
                                 <button
@@ -458,7 +458,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 text-xs font-semibold transition-colors"
+                                    className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 text-xs font-semibold transition-colors"
                                 >
                                     Done
                                 </button>
@@ -474,7 +474,7 @@ const BookingModal = ({ provider, selectedServiceId, initialDate, onClose, onSuc
                             </div>
                             <div>
                                 <h4 className="text-base font-bold text-gray-900 dark:text-white">Reservation Expired</h4>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
+                                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 max-w-sm mx-auto">
                                     The 10-minute hold window timed out. The reserved workers have been released back to the marketplace.
                                 </p>
                             </div>

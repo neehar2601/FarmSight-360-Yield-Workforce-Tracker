@@ -165,14 +165,14 @@ const SPBlockCalendar = () => {
         const selected = inSelection(date);
         const preview = !selected && inPreview(date);
 
-        if (date < today) return 'bg-gray-50 dark:bg-slate-800/40 text-gray-300 dark:text-slate-600 cursor-not-allowed border-transparent';
+        if (date < today) return 'bg-gray-100/60 dark:bg-slate-800/40 text-gray-400 dark:text-slate-500 cursor-not-allowed border-transparent';
         if (selected) {
             return isBlocked
                 ? 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-500 ring-2 ring-emerald-500 text-emerald-900 dark:text-emerald-200'
                 : 'bg-rose-100 dark:bg-rose-900/40 border-rose-500 ring-2 ring-rose-500 text-rose-900 dark:text-rose-200';
         }
         if (preview) return 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300';
-        if (isBlocked) return 'bg-gray-200 dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-500 dark:text-gray-300 hover:border-emerald-400';
+        if (isBlocked) return 'bg-gray-200 dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:border-emerald-400';
         if (hasBookings) return 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 hover:border-amber-500';
         return 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-100 hover:border-rose-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/20';
     };
@@ -186,7 +186,7 @@ const SPBlockCalendar = () => {
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h3 className="text-base font-bold text-gray-900 dark:text-white">{monthLabel}</h3>
-                        <p className="text-[11px] text-gray-400 mt-0.5">
+                        <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">
                             {monthBlockedCount} day{monthBlockedCount !== 1 ? 's' : ''} blocked this month
                         </p>
                     </div>
@@ -224,7 +224,7 @@ const SPBlockCalendar = () => {
 
                 <div className="grid grid-cols-7 gap-1.5 mb-1.5">
                     {WEEKDAYS.map((w) => (
-                        <div key={w} className="text-center text-[10px] font-semibold uppercase tracking-wider text-gray-400 py-1">{w}</div>
+                        <div key={w} className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-slate-400 py-1">{w}</div>
                     ))}
                 </div>
 
@@ -298,7 +298,7 @@ const SPBlockCalendar = () => {
                                     {selectedBlocked.length > 0 && ` • ${selectedBlocked.length} already blocked`}
                                 </div>
                                 {!rangeEnd && (
-                                    <div className="text-[11px] text-gray-400 mt-1">Click another date to extend the range.</div>
+                                    <div className="text-[11px] text-gray-500 dark:text-slate-400 mt-1">Click another date to extend the range.</div>
                                 )}
                             </div>
 

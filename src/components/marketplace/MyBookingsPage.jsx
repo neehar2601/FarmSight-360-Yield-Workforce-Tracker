@@ -193,26 +193,26 @@ const MyBookingsPage = () => {
                             {/* Details Row */}
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 text-xs">
                                 <div>
-                                    <span className="text-gray-400 dark:text-gray-500 block font-medium">Dates</span>
+                                    <span className="text-gray-500 dark:text-slate-400 block font-medium">Dates</span>
                                     <span className="font-semibold text-gray-900 dark:text-white mt-0.5 block">
                                         {b.startDate} → {b.endDate}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-gray-400 dark:text-gray-500 block font-medium">Workers</span>
+                                    <span className="text-gray-500 dark:text-slate-400 block font-medium">Workers</span>
                                     <span className="font-semibold text-gray-900 dark:text-white mt-0.5 block">
                                         {b.workersNeeded} Worker{b.workersNeeded > 1 ? 's' : ''}
                                         {formatQuantity(b) ? ` • ${formatQuantity(b)}` : ''}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-gray-400 dark:text-gray-500 block font-medium">Estimated Total</span>
+                                    <span className="text-gray-500 dark:text-slate-400 block font-medium">Estimated Total</span>
                                     <span className="font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 block text-sm">
                                         ₹{Number(b.totalAmount || 0).toLocaleString('en-IN')}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-gray-400 dark:text-gray-500 block font-medium">Provider Contact</span>
+                                    <span className="text-gray-500 dark:text-slate-400 block font-medium">Provider Contact</span>
                                     {b.spPhone ? (
                                         <a
                                             href={`tel:${b.spPhone}`}
@@ -221,7 +221,7 @@ const MyBookingsPage = () => {
                                             📞 {b.spPhone}
                                         </a>
                                     ) : (
-                                        <span className="text-gray-400 dark:text-gray-500 italic mt-0.5 block">
+                                        <span className="text-gray-500 dark:text-slate-400 italic mt-0.5 block">
                                             Visible once confirmed
                                         </span>
                                     )}
@@ -232,7 +232,7 @@ const MyBookingsPage = () => {
                             {(b.notes || b.cancelReason) && (
                                 <div className="mt-2 p-3 bg-gray-50 dark:bg-slate-700/40 rounded-xl text-xs space-y-1">
                                     {b.notes && (
-                                        <p className="text-gray-600 dark:text-gray-300">
+                                        <p className="text-gray-700 dark:text-gray-300">
                                             <strong>Notes:</strong> {b.notes}
                                         </p>
                                     )}
@@ -280,7 +280,7 @@ const MyBookingsPage = () => {
                                     value={cancelReason}
                                     onChange={(e) => setCancelReason(e.target.value)}
                                     placeholder="e.g. Schedule clash, weather change..."
-                                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
                                 />
                             </div>
 
@@ -289,7 +289,7 @@ const MyBookingsPage = () => {
                                     type="button"
                                     onClick={() => setCancellingBooking(null)}
                                     disabled={isCancelling}
-                                    className="px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                                    className="px-4 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-600"
                                 >
                                     Keep Booking
                                 </button>

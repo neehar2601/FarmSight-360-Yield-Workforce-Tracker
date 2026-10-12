@@ -7,10 +7,13 @@ export const ThemeProvider = ({ children }) => {
         try { return localStorage.getItem('farm360_theme') || 'light'; } catch { return 'light'; }
     });
 
+    // Initialize immediately to prevent flash
     useEffect(() => {
         try { localStorage.setItem('farm360_theme', theme); } catch {}
-        // Apply class to root for any global CSS that may reference it
+        // Apply class and attribute to root for Tailwind darkMode: 'class' and global CSS
         document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.style.colorScheme = theme;
     }, [theme]);
 
     const setTheme = (t) => setThemeState(t);

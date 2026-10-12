@@ -980,11 +980,11 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                                         const isSat = dow === 6;
                                         const future = isFutureDay(d);
                                         return (
-                                            <th key={d} className={`p-1.5 text-center font-semibold border-b border-gray-200 min-w-[28px] ${
-                                                future      ? 'text-gray-300 bg-gray-50'
-                                                : isSun     ? 'text-rose-500 bg-rose-50'
-                                                : isSat     ? 'text-amber-600 bg-amber-50'
-                                                            : 'text-gray-500'
+                                            <th key={d} className={`p-1.5 text-center font-semibold border-b border-gray-200 dark:border-slate-700 min-w-[28px] ${
+                                                future      ? 'text-gray-400 bg-gray-50 dark:text-slate-500 dark:bg-slate-800'
+                                                : isSun     ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/40'
+                                                : isSat     ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40'
+                                                            : 'text-gray-500 dark:text-gray-400'
                                             }`}>
                                                 <div>{d}</div>
                                                 <div className="text-[9px] font-normal">{['Su','Mo','Tu','We','Th','Fr','Sa'][dow]}</div>

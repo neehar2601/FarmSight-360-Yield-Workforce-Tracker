@@ -412,13 +412,13 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                             </div>
 
                             {serviceError && (
-                                <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs border border-rose-200">
+                                <div className="p-3 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 rounded-xl text-xs border border-rose-200 dark:border-rose-900">
                                     {serviceError}
                                 </div>
                             )}
 
                             <div>
-                                <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                <label className="block font-semibold text-gray-700 dark:text-gray-200 mb-1">
                                     Category *
                                 </label>
                                 <input
@@ -429,7 +429,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                     placeholder="Pick one or type your own — e.g. Coconut climbing"
                                     value={serviceFormData.category}
                                     onChange={(e) => setServiceFormData({ ...serviceFormData, category: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                                 <datalist id="sp-category-options">
                                     {categories.map(c => <option key={c} value={c} />)}
@@ -438,7 +438,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block font-semibold text-gray-700 dark:text-gray-200 mb-1">
                                         Charged per *
                                     </label>
                                     <select
@@ -449,7 +449,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                                 ? { ...serviceFormData, unit: '', unitIsCustom: true }
                                                 : { ...serviceFormData, unit: v, unitIsCustom: false });
                                         }}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     >
                                         <option value="day">Day (per worker)</option>
                                         <option value="job">Job (fixed price)</option>
@@ -472,12 +472,12 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                             placeholder="e.g. bag, bed, pit"
                                             value={serviceFormData.unit}
                                             onChange={(e) => setServiceFormData({ ...serviceFormData, unit: e.target.value })}
-                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 mt-2"
+                                            className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 mt-2"
                                         />
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                    <label className="block font-semibold text-gray-700 dark:text-gray-200 mb-1">
                                         Price (₹){serviceFormData.unit ? ` per ${serviceFormData.unit}` : ''} *
                                     </label>
                                     <input
@@ -488,11 +488,11 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                         placeholder="e.g. 12.50"
                                         value={serviceFormData.price}
                                         onChange={(e) => setServiceFormData({ ...serviceFormData, price: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                     />
                                 </div>
                             </div>
-                            <p className="text-[11px] text-gray-400 -mt-2">
+                            <p className="text-[11px] text-gray-500 dark:text-slate-400 -mt-2">
                                 {describeBilling({ unit: serviceFormData.unit || 'unit' })}.
                                 {billingMode(serviceFormData.unit) === 'per_unit' && serviceFormData.unit
                                     ? ` e.g. ₹${serviceFormData.price || '12'} × 200 ${serviceFormData.unit} = ₹${((Number(serviceFormData.price) || 12) * 200).toLocaleString('en-IN')}.`
@@ -500,7 +500,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                             </p>
 
                             <div>
-                                <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                <label className="block font-semibold text-gray-700 dark:text-gray-200 mb-1">
                                     Description (Scope of Work)
                                 </label>
                                 <textarea
@@ -508,7 +508,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                     placeholder="Tools included, crew specifications..."
                                     value={serviceFormData.description}
                                     onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 text-xs text-gray-800 dark:text-gray-100 resize-none"
+                                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-slate-400 resize-none"
                                 />
                             </div>
 
@@ -516,7 +516,7 @@ const SPProfilePage = ({ onBackToDashboard }) => {
                                 <button
                                     type="button"
                                     onClick={() => setEditingService(null)}
-                                    className="px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100"
+                                    className="px-4 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-600"
                                 >
                                     Cancel
                                 </button>
