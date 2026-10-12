@@ -63,6 +63,7 @@ class MockStore {
         if (role === 'farmer') return 'user-farmer-1';
         if (role === 'consumer') return 'user-customer-1';
         if (role === 'depot') return 'user-admin-1';
+        if (role === 'nursery') return 'user-nursery-1';
         return 'user-farmer-1';
     }
 
@@ -76,7 +77,7 @@ class MockStore {
                     'farms', 'crops', 'activities', 'inventory', 'machinery',
                     'workers', 'expenses', 'revenue', 'crop_sales',
                     'marketplace_listings', 'hub_consignments', 'marketplace_orders',
-                    'b2b_rfqs', 'users'
+                    'b2b_rfqs', 'users', 'nursery_vendors', 'nursery_listings', 'nursery_orders'
                 ];
                 for (const t of tables) {
                     if (!parsed[t]) {
@@ -89,6 +90,39 @@ class MockStore {
                     for (const defListing of INITIAL_DATA.marketplace_listings) {
                         if (!parsed.marketplace_listings.some(l => l.id === defListing.id)) {
                             parsed.marketplace_listings.push(clone(defListing));
+                        }
+                    }
+                }
+
+                // Ensure initial seed nursery data exists
+                if (Array.isArray(INITIAL_DATA.nursery_listings) && (!parsed.nursery_listings || parsed.nursery_listings.length === 0)) {
+                    parsed.nursery_listings = clone(INITIAL_DATA.nursery_listings);
+                }
+                if (Array.isArray(INITIAL_DATA.nursery_vendors) && (!parsed.nursery_vendors || parsed.nursery_vendors.length === 0)) {
+                    parsed.nursery_vendors = clone(INITIAL_DATA.nursery_vendors);
+                }
+                if (Array.isArray(INITIAL_DATA.nursery_orders) && (!parsed.nursery_orders || parsed.nursery_orders.length === 0)) {
+                    parsed.nursery_orders = clone(INITIAL_DATA.nursery_orders);
+                }
+                if (INITIAL_DATA.users?.some(u => u.id === 'user-nursery-1') && !parsed.users?.some(u => u.id === 'user-nursery-1')) {
+                    const nurseryUser = INITIAL_DATA.users.find(u => u.id === 'user-nursery-1');
+                    if (nurseryUser) parsed.users.push(clone(nurseryUser));
+                }
+
+                // Ensure unified nursery inventory items exist
+                if (Array.isArray(INITIAL_DATA.inventory_items)) {
+                    if (!parsed.inventory_items) parsed.inventory_items = [];
+                    for (const defItem of INITIAL_DATA.inventory_items) {
+                        if (!parsed.inventory_items.some(i => i.id === defItem.id)) {
+                            parsed.inventory_items.unshift(clone(defItem));
+                        }
+                    }
+                }
+                if (Array.isArray(INITIAL_DATA.inventory_categories)) {
+                    if (!parsed.inventory_categories) parsed.inventory_categories = [];
+                    for (const defCat of INITIAL_DATA.inventory_categories) {
+                        if (!parsed.inventory_categories.some(c => c.id === defCat.id)) {
+                            parsed.inventory_categories.unshift(clone(defCat));
                         }
                     }
                 }
@@ -192,6 +226,7 @@ class MockStore {
             if (user.role === 'user') this.activeRole = 'farmer';
             else if (user.role === 'customer' || user.role === 'b2b_buyer') this.activeRole = 'consumer';
             else if (user.role === 'superadmin') this.activeRole = 'depot';
+            else if (user.role === 'nursery_operator') this.activeRole = 'nursery';
             localStorage.setItem(ACTIVE_ROLE_KEY, this.activeRole);
         }
         this.notify();
@@ -318,8 +353,34 @@ class MockStore {
             expected_harvest_date: cropData.expected_harvest_date || null,
             is_archived: false,
             notes: cropData.notes || '',
+            source_planting_material: cropData.source_planting_material || null,
             created_at: new Date().toISOString(),
         };
+
+        // If sourced from own farm nursery inventory (Option A + Option C unified integration)
+        if (cropData.nursery_inventory_item_id && cropData.nursery_quantity_used > 0) {
+            const invItem = (this.state.inventory_items || []).find(i => i.id === cropData.nursery_inventory_item_id);
+            if (invItem) {
+                const usedQty = parseFloat(cropData.nursery_quantity_used);
+                invItem.reserved_for_farm = Math.max(0, (invItem.reserved_for_farm || 0) - usedQty);
+                invItem.quantity = Math.max(0, (invItem.quantity || 0) - usedQty);
+                newCrop.source_planting_material = {
+                    inventory_item_id: invItem.id,
+                    name: invItem.name,
+                    variety: invItem.variety || '',
+                    quantity_used: usedQty,
+                    unit: invItem.unit,
+                };
+                // Also update any linked nursery listing reserved_for_farm count
+                const listing = (this.state.nursery_listings || []).find(
+                    l => l.id === invItem.nursery_listing_id || l.linked_inventory_item_id === invItem.id
+                );
+                if (listing) {
+                    listing.reserved_for_farm = invItem.reserved_for_farm;
+                }
+            }
+        }
+
         this.state.crops.push(newCrop);
         this.saveState();
         return { data: newCrop, error: null };
@@ -1369,6 +1430,674 @@ class MockStore {
             label: 'Wholesale Shipment Inward Verified & Received',
             timestamp: new Date().toISOString(),
             note: `Received at buyer warehouse by ${inspector} (Gate Pass #${gatePass}). ${notes}`,
+        });
+
+        this.saveState();
+        return { data: order, error: null };
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // NURSERY & SEED PROPAGATION METHODS
+    // ═════════════════════════════════════════════════════════════════════════
+
+    getNurseryVendors() {
+        return this.state.nursery_vendors || [];
+    }
+
+    getNurseryVendorById(id) {
+        return (this.state.nursery_vendors || []).find(v => v.id === id) || null;
+    }
+
+    getCurrentNursery() {
+        const user = this.getCurrentUser();
+        if (user && user.nursery_id) {
+            return this.getNurseryVendorById(user.nursery_id);
+        }
+        return (this.state.nursery_vendors || [])[0] || null;
+    }
+
+    registerNurseryVendor({
+        name,
+        license_number,
+        operator_name,
+        email,
+        mobile_number,
+        address,
+        polyhouse_area,
+        monthly_capacity,
+        specialties,
+    }) {
+        if (!name || !email) return { error: 'Nursery name and email are required.' };
+
+        const nurseryId = `nursery-${Date.now()}`;
+        const userId = `user-nursery-${Date.now()}`;
+
+        const newVendor = {
+            id: nurseryId,
+            name,
+            license_number: license_number || `NUR-KA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+            operator_id: userId,
+            operator_name: operator_name || 'Nursery Manager',
+            email,
+            mobile_number: mobile_number || '+91 98450 00000',
+            address: typeof address === 'string' ? { street: address, state: 'Karnataka', pincode: '560001' } : (address || { street: 'Main Agricultural Corridor, Mandya' }),
+            polyhouse_area: polyhouse_area || '2.0 Acres Protected Polyhouse',
+            monthly_capacity: monthly_capacity || '1,00,000 Seedlings',
+            accreditation: 'State Horticulture Dept Certified Nursery',
+            specialties: specialties || ['Vegetable Seedlings', 'Certified Seeds', 'Fruit Grafts'],
+            rating: 5.0,
+            avatar_url: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=300&auto=format&fit=crop&q=80',
+            is_verified: true,
+            pickup_timings: 'Mon–Sat: 8:00 AM – 6:00 PM',
+            delivery_available: true,
+            delivery_charge_base: 150,
+            created_at: new Date().toISOString(),
+        };
+
+        const newUser = {
+            id: userId,
+            name: `${operator_name || 'Nursery Manager'} (${name})`,
+            email,
+            mobile_number: mobile_number || '+91 98450 00000',
+            role: 'nursery_operator',
+            nursery_id: nurseryId,
+            avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+            is_first_login: false,
+            created_at: new Date().toISOString(),
+        };
+
+        if (!this.state.nursery_vendors) this.state.nursery_vendors = [];
+        this.state.nursery_vendors.push(newVendor);
+        this.state.users.push(newUser);
+
+        this.currentUserId = userId;
+        this.activeRole = 'nursery';
+        localStorage.setItem(CURRENT_USER_KEY, userId);
+        localStorage.setItem(ACTIVE_ROLE_KEY, 'nursery');
+
+        this.saveState();
+        return { data: { vendor: newVendor, user: newUser }, error: null };
+    }
+
+    getNurseryListings({ category, type, nurseryId, search } = {}) {
+        let list = [...(this.state.nursery_listings || [])];
+        if (nurseryId) list = list.filter(l => l.nursery_id === nurseryId);
+        if (category && category !== 'All') list = list.filter(l => l.category === category);
+        if (type && type !== 'all') list = list.filter(l => l.availability_type === type);
+        if (search) {
+            const q = search.toLowerCase();
+            list = list.filter(l =>
+                l.title?.toLowerCase().includes(q) ||
+                l.variety?.toLowerCase().includes(q) ||
+                l.category?.toLowerCase().includes(q) ||
+                l.nursery_name?.toLowerCase().includes(q)
+            );
+        }
+        return list;
+    }
+
+    getNurseryListingById(id) {
+        return (this.state.nursery_listings || []).find(l => l.id === id) || null;
+    }
+
+    createNurseryListing(listingData) {
+        const nursery = this.getCurrentNursery();
+        const id = `nl-${Date.now()}`;
+        const newListing = {
+            id,
+            nursery_id: nursery?.id || 'nursery-1',
+            nursery_name: nursery?.name || 'Sunrise Agro Nursery',
+            title: listingData.title,
+            variety: listingData.variety || '',
+            category: listingData.category || 'Vegetable Seedlings',
+            availability_type: listingData.availability_type || 'in_stock',
+            unit: listingData.unit || 'Tray (98 Seedlings)',
+            unit_price: parseFloat(listingData.unit_price) || 0,
+            stock_qty: listingData.availability_type === 'in_stock' ? (parseFloat(listingData.stock_qty) || 0) : 0,
+            batch_capacity: listingData.availability_type === 'pre_order' ? (parseFloat(listingData.batch_capacity) || 500) : null,
+            pre_ordered_qty: 0,
+            available_batch_qty: listingData.availability_type === 'pre_order' ? (parseFloat(listingData.batch_capacity) || 500) : null,
+            reserved_for_farm: parseFloat(listingData.reserved_for_farm) || 0,
+            min_order_qty: parseFloat(listingData.min_order_qty) || 1,
+            advance_percentage: parseFloat(listingData.advance_percentage) || 20,
+            ready_by_date: listingData.ready_by_date || null,
+            current_stage: listingData.availability_type === 'pre_order' ? (listingData.current_stage || 'sown') : null,
+            stage_history: listingData.availability_type === 'pre_order' ? [
+                {
+                    stage: listingData.current_stage || 'sown',
+                    label: 'Batch Initiated & Booking Opened',
+                    timestamp: new Date().toISOString(),
+                    note: listingData.stage_note || 'Batch listed with specifications for advance farmer bookings.',
+                }
+            ] : [],
+            specs: listingData.specs || {},
+            lead_time_days: listingData.availability_type === 'in_stock' ? 1 : null,
+            pickup_available: listingData.pickup_available !== false,
+            delivery_available: listingData.delivery_available !== false,
+            image_url: listingData.image_url || 'https://images.unsplash.com/photo-1592417817098-8f3d69109853?w=500&auto=format&fit=crop&q=80',
+            description: listingData.description || '',
+            created_at: new Date().toISOString(),
+        };
+
+        // Unified Farm Inventory Link (Option A + Option C)
+        const farmId = listingData.farm_id || this.getCurrentFarm()?.id || 'farm-1';
+        if (listingData.link_to_farm_inventory !== false) {
+            newListing.farm_id = farmId;
+            const allocatedQty = newListing.availability_type === 'in_stock' ? newListing.stock_qty : (newListing.batch_capacity || 0);
+            const reservedQty = newListing.reserved_for_farm || 0;
+            const totalQty = reservedQty + allocatedQty;
+
+            if (listingData.linked_inventory_item_id) {
+                newListing.linked_inventory_item_id = listingData.linked_inventory_item_id;
+                const invItem = (this.state.inventory_items || []).find(i => i.id === listingData.linked_inventory_item_id);
+                if (invItem) {
+                    invItem.nursery_listing_id = newListing.id;
+                    invItem.reserved_for_farm = reservedQty;
+                    invItem.allocated_for_sale = allocatedQty;
+                    invItem.available_for_sale = allocatedQty;
+                    invItem.selling_price = newListing.unit_price;
+                    invItem.quantity = reservedQty + allocatedQty;
+                    invItem.is_marketplace_listed = true;
+                }
+            } else {
+                const invItemId = `inv-nursery-${Date.now()}`;
+                const newInvItem = {
+                    id: invItemId,
+                    farm_id: farmId,
+                    name: newListing.title,
+                    variety: newListing.variety || '',
+                    category: 'Seeds & Nursery Planting Material',
+                    unit: newListing.unit,
+                    quantity: totalQty,
+                    reserved_for_farm: reservedQty,
+                    allocated_for_sale: allocatedQty,
+                    sold_quantity: 0,
+                    available_for_sale: allocatedQty,
+                    cost_price: Math.round(newListing.unit_price * 0.7),
+                    selling_price: newListing.unit_price,
+                    expiry_date: newListing.ready_by_date || null,
+                    is_marketplace_listed: true,
+                    nursery_listing_id: newListing.id,
+                    current_stage: newListing.current_stage || (newListing.availability_type === 'pre_order' ? 'sown' : 'ready_available'),
+                    ready_by_date: newListing.ready_by_date || null,
+                    availability_type: newListing.availability_type,
+                    notes: `Self-propagated batch linked to Nursery Storefront.`,
+                };
+                if (!this.state.inventory_items) this.state.inventory_items = [];
+                this.state.inventory_items.unshift(newInvItem);
+                newListing.linked_inventory_item_id = invItemId;
+            }
+        }
+
+        if (!this.state.nursery_listings) this.state.nursery_listings = [];
+        this.state.nursery_listings.unshift(newListing);
+        this.saveState();
+        return { data: newListing, error: null };
+    }
+
+    updateNurseryListing(id, updates) {
+        const listing = this.getNurseryListingById(id);
+        if (!listing) return { error: 'Listing not found' };
+        Object.assign(listing, updates);
+
+        // Two-way sync to linked farm inventory item
+        const linkedInv = (this.state.inventory_items || []).find(
+            i => i.id === listing.linked_inventory_item_id || i.nursery_listing_id === listing.id
+        );
+        if (linkedInv) {
+            if (updates.title) linkedInv.name = updates.title;
+            if (updates.variety !== undefined) linkedInv.variety = updates.variety;
+            if (updates.unit) linkedInv.unit = updates.unit;
+            if (updates.unit_price !== undefined) linkedInv.selling_price = parseFloat(updates.unit_price) || linkedInv.selling_price;
+            if (updates.current_stage) linkedInv.current_stage = updates.current_stage;
+            if (updates.ready_by_date !== undefined) linkedInv.ready_by_date = updates.ready_by_date;
+            if (updates.availability_type) linkedInv.availability_type = updates.availability_type;
+            if (updates.reserved_for_farm !== undefined) {
+                linkedInv.reserved_for_farm = parseFloat(updates.reserved_for_farm) || 0;
+                listing.reserved_for_farm = linkedInv.reserved_for_farm;
+            }
+
+            const isPreOrder = (updates.availability_type || listing.availability_type) === 'pre_order';
+            if (isPreOrder && updates.batch_capacity !== undefined) {
+                linkedInv.allocated_for_sale = parseFloat(updates.batch_capacity) || 0;
+                linkedInv.available_for_sale = Math.max(0, linkedInv.allocated_for_sale - (linkedInv.sold_quantity || 0));
+                listing.available_batch_qty = linkedInv.available_for_sale;
+                linkedInv.quantity = (linkedInv.reserved_for_farm || 0) + linkedInv.available_for_sale + (linkedInv.sold_quantity || 0);
+            } else if (!isPreOrder && updates.stock_qty !== undefined) {
+                linkedInv.available_for_sale = parseFloat(updates.stock_qty) || 0;
+                linkedInv.allocated_for_sale = linkedInv.available_for_sale + (linkedInv.sold_quantity || 0);
+                linkedInv.quantity = (linkedInv.reserved_for_farm || 0) + linkedInv.available_for_sale + (linkedInv.sold_quantity || 0);
+            }
+        }
+
+        this.saveState();
+        return { data: listing, error: null };
+    }
+
+    deleteNurseryListing(id) {
+        if (!this.state.nursery_listings) return { error: 'No listings' };
+        this.state.nursery_listings = this.state.nursery_listings.filter(l => l.id !== id);
+        this.saveState();
+        return { success: true };
+    }
+
+    getNurseryOrders({ customerId, nurseryId, status } = {}) {
+        let list = [...(this.state.nursery_orders || [])];
+        if (customerId) list = list.filter(o => o.customer_id === customerId);
+        if (nurseryId) list = list.filter(o => o.nursery_id === nurseryId);
+        if (status) list = list.filter(o => o.status === status);
+        return list;
+    }
+
+    getNurseryOrderById(id) {
+        return (this.state.nursery_orders || []).find(o => o.id === id || o.order_number === id) || null;
+    }
+
+    placeNurseryOrder({
+        listing_id,
+        quantity,
+        fulfillment_type = 'nursery_pickup',
+        shipping_address = null,
+        pickup_slot = null,
+        notes = null,
+    }) {
+        const user = this.getCurrentUser();
+        const listing = this.getNurseryListingById(listing_id);
+        if (!listing) return { error: 'Item not found in nursery catalogue.' };
+
+        const qty = parseFloat(quantity) || listing.min_order_qty || 1;
+        const subtotal = Math.round(qty * listing.unit_price);
+        const isPreOrder = listing.availability_type === 'pre_order';
+        const advancePercentage = isPreOrder ? (listing.advance_percentage || 20) : 100;
+        const advanceAmount = Math.round(subtotal * (advancePercentage / 100));
+        const balanceAmount = subtotal - advanceAmount;
+
+        const orderId = `nord-${Date.now()}`;
+        const orderNumber = `NUR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        const initialStatus = isPreOrder ? 'pre_order_confirmed' : (fulfillment_type === 'nursery_pickup' ? 'ready_for_pickup' : 'confirmed');
+        const pickupCode = !isPreOrder && fulfillment_type === 'nursery_pickup' ? Math.floor(100000 + Math.random() * 900000).toString() : null;
+
+        const newOrder = {
+            id: orderId,
+            order_number: orderNumber,
+            customer_id: user?.id || 'user-customer-1',
+            customer_name: user?.name || 'Customer',
+            customer_phone: user?.mobile_number || '+91 98765 43210',
+            customer_type: user?.role === 'user' ? 'farmer' : (user?.role === 'b2b_buyer' ? 'b2b_buyer' : 'consumer'),
+            nursery_id: listing.nursery_id,
+            nursery_name: listing.nursery_name,
+            listing_id: listing.id,
+            item_title: listing.title,
+            variety: listing.variety,
+            category: listing.category,
+            is_pre_order: isPreOrder,
+            quantity: qty,
+            unit: listing.unit,
+            unit_price: listing.unit_price,
+            subtotal,
+            advance_percentage: advancePercentage,
+            advance_amount: advanceAmount,
+            balance_amount: balanceAmount,
+            is_advance_paid: true,
+            is_balance_paid: !isPreOrder,
+            payment_status: isPreOrder
+                ? `${advancePercentage}% Advance Paid (₹${advanceAmount.toLocaleString()}); Balance ₹${balanceAmount.toLocaleString()} upon readiness`
+                : '100% Fully Paid (Escrow)',
+            fulfillment_type,
+            pickup_details: fulfillment_type === 'nursery_pickup' ? {
+                location: `${listing.nursery_name} Main Gate`,
+                slot: pickup_slot || (isPreOrder ? `Target Ready Date: ${listing.ready_by_date || 'In 3 Weeks'}` : 'Tomorrow, 9:00 AM – 1:00 PM'),
+            } : null,
+            shipping_address: fulfillment_type === 'nursery_delivery' ? shipping_address : null,
+            pickup_code: pickupCode,
+            status: initialStatus,
+            ready_by_date: listing.ready_by_date || null,
+            current_stage: isPreOrder ? (listing.current_stage || 'sown') : 'ready_available',
+            stage_history: [
+                {
+                    stage: 'booked',
+                    label: isPreOrder ? 'Pre-Order Confirmed & Advance Held in Escrow' : 'Order Placed',
+                    timestamp: new Date().toISOString(),
+                    note: isPreOrder
+                        ? `Booked ${qty} ${listing.unit}. Advance deposit ₹${advanceAmount.toLocaleString()} confirmed. Batch reserved in nursery.`
+                        : `Order placed for ${qty} ${listing.unit}.`,
+                    updated_by: listing.nursery_name,
+                },
+                ...(isPreOrder && listing.stage_history ? listing.stage_history.filter(s => s.stage !== 'booked') : [])
+            ],
+            notes: notes || '',
+            created_at: new Date().toISOString(),
+        };
+
+        // Update listing quantities
+        if (isPreOrder) {
+            listing.pre_ordered_qty = (listing.pre_ordered_qty || 0) + qty;
+            listing.available_batch_qty = Math.max(0, (listing.batch_capacity || 0) - listing.pre_ordered_qty);
+        } else {
+            listing.stock_qty = Math.max(0, (listing.stock_qty || 0) - qty);
+        }
+
+        // Two-Way Sync: Update linked farm inventory item
+        const linkedInv = (this.state.inventory_items || []).find(
+            i => i.id === listing.linked_inventory_item_id || i.nursery_listing_id === listing.id
+        );
+        if (linkedInv) {
+            linkedInv.sold_quantity = (linkedInv.sold_quantity || 0) + qty;
+            linkedInv.available_for_sale = Math.max(0, (linkedInv.allocated_for_sale || 0) - linkedInv.sold_quantity);
+            if (!isPreOrder) {
+                linkedInv.quantity = Math.max(0, (linkedInv.quantity || 0) - qty);
+            }
+        }
+
+        if (!this.state.nursery_orders) this.state.nursery_orders = [];
+        this.state.nursery_orders.unshift(newOrder);
+
+        this.saveState();
+        return { data: newOrder, error: null };
+    }
+
+    updateNurseryBatchStage(orderIdOrListingId, { stage, notes, photo_url, ready_by_date } = {}) {
+        const stageLabels = {
+            booked: 'Pre-Order Booking & Seed Prep',
+            sown: 'Precision Sown in Pro-Trays / Germinating',
+            growing: 'Active Growing & Vegetative Vigor in Polyhouse',
+            collected: 'Collected, Hardened under Sunlight & Graded',
+            processed: 'Processed, Root-Balled & Quality Crated',
+            ready_available: 'Ready for Collection / Delivery Handover',
+            completed: 'Delivered / Handed Over to Farmer',
+        };
+
+        const targetLabel = stageLabels[stage] || stage;
+        const timestamp = new Date().toISOString();
+
+        // Check if target is an order
+        let order = this.getNurseryOrderById(orderIdOrListingId);
+        if (order) {
+            order.current_stage = stage;
+            if (ready_by_date) order.ready_by_date = ready_by_date;
+
+            order.stage_history.push({
+                stage,
+                label: targetLabel,
+                timestamp,
+                note: notes || `Batch advanced to ${targetLabel}.`,
+                photo_url: photo_url || null,
+                updated_by: order.nursery_name,
+            });
+
+            if (stage === 'ready_available') {
+                if (order.fulfillment_type === 'nursery_pickup') {
+                    order.status = 'ready_for_pickup';
+                    if (!order.pickup_code) {
+                        order.pickup_code = Math.floor(100000 + Math.random() * 900000).toString();
+                    }
+                } else {
+                    order.status = 'ready_for_dispatch';
+                }
+            } else if (stage === 'completed') {
+                order.status = 'completed';
+            }
+
+            // Also update parent listing
+            const listing = this.getNurseryListingById(order.listing_id);
+            if (listing) {
+                listing.current_stage = stage;
+                if (ready_by_date) listing.ready_by_date = ready_by_date;
+                if (!listing.stage_history) listing.stage_history = [];
+                listing.stage_history.push({
+                    stage,
+                    label: targetLabel,
+                    timestamp,
+                    note: notes || `Batch advanced to ${targetLabel}.`,
+                    photo_url: photo_url || null,
+                });
+            }
+
+            this.saveState();
+            return { data: order, error: null };
+        }
+
+        // Check if target is a listing
+        const listing = this.getNurseryListingById(orderIdOrListingId);
+        if (listing) {
+            listing.current_stage = stage;
+            if (ready_by_date) listing.ready_by_date = ready_by_date;
+            if (!listing.stage_history) listing.stage_history = [];
+            listing.stage_history.push({
+                stage,
+                label: targetLabel,
+                timestamp,
+                note: notes || `Batch advanced to ${targetLabel}.`,
+                photo_url: photo_url || null,
+            });
+
+            // Update all active customer orders for this batch
+            const relatedOrders = (this.state.nursery_orders || []).filter(o => o.listing_id === listing.id);
+            relatedOrders.forEach(ord => {
+                ord.current_stage = stage;
+                if (ready_by_date) ord.ready_by_date = ready_by_date;
+                ord.stage_history.push({
+                    stage,
+                    label: targetLabel,
+                    timestamp,
+                    note: notes || `Batch updated to ${targetLabel}.`,
+                    photo_url: photo_url || null,
+                    updated_by: listing.nursery_name,
+                });
+
+                if (stage === 'ready_available') {
+                    if (ord.fulfillment_type === 'nursery_pickup') {
+                        ord.status = 'ready_for_pickup';
+                        if (!ord.pickup_code) {
+                            ord.pickup_code = Math.floor(100000 + Math.random() * 900000).toString();
+                        }
+                    } else {
+                        ord.status = 'ready_for_dispatch';
+                    }
+                } else if (stage === 'completed') {
+                    ord.status = 'completed';
+                }
+            });
+
+            // Two-way sync: update linked farm inventory stage
+            const linkedInv = (this.state.inventory_items || []).find(
+                i => i.id === listing.linked_inventory_item_id || i.nursery_listing_id === listing.id
+            );
+            if (linkedInv) {
+                linkedInv.current_stage = stage;
+            }
+
+            this.saveState();
+            return { data: listing, error: null };
+        }
+
+        return { error: 'Target not found' };
+    }
+
+    syncInventoryWithNurseryListing(itemId, allocationData) {
+        const item = (this.state.inventory_items || []).find(i => i.id === itemId);
+        if (!item) return { error: 'Inventory item not found' };
+
+        const allocated = parseFloat(allocationData.allocated_for_sale || 0);
+        const reserved = parseFloat(allocationData.reserved_for_farm || 0);
+        const sellingPrice = parseFloat(allocationData.selling_price || item.cost_price || 300);
+        const availabilityType = allocationData.availability_type || 'in_stock';
+        const currentStage = allocationData.current_stage || (availabilityType === 'pre_order' ? 'sown' : 'ready_available');
+        const readyByDate = allocationData.ready_by_date || null;
+        const isListed = allocationData.is_marketplace_listed !== false;
+
+        item.reserved_for_farm = reserved;
+        item.allocated_for_sale = allocated;
+        item.sold_quantity = item.sold_quantity || 0;
+        item.available_for_sale = Math.max(0, allocated - item.sold_quantity);
+        item.quantity = reserved + item.available_for_sale + item.sold_quantity;
+        item.selling_price = sellingPrice;
+        item.availability_type = availabilityType;
+        item.current_stage = currentStage;
+        item.ready_by_date = readyByDate;
+        item.is_marketplace_listed = isListed;
+
+        // Sync or create nursery listing
+        if (!this.state.nursery_listings) this.state.nursery_listings = [];
+        let listing = this.state.nursery_listings.find(
+            l => l.id === item.nursery_listing_id || l.linked_inventory_item_id === item.id
+        );
+
+        if (isListed) {
+            if (listing) {
+                listing.title = item.name;
+                listing.variety = item.variety || '';
+                listing.unit = item.unit;
+                listing.unit_price = sellingPrice;
+                listing.availability_type = availabilityType;
+                listing.batch_capacity = availabilityType === 'pre_order' ? allocated : null;
+                listing.reserved_for_farm = reserved;
+                listing.stock_qty = availabilityType === 'in_stock' ? item.available_for_sale : 0;
+                listing.available_batch_qty = availabilityType === 'pre_order' ? item.available_for_sale : 0;
+                listing.current_stage = currentStage;
+                listing.ready_by_date = readyByDate;
+            } else {
+                const newListing = {
+                    id: `nl-${Date.now()}`,
+                    farm_id: item.farm_id,
+                    linked_inventory_item_id: item.id,
+                    nursery_id: 'nursery-1',
+                    nursery_name: 'Sunrise Agro Nursery (Farm Wing)',
+                    title: item.name,
+                    variety: item.variety || '',
+                    category: 'Vegetable Seedlings',
+                    availability_type: availabilityType,
+                    unit: item.unit,
+                    unit_price: sellingPrice,
+                    batch_capacity: availabilityType === 'pre_order' ? allocated : null,
+                    pre_ordered_qty: item.sold_quantity || 0,
+                    stock_qty: availabilityType === 'in_stock' ? item.available_for_sale : 0,
+                    available_batch_qty: availabilityType === 'pre_order' ? item.available_for_sale : 0,
+                    reserved_for_farm: reserved,
+                    min_order_qty: availabilityType === 'pre_order' ? 5 : 1,
+                    advance_percentage: 20,
+                    ready_by_date: readyByDate,
+                    current_stage: currentStage,
+                    stage_history: [
+                        {
+                            stage: currentStage,
+                            label: 'Allocated from Farm Inventory',
+                            timestamp: new Date().toISOString(),
+                            note: `Self-propagated on Farm ${item.farm_id}. ${allocated} ${item.unit} opened for nursery market.`,
+                        }
+                    ],
+                    pickup_available: true,
+                    delivery_available: true,
+                    image_url: 'https://images.unsplash.com/photo-1592417817098-8f3d69109853?w=500&auto=format&fit=crop&q=80',
+                    description: `Certified disease-free planting material raised on farm. ${reserved} ${item.unit} reserved for internal plots.`,
+                    created_at: new Date().toISOString(),
+                };
+                this.state.nursery_listings.unshift(newListing);
+                item.nursery_listing_id = newListing.id;
+                listing = newListing;
+            }
+        } else if (listing) {
+            // Unlist from marketplace
+            this.state.nursery_listings = this.state.nursery_listings.filter(l => l.id !== listing.id);
+            item.nursery_listing_id = null;
+        }
+
+        this.saveState();
+        return { data: { item, listing }, error: null };
+    }
+
+    settleNurseryBalancePayment(orderId) {
+        const order = this.getNurseryOrderById(orderId);
+        if (!order) return { error: 'Order not found' };
+
+        order.is_balance_paid = true;
+        order.payment_status = '100% Fully Settled (Advance + Balance Paid)';
+        if (order.fulfillment_type === 'nursery_pickup' && !order.pickup_code) {
+            order.pickup_code = Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        order.stage_history.push({
+            stage: 'payment_settled',
+            label: 'Final Balance Payment Settled',
+            timestamp: new Date().toISOString(),
+            note: `Remaining balance of ₹${order.balance_amount.toLocaleString()} paid. Total ₹${order.subtotal.toLocaleString()} settled.`,
+            updated_by: order.customer_name,
+        });
+
+        this.saveState();
+        return { data: order, error: null };
+    }
+
+    confirmNurseryOrderPickup(orderId, enteredPin = null) {
+        const order = this.getNurseryOrderById(orderId);
+        if (!order) return { error: 'Order not found' };
+
+        if (enteredPin && order.pickup_code) {
+            const cleanExpected = order.pickup_code.replace(/[-\s]/g, '');
+            const cleanEntered = enteredPin.replace(/[-\s]/g, '');
+            if (cleanExpected !== cleanEntered) {
+                return { error: `Invalid Pickup PIN (${cleanEntered})!` };
+            }
+        }
+
+        order.status = 'completed';
+        order.current_stage = 'completed';
+        order.is_balance_paid = true;
+        order.payment_status = '100% Fully Settled';
+
+        order.stage_history.push({
+            stage: 'completed',
+            label: 'Nursery Gate Pickup Handover Verified',
+            timestamp: new Date().toISOString(),
+            note: `Handed over at nursery gate with verification code ${order.pickup_code || 'verified'}. Inspection completed.`,
+            updated_by: order.nursery_name,
+        });
+
+        this.saveState();
+        return { data: order, error: null };
+    }
+
+    dispatchNurseryDelivery(orderId, { vehicle_number, driver_name, tracking_number, notes } = {}) {
+        const order = this.getNurseryOrderById(orderId);
+        if (!order) return { error: 'Order not found' };
+
+        order.status = 'dispatched';
+        order.delivery_details = {
+            vehicle_number: vehicle_number || 'KA-11-N-4422',
+            driver_name: driver_name || 'Nursery Fleet Logistics',
+            tracking_number: tracking_number || `NTRK-${Math.floor(100000 + Math.random() * 900000)}`,
+            dispatched_at: new Date().toISOString(),
+            notes: notes || 'Sapling root-balls wrapped with moist cocopeat in ventilated nursery crates.',
+        };
+
+        order.stage_history.push({
+            stage: 'dispatched',
+            label: 'Dispatched from Nursery',
+            timestamp: new Date().toISOString(),
+            note: `Dispatched via ${order.delivery_details.driver_name} (Vehicle ${order.delivery_details.vehicle_number}). Tracking: ${order.delivery_details.tracking_number}.`,
+            updated_by: order.nursery_name,
+        });
+
+        this.saveState();
+        return { data: order, error: null };
+    }
+
+    confirmNurseryDeliveryReception(orderId) {
+        const order = this.getNurseryOrderById(orderId);
+        if (!order) return { error: 'Order not found' };
+
+        order.status = 'completed';
+        order.current_stage = 'completed';
+        order.is_balance_paid = true;
+        order.payment_status = '100% Fully Settled';
+
+        order.stage_history.push({
+            stage: 'completed',
+            label: 'Delivery Received & Accepted by Buyer',
+            timestamp: new Date().toISOString(),
+            note: 'Plants received in excellent vigor at farm. Unloaded and verified.',
+            updated_by: order.customer_name,
         });
 
         this.saveState();

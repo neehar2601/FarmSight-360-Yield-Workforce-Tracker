@@ -9,6 +9,7 @@ import OrderSuccessModal from './OrderSuccessModal';
 import ConsumerOrdersView from './ConsumerOrdersView';
 import AuthModal from './AuthModal';
 import B2BQuoteModal from './B2BQuoteModal';
+import NurseryStorefrontView from './NurseryStorefrontView';
 
 export default function ConsumerApp() {
     const [activeMode, setActiveMode] = useState('retail'); // 'retail' | 'wholesale'
@@ -171,6 +172,15 @@ export default function ConsumerApp() {
                     onBackToShopping={() => setIsOrdersViewOpen(false)}
                     initialTab={ordersInitialTab}
                 />
+            ) : activeMode === 'nursery' ? (
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+                    <NurseryStorefrontView
+                        onOpenOrders={() => {
+                            setOrdersInitialTab('nursery');
+                            setIsOrdersViewOpen(true);
+                        }}
+                    />
+                </main>
             ) : (
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 flex-1">
                     {/* Hero Showcase Banner */}

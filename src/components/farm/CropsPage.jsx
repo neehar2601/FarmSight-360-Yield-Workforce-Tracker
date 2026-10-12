@@ -47,13 +47,61 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
+    // Unified Nursery Planting Material Options
+    const nurseryItems = (mockStore.state.inventory_items || []).filter(
+        i => (i.farm_id === farmId || !i.farm_id) &&
+             (i.category === 'Seeds & Nursery Planting Material' || (i.reserved_for_farm !== undefined && i.reserved_for_farm > 0))
+    );
+    const [sourceFromNursery, setSourceFromNursery] = useState(false);
+    const [selectedNurseryItemId, setSelectedNurseryItemId] = useState(nurseryItems[0]?.id || '');
+    const [nurseryQtyUsed, setNurseryQtyUsed] = useState(nurseryItems[0]?.reserved_for_farm ? Math.min(10, nurseryItems[0].reserved_for_farm).toString() : '5');
+
+    const handleSelectNurseryItem = (itemId) => {
+        setSelectedNurseryItemId(itemId);
+        const item = nurseryItems.find(i => i.id === itemId);
+        if (item) {
+            if (!name) {
+                // Infer crop name from item name
+                const cleanName = item.name.replace(/seedlings|plants|f1 hybrid|hybrid|grafts|plugs/gi, '').trim();
+                setName(cleanName || item.name);
+            }
+            if (item.variety && !variety) {
+                setVariety(item.variety);
+            }
+            if (item.reserved_for_farm) {
+                setNurseryQtyUsed(Math.min(10, item.reserved_for_farm).toString());
+            }
+        }
+    };
+
+    const selectedItem = nurseryItems.find(i => i.id === selectedNurseryItemId);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!name.trim()) { setError('Please enter a crop name.'); return; }
+
+        if (sourceFromNursery && selectedItem) {
+            const used = parseFloat(nurseryQtyUsed) || 0;
+            if (used <= 0) {
+                setError('Please enter a valid nursery seedling quantity to plant.');
+                return;
+            }
+            if (used > (selectedItem.reserved_for_farm || 0)) {
+                setError(`Only ${selectedItem.reserved_for_farm || 0} ${selectedItem.unit} are reserved for own farm plots.`);
+                return;
+            }
+        }
+
         setSaving(true);
         const { data, error: err } = await createCrop({
-            name: name.trim(), variety: variety.trim(), area_planted: area || null,
-            area_unit: 'acres', planting_date: plantingDate, farm_id: farmId,
+            name: name.trim(),
+            variety: variety.trim(),
+            area_planted: area || null,
+            area_unit: 'acres',
+            planting_date: plantingDate,
+            farm_id: farmId,
+            nursery_inventory_item_id: sourceFromNursery ? selectedNurseryItemId : null,
+            nursery_quantity_used: sourceFromNursery ? parseFloat(nurseryQtyUsed) : 0,
         });
         setSaving(false);
         if (err) { setError(err); return; }
@@ -64,9 +112,77 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
     return (
         <Modal onClose={onClose}>
             <h2 className="text-2xl font-bold text-gray-800 mb-1">🌱 Add Crop</h2>
-            <p className="text-gray-400 text-sm mb-6">What are you planting?</p>
+            <p className="text-gray-400 text-sm mb-4">What are you planting on your farm?</p>
             {error && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">{error}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Unified Nursery Source Option */}
+                {nurseryItems.length > 0 && (
+                    <div className="p-3 bg-gradient-to-r from-emerald-50 to-lime-50 border border-emerald-200 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-emerald-900 flex items-center gap-1.5 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={sourceFromNursery}
+                                    onChange={(e) => {
+                                        setSourceFromNursery(e.target.checked);
+                                        if (e.target.checked && nurseryItems.length > 0) {
+                                            handleSelectNurseryItem(selectedNurseryItemId || nurseryItems[0].id);
+                                        }
+                                    }}
+                                    className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                                />
+                                <span>🌱 Source from Own Nursery Seedlings</span>
+                            </label>
+                            <span className="text-[10px] font-bold bg-emerald-200 text-emerald-950 px-2 py-0.5 rounded">
+                                Unified Inventory
+                            </span>
+                        </div>
+
+                        {sourceFromNursery && (
+                            <div className="space-y-2 pt-1 border-t border-emerald-200/60 text-xs">
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-700 mb-1">Select Nursery Seedling Pool:</label>
+                                    <select
+                                        value={selectedNurseryItemId}
+                                        onChange={(e) => handleSelectNurseryItem(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg p-2 text-xs font-semibold bg-white"
+                                    >
+                                        {nurseryItems.map(item => (
+                                            <option key={item.id} value={item.id}>
+                                                {item.name} — Reserved: {item.reserved_for_farm || 0} {item.unit}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {selectedItem && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1">
+                                            <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                                                Seedlings / Trays to Plant ({selectedItem.unit}):
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={selectedItem.reserved_for_farm || 999}
+                                                value={nurseryQtyUsed}
+                                                onChange={(e) => setNurseryQtyUsed(e.target.value)}
+                                                className="w-full border border-gray-300 rounded-lg p-2 text-xs font-bold bg-white"
+                                            />
+                                        </div>
+                                        <div className="text-[11px] text-gray-500 pt-4">
+                                            Available in pool: <strong className="text-emerald-800">{selectedItem.reserved_for_farm || 0} {selectedItem.unit}</strong>
+                                        </div>
+                                    </div>
+                                )}
+                                <p className="text-[10px] text-emerald-800 font-medium">
+                                    🔒 Deducts directly from your farm's reserved nursery pool without touching nursery marketplace sales.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <Field label="Crop Name *">
                     <Input placeholder="e.g. Wheat, Maize, Tomatoes" value={name} onChange={e => setName(e.target.value)} required />
                 </Field>
@@ -720,6 +836,18 @@ const CropCard = ({ crop, onAction, onArchive }) => {
                     {crop.area_planted && <span>📐 {crop.area_planted} {crop.area_unit}</span>}
                     <span>📅 {crop.planting_date?.split('T')[0] || crop.planting_date}</span>
                 </div>
+
+                {/* Sourced Planting Material Badge */}
+                {crop.source_planting_material && (
+                    <div className="mb-3 px-2.5 py-1.5 bg-lime-50 border border-lime-200 rounded-xl text-xs text-lime-900 flex items-center justify-between">
+                        <span className="font-semibold flex items-center gap-1">
+                            <span>🌱</span> Own Nursery Material:
+                        </span>
+                        <strong className="font-black text-lime-950">
+                            {crop.source_planting_material.quantity_used} {crop.source_planting_material.unit} ({crop.source_planting_material.name})
+                        </strong>
+                    </div>
+                )}
 
                 {/* Inventory panel */}
                 {Number(crop.total_harvested) > 0 ? (

@@ -3,6 +3,7 @@ import { mockStore } from './mock/mockStore';
 import AuthApp from './AuthApp';
 import ConsumerApp from './components/consumer/ConsumerApp';
 import DepotApp from './components/depot/DepotApp';
+import NurseryApp from './components/nursery/NurseryApp';
 
 export default function PrototypeShell() {
     const [activeRole, setActiveRole] = useState(mockStore.getActiveRole());
@@ -85,7 +86,7 @@ export default function PrototypeShell() {
                         </div>
 
                         {/* Center Role Buttons */}
-                        <div className="bg-gray-900 p-1 rounded-xl flex items-center border border-gray-800">
+                        <div className="bg-gray-900 p-1 rounded-xl flex items-center border border-gray-800 flex-wrap gap-1">
                             <button
                                 onClick={() => handleRoleChange('farmer')}
                                 className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
@@ -106,6 +107,17 @@ export default function PrototypeShell() {
                                 }`}
                             >
                                 <span>🛒</span> Consumer & B2B Store
+                            </button>
+
+                            <button
+                                onClick={() => handleRoleChange('nursery')}
+                                className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                                    activeRole === 'nursery'
+                                        ? 'bg-lime-600 text-white shadow-sm'
+                                        : 'text-gray-400 hover:text-white'
+                                }`}
+                            >
+                                <span>🌱</span> Nursery Portal
                             </button>
 
                             <button
@@ -133,6 +145,9 @@ export default function PrototypeShell() {
                             >
                                 <option value="user-farmer-1" className="bg-gray-900 text-white">
                                     👨‍🌾 Ramesh Patel (Farmer)
+                                </option>
+                                <option value="user-nursery-1" className="bg-gray-900 text-white">
+                                    🌱 Anand Rao (Sunrise Green Nursery)
                                 </option>
                                 <option value="user-customer-1" className="bg-gray-900 text-white">
                                     👤 Priya Sharma (Retail Consumer)
@@ -191,46 +206,58 @@ export default function PrototypeShell() {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px] leading-relaxed">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-[11px] leading-relaxed">
                                 {/* Flow 1 */}
                                 <div className="bg-gray-950 p-3.5 rounded-2xl border border-emerald-500/30 space-y-1.5">
                                     <span className="font-black text-emerald-400 block uppercase tracking-wider text-[10px]">
-                                        Scenario 1: Direct Farm Pickup (with 6-Digit PIN)
+                                        Scenario 1: Direct Farm Pickup
                                     </span>
                                     <ol className="list-decimal list-inside space-y-1 text-gray-300">
                                         <li>Switch to <strong>🛒 Consumer Store</strong>.</li>
-                                        <li>Add Roma Tomatoes, select <strong>🚜 Farm Pickup</strong>, and complete checkout.</li>
-                                        <li>Receive your <strong>6-digit pickup PIN (e.g. 482-910)</strong>.</li>
-                                        <li>Switch to <strong>👨‍🌾 Farmer App</strong> &rarr; Click <strong>Marketplace &rarr; Orders Received</strong>.</li>
-                                        <li>Click <strong>Verify Pickup PIN</strong>, enter the code, and confirm handover!</li>
+                                        <li>Add Roma Tomatoes, select <strong>🚜 Farm Pickup</strong>, and checkout.</li>
+                                        <li>Receive <strong>6-digit pickup PIN</strong>.</li>
+                                        <li>Switch to <strong>👨‍🌾 Farmer App</strong> &rarr; <strong>Orders Received</strong>.</li>
+                                        <li>Click <strong>Verify Pickup PIN</strong> and confirm handover!</li>
                                     </ol>
                                 </div>
 
                                 {/* Flow 2 */}
                                 <div className="bg-gray-950 p-3.5 rounded-2xl border border-blue-500/30 space-y-1.5">
                                     <span className="font-black text-blue-400 block uppercase tracking-wider text-[10px]">
-                                        Scenario 2: Central Hub Consignment (Option 2)
+                                        Scenario 2: Central Hub Consignment
                                     </span>
                                     <ol className="list-decimal list-inside space-y-1 text-gray-300">
                                         <li>In <strong>👨‍🌾 Farmer App</strong>, click <strong>Dispatch to Central Hub</strong>.</li>
                                         <li>Submit batch dispatch with vehicle number.</li>
-                                        <li>Switch to <strong>🏢 Depot Inward Hub</strong> &rarr; Click <strong>Weigh, QA Inspect & Stock</strong>.</li>
+                                        <li>Switch to <strong>🏢 Depot Inward Hub</strong> &rarr; Click <strong>Weigh, QA & Stock</strong>.</li>
                                         <li>Confirm inward inspection and publish to store.</li>
-                                        <li>Switch to <strong>🛒 Consumer Store</strong> &rarr; Find it live under <strong>farm360 Assured</strong>!</li>
                                     </ol>
                                 </div>
 
                                 {/* Flow 3 */}
                                 <div className="bg-gray-950 p-3.5 rounded-2xl border border-indigo-500/30 space-y-1.5">
                                     <span className="font-black text-indigo-400 block uppercase tracking-wider text-[10px]">
-                                        Scenario 3: B2B Wholesale Bulk, RFQ & Freight Reception
+                                        Scenario 3: B2B Wholesale & Freight Reception
                                     </span>
                                     <ol className="list-decimal list-inside space-y-1 text-gray-300">
                                         <li>In <strong>🛒 Store</strong>, toggle <strong>🏢 B2B Wholesale</strong> mode.</li>
-                                        <li>Find wholesale crops &rarr; Click <strong>Request RFQ</strong> or Counter Offer.</li>
-                                        <li>Farmer accepts deal in <strong>Wholesale Deals</strong> &rarr; Converts to B2B Order.</li>
-                                        <li>Farmer clicks <strong>🚚 Confirm Loaded & Dispatch Truck</strong>.</li>
-                                        <li>B2B Buyer opens <strong>My Orders</strong> &rarr; Clicks <strong>✓ Confirm Reception of Produce & Accept Delivery</strong> to verify inward gate pass & release 100% payment!</li>
+                                        <li>Find wholesale crops &rarr; Click <strong>Request RFQ</strong>.</li>
+                                        <li>Farmer counters/accepts &rarr; Dispatches truck.</li>
+                                        <li>B2B Buyer clicks <strong>✓ Confirm Reception</strong> to verify gate pass & release payment!</li>
+                                    </ol>
+                                </div>
+
+                                {/* Flow 4 */}
+                                <div className="bg-gray-950 p-3.5 rounded-2xl border border-lime-500/30 space-y-1.5">
+                                    <span className="font-black text-lime-400 block uppercase tracking-wider text-[10px]">
+                                        Scenario 4: Nursery Pre-Orders & 6-Stage Lifecycle
+                                    </span>
+                                    <ol className="list-decimal list-inside space-y-1 text-gray-300">
+                                        <li>Switch to <strong>🛒 Store &rarr; 🌱 Nursery & Seeds</strong> or Farmer App sourcing.</li>
+                                        <li>Book pre-order seedlings with <strong>20% advance milestone</strong>.</li>
+                                        <li>Switch to <strong>🌱 Nursery Portal &rarr; Propagation Pipeline</strong>.</li>
+                                        <li>Broadcast stage: Sown &rarr; Growing &rarr; Collected &rarr; Processed &rarr; Ready!</li>
+                                        <li>Buyer settles 80% balance & receives PIN. Nursery operator confirms pickup / delivery!</li>
                                     </ol>
                                 </div>
                             </div>
@@ -247,6 +274,10 @@ export default function PrototypeShell() {
 
                 {activeRole === 'consumer' && (
                     <ConsumerApp />
+                )}
+
+                {activeRole === 'nursery' && (
+                    <NurseryApp />
                 )}
 
                 {activeRole === 'depot' && (

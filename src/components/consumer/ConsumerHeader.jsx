@@ -41,8 +41,8 @@ export default function ConsumerHeader({
                         </div>
                     </div>
 
-                    {/* Mode Toggle: Retail vs Wholesale */}
-                    <div className="bg-gray-100 p-1 rounded-xl flex items-center text-xs font-bold ml-2">
+                    {/* Mode Toggle: Retail vs Wholesale vs Nursery */}
+                    <div className="bg-gray-100 p-1 rounded-xl flex items-center text-xs font-bold ml-2 flex-wrap gap-1">
                         <button
                             onClick={() => setActiveMode('retail')}
                             className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
@@ -62,6 +62,16 @@ export default function ConsumerHeader({
                             }`}
                         >
                             <span>🏢</span> B2B Wholesale
+                        </button>
+                        <button
+                            onClick={() => setActiveMode('nursery')}
+                            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                                activeMode === 'nursery'
+                                    ? 'bg-lime-600 text-white shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                        >
+                            <span>🌱</span> Nursery & Seeds
                         </button>
                     </div>
                 </div>

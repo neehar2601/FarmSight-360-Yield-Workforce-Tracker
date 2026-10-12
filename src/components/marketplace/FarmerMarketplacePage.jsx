@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { mockStore } from '../../mock/mockStore';
+import NurseryStorefrontView from '../consumer/NurseryStorefrontView';
+import NurseryOrdersTab from '../consumer/NurseryOrdersTab';
 
 export default function FarmerMarketplacePage() {
-    const [activeTab, setActiveTab] = useState('listings'); // 'listings' | 'orders' | 'consignments' | 'rfqs' | 'earnings'
+    const [activeTab, setActiveTab] = useState('listings'); // 'listings' | 'orders' | 'consignments' | 'rfqs' | 'earnings' | 'nursery_sourcing'
     const [, setTick] = useState(0);
 
     // Modals
@@ -230,6 +232,17 @@ export default function FarmerMarketplacePage() {
                         }`}
                     >
                         <span>💰</span> Revenue & Settlements
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab('nursery_sourcing')}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                            activeTab === 'nursery_sourcing'
+                                ? 'bg-lime-400 text-emerald-950 shadow-md font-black'
+                                : 'text-emerald-100 hover:bg-emerald-700/50'
+                        }`}
+                    >
+                        <span>🌱</span> Sourcing: Seeds & Saplings
                     </button>
                 </div>
             </div>
@@ -755,6 +768,26 @@ export default function FarmerMarketplacePage() {
                             <span className="text-3xl font-black text-emerald-700 mt-2 block">0%</span>
                             <span className="text-xs text-emerald-600 font-semibold mt-1 block">Direct Farm Sales: 100% farmer retention</span>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* TAB CONTENT: 6. NURSERY SOURCING (SEEDS & SAPLINGS) */}
+            {activeTab === 'nursery_sourcing' && (
+                <div className="space-y-8">
+                    <NurseryStorefrontView />
+                    <div className="pt-8 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                                    <span>🌱</span> Your Seedling Bookings & Pre-Order Lifecycle
+                                </h3>
+                                <p className="text-xs text-gray-500">
+                                    Track stage broadcasts from registered nurseries (Sown &rarr; Growing &rarr; Hardened &rarr; Ready)
+                                </p>
+                            </div>
+                        </div>
+                        <NurseryOrdersTab />
                     </div>
                 </div>
             )}

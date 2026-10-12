@@ -7,6 +7,7 @@ import {
     useInventoryItem, getActiveCrops, getInventoryItemById,
     tagInventoryTransaction, getInventoryUsages,
 } from '../../utils/farmApi';
+import NurseryAllocationModal from './NurseryAllocationModal';
 
 // ── Activity Types (shared with Worker attendance) ────────────────────────────
 const ACTIVITY_TYPES = [
@@ -1091,6 +1092,7 @@ export default function InventoryPage() {
     const [modal, setModal] = useState(null); // null | 'add' | 'category' | { type:'buy'|'sell'|'use'|'history', item }
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [taggingTx, setTaggingTx] = useState(null); // transaction being tagged from UsageTracker
+    const [nurseryAllocatingItem, setNurseryAllocatingItem] = useState(null);
 
     const load = useCallback(async () => {
         if (!currentFarm?.id) return;
@@ -1247,34 +1249,105 @@ export default function InventoryPage() {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                             {filtered.map(item => {
-                                const isLow = item.current_quantity <= 5;
+                                const currentQty = parseFloat(item.current_quantity !== undefined ? item.current_quantity : item.quantity || 0);
+                                const isLow = currentQty <= 5;
+                                const isNurseryItem = item.category_name === 'Seeds & Nursery Planting Material' ||
+                                                      item.is_marketplace_listed ||
+                                                      item.reserved_for_farm !== undefined;
+
                                 return (
-                                    <div key={item.id} className={`bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow p-6 ${isLow ? 'border-l-4 border-orange-400' : ''}`}>
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div>
-                                                <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
-                                                <p className="text-xs text-gray-400 mt-0.5">{item.category_name}</p>
+                                    <div key={item.id} className={`bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow p-6 flex flex-col justify-between ${isLow ? 'border-l-4 border-orange-400' : ''} ${isNurseryItem ? 'ring-1 ring-lime-300' : ''}`}>
+                                        <div>
+                                            <div className="flex items-start justify-between mb-2">
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
+                                                    <p className="text-xs text-gray-400 mt-0.5">{item.category_name}</p>
+
+                                                    {/* Nursery Synced Badge */}
+                                                    {isNurseryItem && (
+                                                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                                            <span className="px-2 py-0.5 bg-lime-100 text-lime-900 border border-lime-300 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                                                                <span>🌱</span> Nursery Market Synced
+                                                            </span>
+                                                            {item.is_marketplace_listed && (
+                                                                <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-md text-[10px] font-bold">
+                                                                    Live on Market
+                                                                </span>
+                                                            )}
+                                                            {item.availability_type === 'pre_order' && (
+                                                                <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded text-[10px] font-bold">
+                                                                    Pre-Order (20%)
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="text-right">
+                                                    <p className={`text-2xl font-black ${isLow ? 'text-orange-500' : 'text-gray-900'}`}>
+                                                        {currentQty.toFixed(0)}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400">{item.unit}</p>
+                                                </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className={`text-2xl font-bold ${isLow ? 'text-orange-500' : 'text-gray-800'}`}>
-                                                    {parseFloat(item.current_quantity).toFixed(2)}
+
+                                            {/* Unified Quota Allocation Card (Farm vs Market) */}
+                                            {isNurseryItem && (
+                                                <div className="my-3 p-3 bg-gradient-to-r from-emerald-50/80 via-white to-indigo-50/80 border border-emerald-200/90 rounded-2xl space-y-1.5 text-xs shadow-inner">
+                                                    <div className="flex items-center justify-between text-[11px]">
+                                                        <span className="text-emerald-900 font-bold flex items-center gap-1">
+                                                            <span>🏡</span> Reserved for Own Farm:
+                                                        </span>
+                                                        <strong className="text-emerald-950 font-black">
+                                                            {item.reserved_for_farm !== undefined ? item.reserved_for_farm : 0} {item.unit.split(' ')[0]}
+                                                        </strong>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-[11px]">
+                                                        <span className="text-amber-800 font-bold flex items-center gap-1">
+                                                            <span>🛒</span> Pre-Ordered / Booked:
+                                                        </span>
+                                                        <strong className="text-amber-950 font-black">
+                                                            {item.sold_quantity !== undefined ? item.sold_quantity : 0} {item.unit.split(' ')[0]}
+                                                        </strong>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-emerald-100">
+                                                        <span className="text-indigo-900 font-bold flex items-center gap-1">
+                                                            <span>⚡</span> Available for Nursery Sale:
+                                                        </span>
+                                                        <strong className="text-indigo-950 font-black">
+                                                            {item.available_for_sale !== undefined ? item.available_for_sale : (item.allocated_for_sale || 0)} {item.unit.split(' ')[0]}
+                                                        </strong>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {isLow && !isNurseryItem && (
+                                                <p className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-lg mb-3">
+                                                    ⚠️ Low stock
                                                 </p>
-                                                <p className="text-xs text-gray-400">{item.unit}</p>
-                                            </div>
+                                            )}
+
+                                            {item.notes && <p className="text-xs text-gray-500 italic mb-3">{item.notes}</p>}
+
+                                            {/* Unified Manage Nursery Action */}
+                                            {isNurseryItem && (
+                                                <button
+                                                    onClick={() => setNurseryAllocatingItem(item)}
+                                                    className="w-full mb-3 py-2 px-3 bg-gradient-to-r from-lime-600 to-emerald-700 hover:from-lime-500 hover:to-emerald-600 text-white rounded-xl text-xs font-black shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                                                >
+                                                    <span>🌱</span> Manage Nursery Allocation & Market Sync
+                                                </button>
+                                            )}
+
+                                            {/* History shortcut */}
+                                            <button
+                                                onClick={() => setModal({ type: 'history', itemId: item.id })}
+                                                className="w-full text-left text-[10px] text-gray-400 hover:text-green-600 transition-colors mb-3 flex items-center gap-1">
+                                                <span>📋</span> View full history & usage tracker
+                                            </button>
                                         </div>
-                                        {isLow && (
-                                            <p className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-lg mb-3">
-                                                ⚠️ Low stock
-                                            </p>
-                                        )}
-                                        {item.notes && <p className="text-xs text-gray-400 italic mb-3">{item.notes}</p>}
-                                        {/* History shortcut — click item name area */}
-                                        <button
-                                            onClick={() => setModal({ type: 'history', itemId: item.id })}
-                                            className="w-full text-left text-[10px] text-gray-400 hover:text-green-600 transition-colors mb-3 flex items-center gap-1">
-                                            <span>📋</span> View full history & usage tracker
-                                        </button>
-                                        <div className="flex gap-2 pt-3 border-t">
+
+                                        <div className="flex gap-2 pt-3 border-t border-gray-100">
                                             <button onClick={() => setModal({ type: 'buy', item })}
                                                 className="flex-1 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-all">
                                                 🛒 Buy
@@ -1317,6 +1390,16 @@ export default function InventoryPage() {
             )}
             {(modal?.type === 'buy' || modal?.type === 'sell') && (
                 <TransactionModal item={modal.item} type={modal.type} onClose={() => setModal(null)} onSaved={load} />
+            )}
+
+            {/* Unified Nursery Allocation Modal */}
+            {nurseryAllocatingItem && (
+                <NurseryAllocationModal
+                    isOpen={Boolean(nurseryAllocatingItem)}
+                    item={nurseryAllocatingItem}
+                    onClose={() => setNurseryAllocatingItem(null)}
+                    onSynced={load}
+                />
             )}
 
             {/* Direct Tag Crop Modal from Usage Tracker table */}

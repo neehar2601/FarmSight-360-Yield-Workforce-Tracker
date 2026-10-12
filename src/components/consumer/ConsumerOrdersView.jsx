@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { mockStore } from '../../mock/mockStore';
+import NurseryOrdersTab from './NurseryOrdersTab';
 
 export default function ConsumerOrdersView({ onBackToShopping, initialTab = 'orders' }) {
     const [, setTick] = useState(0);
@@ -11,8 +12,12 @@ export default function ConsumerOrdersView({ onBackToShopping, initialTab = 'ord
     const user = mockStore.getCurrentUser();
     const orders = mockStore.getOrders({ customerId: user?.id });
     const rfqs = mockStore.getRfqs({ buyerId: user?.id });
+    let nurseryOrders = mockStore.getNurseryOrders({ customerId: user?.id });
+    if (nurseryOrders.length === 0) {
+        nurseryOrders = mockStore.getNurseryOrders();
+    }
 
-    const [activeTab, setActiveTab] = useState(initialTab); // 'orders' | 'quotes'
+    const [activeTab, setActiveTab] = useState(initialTab); // 'orders' | 'quotes' | 'nursery'
     const [selectedOrderId, setSelectedOrderId] = useState(orders[0]?.id || null);
     const [selectedRfqId, setSelectedRfqId] = useState(rfqs[0]?.id || null);
 
@@ -133,6 +138,23 @@ export default function ConsumerOrdersView({ onBackToShopping, initialTab = 'ord
                                 {rfqs.length}
                             </span>
                         )}
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab('nursery')}
+                        className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${
+                            activeTab === 'nursery'
+                                ? 'bg-lime-600 text-white shadow-sm font-black'
+                                : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                    >
+                        <span>🌱</span>
+                        <span>Plant & Seed Orders</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                            activeTab === 'nursery' ? 'bg-lime-900 text-white' : 'bg-gray-300 text-gray-700'
+                        }`}>
+                            {nurseryOrders.length}
+                        </span>
                     </button>
                 </div>
             </div>
@@ -952,6 +974,13 @@ export default function ConsumerOrdersView({ onBackToShopping, initialTab = 'ord
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {/* TAB 3: NURSERY SEEDS & PLANT ORDERS */}
+            {/* ═════════════════════════════════════════════════════════════════ */}
+            {activeTab === 'nursery' && (
+                <NurseryOrdersTab onExploreNursery={onBackToShopping} />
             )}
         </div>
     );
