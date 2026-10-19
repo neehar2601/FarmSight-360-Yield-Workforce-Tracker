@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { spFarmerBookingApi } from '../../utils/spApi';
 import { formatQuantity } from '../../utils/pricing';
+import FarmerInvoiceModal from './FarmerInvoiceModal';
+import { InvoiceStatusBadge, money } from '../billing/billingUi';
 
 const MyBookingsPage = () => {
     const [bookings, setBookings] = useState([]);
@@ -12,6 +14,9 @@ const MyBookingsPage = () => {
     const [cancellingBooking, setCancellingBooking] = useState(null);
     const [cancelReason, setCancelReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
+
+    // Bill modal
+    const [openInvoiceId, setOpenInvoiceId] = useState(null);
 
     const fetchBookings = async () => {
         setLoading(true);
@@ -115,6 +120,24 @@ const MyBookingsPage = () => {
                 </a>
             </div>
 
+            {/* Bills needing the farmer's attention */}
+            {(() => {
+                const toVerify = bookings.filter(b => b.invoiceStatus === 'issued');
+                const toPay = bookings.filter(b => b.invoiceStatus === 'approved');
+                if (toVerify.length + toPay.length === 0) return null;
+                return (
+                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="text-base">🧾</span>
+                        <span className="font-bold">
+                            {toVerify.length > 0 && `${toVerify.length} bill${toVerify.length > 1 ? 's' : ''} to verify`}
+                            {toVerify.length > 0 && toPay.length > 0 && ' · '}
+                            {toPay.length > 0 && `${toPay.length} bill${toPay.length > 1 ? 's' : ''} awaiting payment`}
+                        </span>
+                        <span className="opacity-80">Open the booking below to review the amounts, report any discrepancy, and pay.</span>
+                    </div>
+                );
+            })()}
+
             {/* Filter Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-gray-100 dark:border-slate-800">
                 {[
@@ -206,7 +229,7 @@ const MyBookingsPage = () => {
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-gray-500 dark:text-slate-400 block font-medium">Estimated Total</span>
+                                    <span className="text-gray-500 dark:text-slate-400 block font-medium">{b.invoiceStatus ? 'Bill Total' : 'Estimated Total'}</span>
                                     <span className="font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 block text-sm">
                                         ₹{Number(b.totalAmount || 0).toLocaleString('en-IN')}
                                     </span>
@@ -244,6 +267,39 @@ const MyBookingsPage = () => {
                                 </div>
                             )}
 
+                            {/* Bill (completed jobs) */}
+                            {b.status === 'completed' && (
+                                <div className="mt-3 p-3 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                    {b.invoiceId ? (
+                                        <>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-semibold text-gray-800 dark:text-gray-100">🧾 {b.invoiceNumber}</span>
+                                                <InvoiceStatusBadge status={b.invoiceStatus} viewer="farmer" />
+                                                {b.receiptNumber && <span className="text-gray-500 dark:text-gray-400">Receipt {b.receiptNumber}</span>}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setOpenInvoiceId(b.invoiceId)}
+                                                className={`px-4 py-2 rounded-xl text-xs font-semibold shadow-sm self-start sm:self-auto ${
+                                                    b.invoiceStatus === 'paid'
+                                                        ? 'border border-gray-300 dark:border-slate-500 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-600'
+                                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                }`}
+                                            >
+                                                {b.invoiceStatus === 'paid' ? 'View receipt'
+                                                    : b.invoiceStatus === 'issued' ? `Verify bill (${money(b.invoiceTotal)})`
+                                                    : b.invoiceStatus === 'approved' ? `Pay ${money(b.invoiceTotal)}`
+                                                    : 'View bill'}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <span className="text-gray-600 dark:text-gray-300 italic">
+                                            Work completed — the provider is preparing your bill.
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Actions */}
                             {['pending', 'confirmed'].includes(b.status) && (
                                 <div className="mt-4 pt-3 border-t border-gray-100 dark:border-slate-700/80 flex justify-end">
@@ -259,6 +315,14 @@ const MyBookingsPage = () => {
                         </div>
                     ))}
                 </div>
+            )}
+
+            {openInvoiceId && (
+                <FarmerInvoiceModal
+                    invoiceId={openInvoiceId}
+                    onClose={() => setOpenInvoiceId(null)}
+                    onChanged={fetchBookings}
+                />
             )}
 
             {/* Cancel Modal */}

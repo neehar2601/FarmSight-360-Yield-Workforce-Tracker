@@ -3,6 +3,8 @@ import { useSPAuth } from '../../contexts/SPAuthContext';
 import { spProviderApi } from '../../utils/spApi';
 import AvailabilityCalendar from '../marketplace/AvailabilityCalendar';
 import { formatQuantity } from '../../utils/pricing';
+import SPInvoiceModal from './SPInvoiceModal';
+import { InvoiceStatusBadge, money } from '../billing/billingUi';
 
 const SPDashboard = ({ onNavigateToProfile }) => {
     const { currentSP } = useSPAuth();
@@ -14,6 +16,13 @@ const SPDashboard = ({ onNavigateToProfile }) => {
     // Decline modal
     const [declineBooking, setDeclineBooking] = useState(null);
     const [declineReason, setDeclineReason] = useState('');
+
+    // Complete-work confirmation
+    const [completeBooking, setCompleteBooking] = useState(null);
+
+    // Bill editor
+    const [openInvoiceId, setOpenInvoiceId] = useState(null);
+    const todayIso = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
 
     const fetchBookings = async () => {
         setLoading(true);
@@ -61,6 +70,21 @@ const SPDashboard = ({ onNavigateToProfile }) => {
         }
     };
 
+    /** Finish the job: drafts the bill and opens it so the provider can adjust it before sending. */
+    const handleCompleteWork = async (booking) => {
+        setCompleteBooking(null);
+        setActionLoading(booking.id);
+        try {
+            const res = await spProviderApi.completeBooking(booking.id);
+            await fetchBookings();
+            setOpenInvoiceId(res.invoice.id);
+        } catch (err) {
+            alert(err.message || 'Failed to mark work complete');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     // Metrics calculations
     const pendingBookings = bookings.filter(b => b.status === 'pending');
     const confirmedBookings = bookings.filter(b => b.status === 'confirmed');
@@ -68,6 +92,11 @@ const SPDashboard = ({ onNavigateToProfile }) => {
 
     const totalRevenue = confirmedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0)
         + completedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
+
+    // Billing metrics (completed jobs only)
+    const collected = completedBookings.filter(b => b.invoiceStatus === 'paid').reduce((s, b) => s + Number(b.invoiceTotal || 0), 0);
+    const outstanding = completedBookings.filter(b => b.invoiceStatus && b.invoiceStatus !== 'paid').reduce((s, b) => s + Number(b.invoiceTotal || 0), 0);
+    const needsBill = completedBookings.filter(b => !b.invoiceStatus || b.invoiceStatus === 'draft' || b.invoiceStatus === 'disputed');
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
@@ -279,13 +308,87 @@ const SPDashboard = ({ onNavigateToProfile }) => {
                                             </p>
                                         </div>
 
-                                        <div className="text-right">
+                                        <div className="text-right space-y-1.5">
                                             <span className="font-bold text-gray-900 dark:text-white block">
                                                 ₹{Number(b.totalAmount || 0).toLocaleString('en-IN')}
                                             </span>
-                                            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                                                Confirmed
-                                            </span>
+                                            {b.startDate <= todayIso ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCompleteBooking(b)}
+                                                    disabled={actionLoading === b.id}
+                                                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-[11px] font-semibold shadow-sm"
+                                                >
+                                                    {actionLoading === b.id ? 'Working…' : 'Mark complete & bill'}
+                                                </button>
+                                            ) : (
+                                                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                                                    Confirmed
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Billing & Payments */}
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm space-y-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span>Billing &amp; Payments</span>
+                                {needsBill.length > 0 && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+                                        {needsBill.length} need attention
+                                    </span>
+                                )}
+                            </h2>
+                            <div className="flex gap-4 text-xs">
+                                <span className="text-gray-600 dark:text-gray-300">Collected <strong className="text-emerald-700 dark:text-emerald-400">{money(collected)}</strong></span>
+                                <span className="text-gray-600 dark:text-gray-300">Outstanding <strong className="text-amber-700 dark:text-amber-400">{money(outstanding)}</strong></span>
+                            </div>
+                        </div>
+
+                        {completedBookings.length === 0 ? (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 italic py-6 text-center">
+                                Finished jobs appear here. Mark a deployment complete to create its bill.
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {completedBookings.map((b) => (
+                                    <div
+                                        key={b.id}
+                                        className="p-4 rounded-2xl border border-gray-100 dark:border-slate-700/80 bg-gray-50/60 dark:bg-slate-700/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                                    >
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-bold text-gray-900 dark:text-white text-sm">{b.farmUserName || 'Customer'}</span>
+                                                <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-semibold text-[11px]">{b.serviceName}</span>
+                                                {b.invoiceStatus && <InvoiceStatusBadge status={b.invoiceStatus} viewer="sp" />}
+                                            </div>
+                                            <p className="text-gray-500 dark:text-gray-400">
+                                                {b.startDate} → {b.endDate}{b.invoiceNumber ? ` • ${b.invoiceNumber}` : ''}{b.receiptNumber ? ` • ${b.receiptNumber}` : ''}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-3 self-start sm:self-auto">
+                                            <span className="font-bold text-gray-900 dark:text-white">{money(b.invoiceTotal ?? b.totalAmount)}</span>
+                                            {b.invoiceId && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOpenInvoiceId(b.invoiceId)}
+                                                    className={`px-3.5 py-1.5 rounded-xl text-[11px] font-semibold shadow-sm ${
+                                                        b.invoiceStatus === 'paid'
+                                                            ? 'border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700'
+                                                            : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                    }`}
+                                                >
+                                                    {b.invoiceStatus === 'paid' ? 'View receipt'
+                                                        : b.invoiceStatus === 'draft' ? 'Edit & send bill'
+                                                        : b.invoiceStatus === 'disputed' ? 'Review discrepancy'
+                                                        : 'Open bill / collect'}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -318,6 +421,44 @@ const SPDashboard = ({ onNavigateToProfile }) => {
                     </div>
                 </div>
             </div>
+
+            {openInvoiceId && (
+                <SPInvoiceModal
+                    invoiceId={openInvoiceId}
+                    onClose={() => setOpenInvoiceId(null)}
+                    onChanged={fetchBookings}
+                />
+            )}
+
+            {/* Complete & bill confirmation */}
+            {completeBooking && (
+                <div id="complete-work-dialog" className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 border border-gray-100 dark:border-slate-700 shadow-2xl space-y-4">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Mark work as complete?</h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-300">
+                            Mark <strong>{completeBooking.serviceName}</strong> for <strong>{completeBooking.farmUserName || 'the customer'}</strong> as complete. A draft bill will be created that you can adjust (trees, hours, extra costs) before sending it to the farmer.
+                        </p>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button
+                                id="complete-work-cancel"
+                                type="button"
+                                onClick={() => setCompleteBooking(null)}
+                                className="px-4 py-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-600"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                id="complete-work-confirm"
+                                type="button"
+                                onClick={() => handleCompleteWork(completeBooking)}
+                                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md"
+                            >
+                                Complete &amp; create bill
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Decline Modal */}
             {declineBooking && (

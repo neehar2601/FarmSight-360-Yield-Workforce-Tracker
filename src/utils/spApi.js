@@ -217,6 +217,31 @@ export const spFarmerBookingApi = {
     getBooking: async (bookingId) => {
         return farmUserSpRequest(`/bookings/${bookingId}`);
     },
+
+    // ── Bills (Phase 4) ──────────────────────────────────────────────────
+    listMyInvoices: async (status) => {
+        const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+        return farmUserSpRequest(`/invoices/my${qs}`);
+    },
+
+    getInvoice: async (invoiceId) => farmUserSpRequest(`/invoices/my/${invoiceId}`),
+
+    approveInvoice: async (invoiceId) =>
+        farmUserSpRequest(`/invoices/my/${invoiceId}/approve`, { method: 'POST' }),
+
+    disputeInvoice: async (invoiceId, message) =>
+        farmUserSpRequest(`/invoices/my/${invoiceId}/dispute`, { method: 'POST', body: JSON.stringify({ message }) }),
+
+    messageInvoice: async (invoiceId, message) =>
+        farmUserSpRequest(`/invoices/my/${invoiceId}/messages`, { method: 'POST', body: JSON.stringify({ message }) }),
+
+    /** Starts an online payment; returns the gateway's checkout payload. */
+    startOnlinePayment: async (invoiceId, gateway) =>
+        farmUserSpRequest(`/invoices/my/${invoiceId}/pay`, { method: 'POST', body: JSON.stringify({ gateway }) }),
+
+    /** Test gateway only. */
+    simulateOnlinePayment: async (invoiceId, outcome = 'succeeded') =>
+        farmUserSpRequest(`/invoices/my/${invoiceId}/pay/simulate`, { method: 'POST', body: JSON.stringify({ outcome }) }),
 };
 
 // ── Service Provider Auth & Portal API ──────────────────────────────────────
@@ -325,6 +350,28 @@ export const spProviderApi = {
             body: JSON.stringify({ status, reason }),
         });
     },
+
+    // Work completion & billing (Phase 4)
+    completeBooking: async (bookingId) => spRequest(`/bookings/${bookingId}/complete`, { method: 'PATCH' }),
+
+    listInvoices: async (status) => {
+        const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+        return spRequest(`/invoices/sp/mine${qs}`);
+    },
+
+    getInvoice: async (invoiceId) => spRequest(`/invoices/sp/${invoiceId}`),
+
+    updateInvoice: async (invoiceId, { items, note }) =>
+        spRequest(`/invoices/sp/${invoiceId}`, { method: 'PUT', body: JSON.stringify({ items, note }) }),
+
+    issueInvoice: async (invoiceId, note) =>
+        spRequest(`/invoices/sp/${invoiceId}/issue`, { method: 'POST', body: JSON.stringify({ note }) }),
+
+    confirmCashPayment: async (invoiceId, reference) =>
+        spRequest(`/invoices/sp/${invoiceId}/payments/cash`, { method: 'POST', body: JSON.stringify({ reference }) }),
+
+    messageInvoice: async (invoiceId, message) =>
+        spRequest(`/invoices/sp/${invoiceId}/messages`, { method: 'POST', body: JSON.stringify({ message }) }),
 
     // Calendar & Blocking
     getMyCalendar: async (month) => {

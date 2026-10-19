@@ -200,7 +200,9 @@ export default function FinancePage() {
         ? allTransactions
         : activeTab === 'expense'
             ? allTransactions.filter(t => t.category === 'expense' || t.category === 'adjusted')
-            : allTransactions.filter(t => t.category === activeTab);
+            : activeTab === 'services'
+                ? allTransactions.filter(t => t.tx_subtype === 'SERVICE_PAYMENT')
+                : allTransactions.filter(t => t.category === activeTab);
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
@@ -773,7 +775,7 @@ export default function FinancePage() {
                                 </p>
                             </div>
                             <div className="flex gap-1">
-                                {['all', 'income', 'expense'].map(tab => (
+                                {['all', 'income', 'expense', 'services'].map(tab => (
                                     <button key={tab} onClick={() => setActiveTab(tab)}
                                         className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize transition-all ${
                                             activeTab === tab ? 'bg-green-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
@@ -799,12 +801,14 @@ export default function FinancePage() {
                                                 : tx.category === 'adjusted' ? 'bg-slate-100'
                                                 : tx.tx_subtype === 'MATERIAL_USE' ? 'bg-amber-100'
                                                 : tx.tx_subtype === 'LABOR_WORK' ? 'bg-blue-100'
+                                                : tx.tx_subtype === 'SERVICE_PAYMENT' ? 'bg-teal-100'
                                                 : 'bg-red-100'
                                             }`}>
                                                 {tx.icon || (
                                                     tx.category === 'income' ? '📈'
                                                     : tx.tx_subtype === 'MATERIAL_USE' ? '🌱'
                                                     : tx.tx_subtype === 'LABOR_WORK' ? '👷'
+                                                    : tx.tx_subtype === 'SERVICE_PAYMENT' ? '🧑‍🔧'
                                                     : '📉'
                                                 )}
                                             </div>
@@ -821,6 +825,11 @@ export default function FinancePage() {
                                                     {tx.tx_subtype === 'LABOR_WORK' && (
                                                         <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 font-semibold text-[10px] border border-blue-200 flex items-center gap-1">
                                                             <span>👷</span> Direct Labor
+                                                        </span>
+                                                    )}
+                                                    {tx.tx_subtype === 'SERVICE_PAYMENT' && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 font-semibold text-[10px] border border-teal-200 flex items-center gap-1">
+                                                            <span>🧾</span> Service Provider Bill
                                                         </span>
                                                     )}
                                                     {tx.tx_subtype === 'INVENTORY_BUY' && (
