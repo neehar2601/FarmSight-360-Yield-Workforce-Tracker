@@ -11,6 +11,7 @@ import WorkersPage from './components/farm/WorkersPage';
 import DashboardPage from './components/farm/DashboardPage';
 import BrowseServicesPage from './components/marketplace/BrowseServicesPage';
 import MyBookingsPage from './components/marketplace/MyBookingsPage';
+import DemoHeaderButton from './components/demo/DemoHeaderButton';
 
 // --- MOCK DATA LAYER (DEMO DATA) ---
 const MOCK_CURRENT_DATE = new Date('2025-10-13T12:00:00Z');
@@ -1927,8 +1928,10 @@ const Header = ({ toggleSidebar }) => {
             <div className="hidden md:block" style={{ fontSize: 20, fontWeight: 700, color: isDark ? '#f1f5f9' : '#374151' }}>
                 Welcome, {currentUser ? currentUser.name : 'Guest'}!
             </div>
-            {currentUser && (
-                <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <DemoHeaderButton />
+                {currentUser && (
+                    <div style={{ position: 'relative' }}>
                     <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 12 }}
                         onClick={() => setShowDropdown(!showDropdown)}>
                         <div style={{ textAlign: 'right' }}>
@@ -1977,6 +1980,7 @@ const Header = ({ toggleSidebar }) => {
                     )}
                 </div>
             )}
+            </div>
         </header>
     );
 };

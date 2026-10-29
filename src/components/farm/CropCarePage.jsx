@@ -980,6 +980,7 @@ export default function CropCarePage() {
                         <span>🔄</span> Refresh
                     </button>
                     <button
+                        id="demo-cropcare-add-btn"
                         onClick={() => setModal('add')}
                         className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all">
                         <span className="text-sm font-extrabold">+</span> Add Input
@@ -996,7 +997,7 @@ export default function CropCarePage() {
             )}
 
             {/* Top Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div id="demo-cropcare-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">
                         🧪
@@ -1045,9 +1046,9 @@ export default function CropCarePage() {
             </div>
 
             {/* Main Content Area with Side Category Tab Bar */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+            <div id="demo-resources-table" className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                 {/* ── SIDE TAB / BAR FOR DISPLAY OF DATA ────────────────── */}
-                <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2 sticky top-4">
+                <div id="demo-cropcare-sidebar" className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2 sticky top-4">
                     <div className="px-3 pt-2 pb-1">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Input Categories</p>
                         <p className="text-[11px] text-gray-400 mt-0.5">Filter by input classification</p>
@@ -1166,12 +1167,14 @@ export default function CropCarePage() {
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {filteredItems.map(item => {
+                                    {filteredItems.map((item, idx) => {
                                         const isLow = parseFloat(item.current_quantity) <= 5;
+                                        const isFirst = idx === 0;
                                         const group = CATEGORY_GROUPS.find(g => g.key === item.groupKey) || {};
                                         return (
                                             <div
                                                 key={item.id}
+                                                id={isFirst ? "demo-cropcare-card-primary" : undefined}
                                                 className={`bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5 border flex flex-col justify-between ${
                                                     isLow ? 'border-amber-300 bg-amber-50/20' : 'border-gray-100'
                                                 }`}>
@@ -1207,11 +1210,13 @@ export default function CropCarePage() {
                                                 {/* Action Buttons */}
                                                 <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
                                                     <button
+                                                        id={isFirst ? "demo-cropcare-buy-btn" : undefined}
                                                         onClick={() => setModal({ type: 'buy', item })}
                                                         className="flex-1 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 transition-all flex items-center justify-center gap-1">
                                                         <span>🛒</span> Buy
                                                     </button>
                                                     <button
+                                                        id={isFirst ? "demo-cropcare-use-btn" : undefined}
                                                         onClick={() => setModal({ type: 'use', item })}
                                                         className="flex-1 py-1.5 text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl border border-amber-200 transition-all flex items-center justify-center gap-1">
                                                         <span>🪣</span> Use

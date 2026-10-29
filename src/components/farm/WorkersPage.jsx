@@ -557,7 +557,7 @@ const PayoutModal = ({ worker, farmId, onClose, onPaid }) => {
 // ─── AllInOneWorkerCard ───────────────────────────────────────────────────────
 const AllInOneWorkerCard = ({
     worker, farmId, crops, onMarkAttendance, onEdit, onArchive,
-    onPaySalary, onAdvance, onBonus, onSettleLoan
+    onPaySalary, onAdvance, onBonus, onSettleLoan, isFirst
 }) => {
     const [savingAtt, setSavingAtt] = useState(false);
     const [activityType, setActivityType] = useState(worker.today_activity_type || 'GENERAL');
@@ -601,7 +601,7 @@ const AllInOneWorkerCard = ({
     const actInfo = ACTIVITY_MAP[activityType] || ACTIVITY_MAP['GENERAL'];
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all space-y-4">
+        <div id={isFirst ? "demo-worker-card-primary" : undefined} className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all space-y-4">
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
@@ -625,7 +625,7 @@ const AllInOneWorkerCard = ({
             </div>
 
             {/* Quick Attendance Bar for Today */}
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2">
+            <div id={isFirst ? "demo-attendance-buttons" : undefined} className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2">
                 <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-gray-600 flex items-center gap-1">
                         📋 Today's Attendance {savingAtt && <span className="text-[10px] text-gray-400 font-normal">(Saving…)</span>}
@@ -650,7 +650,7 @@ const AllInOneWorkerCard = ({
 
                 {/* Activity Selector + Crop Tagger — shown when unmarked or marked P/H (hidden only when Absent) */}
                 {worker.today_status !== 'A' && (
-                    <div className="space-y-2 pt-1 border-t border-gray-200">
+                    <div id={isFirst ? "demo-task-activity-selector" : undefined} className="space-y-2 pt-1 border-t border-gray-200">
                         {/* Activity pills */}
                         <div className="flex items-center gap-2">
                             <span className="text-[11px] text-gray-500 font-medium whitespace-nowrap">📌 Task:</span>
@@ -692,7 +692,7 @@ const AllInOneWorkerCard = ({
             </div>
 
             {/* Realtime Financial Metric Badges */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div id={isFirst ? "demo-worker-financial-badges" : undefined} className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3">
                     <p className="text-gray-500 font-medium text-[11px]">Unpaid Carryforward Salary</p>
                     <p className="text-base font-extrabold text-emerald-700 mt-0.5">
@@ -713,6 +713,7 @@ const AllInOneWorkerCard = ({
             {/* Direct Quick Action Buttons Bar */}
             <div className="grid grid-cols-4 gap-1.5 pt-1">
                 <button
+                    id={isFirst ? "demo-pay-salary-btn" : undefined}
                     disabled={worker.unpaid_carryforward_salary <= 0}
                     onClick={() => onPaySalary(worker)}
                     className={`font-semibold py-2 px-1 text-center text-xs rounded-xl transition-colors shadow-sm ${
@@ -722,7 +723,9 @@ const AllInOneWorkerCard = ({
                     }`}>
                     💰 Pay Salary
                 </button>
-                <button onClick={() => onAdvance(worker)}
+                <button
+                    id={isFirst ? "demo-advance-btn" : undefined}
+                    onClick={() => onAdvance(worker)}
                     className="bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 font-semibold py-2 px-1 text-center text-xs rounded-xl transition-colors">
                     💵 Advance
                 </button>
@@ -730,7 +733,9 @@ const AllInOneWorkerCard = ({
                     className="bg-purple-50 border border-purple-200 hover:bg-purple-100 text-purple-800 font-semibold py-2 px-1 text-center text-xs rounded-xl transition-colors">
                     🎁 Bonus
                 </button>
-                <button onClick={() => onSettleLoan(worker)}
+                <button
+                    id={isFirst ? "demo-settle-loan-btn" : undefined}
+                    onClick={() => onSettleLoan(worker)}
                     className="bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-800 font-semibold py-2 px-1 text-center text-xs rounded-xl transition-colors">
                     🤝 Settle Loan
                 </button>
@@ -1253,13 +1258,15 @@ export default function WorkersPage() {
     return (
         <div className="max-w-6xl mx-auto space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div id="demo-workers-header" className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800">Workers Hub</h1>
                     <p className="text-sm text-gray-500 mt-0.5">{currentFarm?.name || 'Your farm'} workforce management, attendance & salary payouts</p>
                 </div>
                 {tab === 'workers' && (
-                    <button onClick={() => setWorkerModal({ worker: null })}
+                    <button
+                        id="demo-add-worker-btn"
+                        onClick={() => setWorkerModal({ worker: null })}
                         className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm shadow-sm flex items-center gap-1.5">
                         + Add Worker
                     </button>
@@ -1268,7 +1275,7 @@ export default function WorkersPage() {
 
             {/* Quick KPI Overview Bar */}
             {tab === 'workers' && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div id="demo-workers-summary" className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <div className="bg-white border rounded-2xl p-4 shadow-sm">
                         <p className="text-xs text-gray-500 font-medium">Active Workers</p>
                         <p className="text-2xl font-extrabold text-gray-800 mt-1">{workers.length}</p>
@@ -1285,7 +1292,7 @@ export default function WorkersPage() {
             )}
 
             {/* Tabs Bar */}
-            <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 overflow-x-auto">
+            <div id="demo-attendance-tabs" className="flex gap-1 bg-gray-100 rounded-2xl p-1 overflow-x-auto">
                 {tabs.map(t => (
                     <button key={t.id} onClick={() => setTab(t.id)}
                         className={`flex-1 min-w-max px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
@@ -1311,9 +1318,10 @@ export default function WorkersPage() {
                                     <p className="text-gray-400 text-sm mt-1">Click <strong>+ Add Worker</strong> to build your team</p>
                                 </div>
                             ) : (
-                                <div className="grid md:grid-cols-2 gap-5">
-                                    {workers.map(w => (
+                                <div id="demo-worker-table" className="grid md:grid-cols-2 gap-5">
+                                    {workers.map((w, idx) => (
                                         <AllInOneWorkerCard key={w.id} worker={w} farmId={farmId} crops={crops}
+                                            isFirst={idx === 0}
                                             onMarkAttendance={handleMarkAttendance}
                                             onEdit={(w) => setWorkerModal({ worker: w })}
                                             onArchive={(w) => setArchiveModal(w)}

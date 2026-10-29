@@ -234,7 +234,7 @@ export default function FinancePage() {
             </div>
 
             {/* Crop Selector Toolbar */}
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between flex-wrap gap-3">
+            <div id="demo-finance-crop-filter" className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wide mr-1">
                         Select Crop View:
@@ -285,24 +285,28 @@ export default function FinancePage() {
             {loading ? <Spinner /> : (
                 <>
                     {/* Summary cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <SummaryCard
-                            label={selectedCrop === 'ALL' ? 'Total Income' : `Crop Revenue (${selectedCropLabel})`}
-                            value={displayIncome}
-                            color="border-green-500"
-                            icon="📈"
-                            subtitle={incomeSubtitle}
-                            subColor="text-emerald-700"
-                        />
-                        <SummaryCard
-                            label={selectedCrop === 'ALL' ? 'Total Expenses' : `Direct Costs (${selectedCropLabel})`}
-                            value={displayExpense}
-                            color="border-red-400"
-                            icon="📉"
-                            subtitle={expenseSubtitle}
-                            subColor="text-red-600"
-                        />
-                        <div className={`bg-white rounded-2xl shadow-md p-6 border-l-4 ${displayNet >= 0 ? 'border-blue-500' : 'border-orange-400'} flex flex-col justify-between`}>
+                    <div id="demo-finance-kpis" className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div id="demo-finance-income-card">
+                            <SummaryCard
+                                label={selectedCrop === 'ALL' ? 'Total Income' : `Crop Revenue (${selectedCropLabel})`}
+                                value={displayIncome}
+                                color="border-green-500"
+                                icon="📈"
+                                subtitle={incomeSubtitle}
+                                subColor="text-emerald-700"
+                            />
+                        </div>
+                        <div id="demo-finance-expense-card">
+                            <SummaryCard
+                                label={selectedCrop === 'ALL' ? 'Total Expenses' : `Direct Costs (${selectedCropLabel})`}
+                                value={displayExpense}
+                                color="border-red-400"
+                                icon="📉"
+                                subtitle={expenseSubtitle}
+                                subColor="text-red-600"
+                            />
+                        </div>
+                        <div id="demo-finance-profit-card" className={`bg-white rounded-2xl shadow-md p-6 border-l-4 ${displayNet >= 0 ? 'border-blue-500' : 'border-orange-400'} flex flex-col justify-between`}>
                             <div>
                                 <div className="flex items-center justify-between">
                                     <p className="text-sm text-gray-500 font-medium">
@@ -381,7 +385,7 @@ export default function FinancePage() {
 
                     {/* 🌾 Crop Financial Performance & Profitability Table — Shown in All Crops View */}
                     {selectedCrop === 'ALL' && cropFinances?.crops?.length > 0 && (
-                        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
+                        <div id="demo-finance-crop-table" className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
                             <div className="flex items-start justify-between flex-wrap gap-2">
                                 <div>
                                     <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -571,7 +575,7 @@ export default function FinancePage() {
                         };
 
                         return (
-                            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
+                            <div id="demo-finance-activity-cost" className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
                                 {/* Header & Active Filter Indicator */}
                                 <div className="flex items-start justify-between flex-wrap gap-2">
                                     <div>
@@ -759,7 +763,7 @@ export default function FinancePage() {
                     )}
 
                     {/* Unified Financial Transactions Ledger */}
-                    <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+                    <div id="demo-finance-ledger" className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
                         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">

@@ -187,7 +187,7 @@ const MyBookingsPage = () => {
                     </a>
                 </div>
             ) : (
-                <div className="space-y-4">
+                <div id="demo-bookings-list" className="space-y-4">
                     {bookings.map((b) => (
                         <div
                             key={b.id}

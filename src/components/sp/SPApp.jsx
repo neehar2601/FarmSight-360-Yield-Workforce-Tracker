@@ -3,6 +3,7 @@ import { useSPAuth } from '../../contexts/SPAuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import SPDashboard from './SPDashboard';
 import SPProfilePage from './SPProfilePage';
+import DemoHeaderButton from '../demo/DemoHeaderButton';
 
 const SPApp = () => {
     const { currentSP, logout } = useSPAuth();
@@ -44,7 +45,7 @@ const SPApp = () => {
                         </div>
                     </div>
 
-                    <nav className="hidden sm:flex items-center gap-1 bg-gray-100/80 dark:bg-slate-800/80 p-1 rounded-2xl text-xs font-semibold">
+                    <nav id="demo-sp-nav" className="hidden sm:flex items-center gap-1 bg-gray-100/80 dark:bg-slate-800/80 p-1 rounded-2xl text-xs font-semibold">
                         <button
                             type="button"
                             onClick={() => handleNavigate('dashboard')}
@@ -71,6 +72,7 @@ const SPApp = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <DemoHeaderButton />
                     <button
                         type="button"
                         onClick={toggleTheme}

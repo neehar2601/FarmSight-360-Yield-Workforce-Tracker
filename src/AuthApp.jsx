@@ -11,6 +11,11 @@ import InitialSetup from './components/auth/InitialSetup';
 import SPApp from './components/sp/SPApp';
 import SPRegisterPage from './components/sp/SPRegisterPage';
 import App from './App'; // The existing main app
+import { DemoProvider } from './components/demo/DemoContext';
+import FirstTimeDemoPrompt from './components/demo/FirstTimeDemoPrompt';
+import DemoTourOverlay from './components/demo/DemoTourOverlay';
+import DemoFloatingButton from './components/demo/DemoFloatingButton';
+import FeatureDemoModal from './components/demo/FeatureDemoModal';
 
 const AuthenticatedApp = () => {
     const { isAuthenticated, currentUser, currentFarm, loading: farmLoading, completeFirstLogin } = useAuth();
@@ -172,7 +177,13 @@ const AuthApp = () => {
         <ThemeProvider>
             <AuthProvider>
                 <SPAuthProvider>
-                    <AuthenticatedApp />
+                    <DemoProvider>
+                        <AuthenticatedApp />
+                        <FirstTimeDemoPrompt />
+                        <DemoTourOverlay />
+                        <DemoFloatingButton />
+                        <FeatureDemoModal />
+                    </DemoProvider>
                 </SPAuthProvider>
             </AuthProvider>
         </ThemeProvider>

@@ -109,7 +109,7 @@ const BrowseServicesPage = ({ selectedProviderId = null }) => {
             </div>
 
             {/* Filter Bar & Controls */}
-            <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-gray-100 dark:border-slate-700 shadow-sm space-y-4">
+            <div id="demo-sp-filters" className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-gray-100 dark:border-slate-700 shadow-sm space-y-4">
                 {/* Search & Location row */}
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                     <div className="sm:col-span-6 relative">
@@ -255,11 +255,12 @@ const BrowseServicesPage = ({ selectedProviderId = null }) => {
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {providers.map((p) => (
+                    <div id="demo-sp-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {providers.map((p, idx) => (
                             <ProviderCard
                                 key={p.id}
                                 provider={p}
+                                isFirst={idx === 0}
                                 onSelect={(prov) => {
                                     setActiveProviderId(prov.id);
                                     window.history.pushState({}, '', `/services/${prov.id}`);

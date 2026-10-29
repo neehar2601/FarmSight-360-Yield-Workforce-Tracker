@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSPAuth } from '../../contexts/SPAuthContext';
 import { isValidEmail } from '../../utils/authUtils';
+import DemoBanner from '../demo/DemoBanner';
 
 const LoginPage = ({
     onLoginSuccess,
@@ -262,6 +263,9 @@ const LoginPage = ({
                         )}
                     </div>
                 </div>
+
+                {/* 1-Click Live Demo Showcase Launcher */}
+                <DemoBanner />
 
                 {/* Footer */}
                 <div className="mt-6 text-center text-xs text-gray-500">

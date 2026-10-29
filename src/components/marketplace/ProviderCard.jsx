@@ -1,7 +1,7 @@
 import React from 'react';
 import { formatRate } from '../../utils/pricing';
 
-const ProviderCard = ({ provider, onSelect }) => {
+const ProviderCard = ({ provider, onSelect, isFirst }) => {
     const {
         id,
         name,
@@ -24,7 +24,7 @@ const ProviderCard = ({ provider, onSelect }) => {
     const categories = Array.from(new Set(services.map(s => s.category).filter(Boolean)));
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/80 p-5 shadow-sm hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-800/80 transition-all duration-300 flex flex-col justify-between group">
+        <div id={isFirst ? "demo-sp-card-primary" : undefined} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700/80 p-5 shadow-sm hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-800/80 transition-all duration-300 flex flex-col justify-between group">
             <div>
                 {/* Header info */}
                 <div className="flex items-start justify-between gap-3 mb-3">
@@ -112,6 +112,7 @@ const ProviderCard = ({ provider, onSelect }) => {
                 </div>
 
                 <button
+                    id={isFirst ? "demo-sp-book-btn" : undefined}
                     type="button"
                     onClick={() => onSelect(provider)}
                     className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 transition-all flex items-center gap-1.5"
