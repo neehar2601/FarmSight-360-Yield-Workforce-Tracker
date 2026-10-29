@@ -2,107 +2,251 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Global Dark Mode Overrides for Tailwind Utilities ─── */
-[data-theme="dark"] .bg-white,
-[data-theme="dark"] [class*="bg-white"] {
-    background-color: rgba(255, 255, 255, 0.04) !important;
-}
-[data-theme="dark"] [class*="bg-gray-50"] {
-    background-color: rgba(255, 255, 255, 0.02) !important;
-}
-[data-theme="dark"] [class*="bg-gray-100"] {
-    background-color: rgba(255, 255, 255, 0.06) !important;
-}
-[data-theme="dark"] [class*="bg-gray-200"] {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-}
-[data-theme="dark"] [class*="border-gray-100"],
-[data-theme="dark"] [class*="border-gray-200"],
-[data-theme="dark"] [class*="border-gray-300"] {
-    border-color: rgba(255, 255, 255, 0.1) !important;
-}
-[data-theme="dark"] [class*="text-gray-900"],
-[data-theme="dark"] [class*="text-gray-800"] {
-    color: #f1f5f9 !important;
-}
-[data-theme="dark"] [class*="text-gray-700"] {
-    color: #e2e8f0 !important;
-}
-[data-theme="dark"] [class*="text-gray-600"] {
-    color: #cbd5e1 !important;
+/* ─── Global Clean Dark Mode Overrides (Non-destructive) ─── */
+
+/* 1. Surfaces & Backgrounds on legacy components (without explicit dark:bg-*) */
+html.dark .bg-white:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-white:not([class*="dark:bg-"]) {
+    background-color: #1e293b;
 }
 
-/* Colored Backgrounds & Borders */
-[data-theme="dark"] [class*="bg-green-50"],
-[data-theme="dark"] [class*="bg-emerald-50"] { background-color: rgba(16, 185, 129, 0.1) !important; }
-[data-theme="dark"] [class*="border-green-200"],
-[data-theme="dark"] [class*="border-emerald-200"],
-[data-theme="dark"] [class*="border-green-300"] { border-color: rgba(16, 185, 129, 0.2) !important; }
-
-[data-theme="dark"] [class*="bg-amber-50"],
-[data-theme="dark"] [class*="bg-amber-100"],
-[data-theme="dark"] [class*="bg-yellow-50"] { background-color: rgba(245, 158, 11, 0.1) !important; }
-[data-theme="dark"] [class*="border-amber-200"],
-[data-theme="dark"] [class*="border-amber-300"] { border-color: rgba(245, 158, 11, 0.2) !important; }
-
-[data-theme="dark"] [class*="bg-red-50"] { background-color: rgba(239, 68, 68, 0.1) !important; }
-[data-theme="dark"] [class*="border-red-200"] { border-color: rgba(239, 68, 68, 0.2) !important; }
-
-[data-theme="dark"] [class*="bg-blue-50"] { background-color: rgba(59, 130, 246, 0.1) !important; }
-[data-theme="dark"] [class*="border-blue-200"] { border-color: rgba(59, 130, 246, 0.2) !important; }
-
-[data-theme="dark"] [class*="bg-purple-50"] { background-color: rgba(168, 85, 247, 0.1) !important; }
-[data-theme="dark"] [class*="border-purple-200"] { border-color: rgba(168, 85, 247, 0.2) !important; }
-
-[data-theme="dark"] [class*="bg-orange-50"] { background-color: rgba(249, 115, 22, 0.1) !important; }
-[data-theme="dark"] [class*="border-orange-200"] { border-color: rgba(249, 115, 22, 0.2) !important; }
-
-/* Colored Texts */
-[data-theme="dark"] [class*="text-green-900"],
-[data-theme="dark"] [class*="text-green-800"],
-[data-theme="dark"] [class*="text-green-700"],
-[data-theme="dark"] [class*="text-emerald-900"],
-[data-theme="dark"] [class*="text-emerald-800"],
-[data-theme="dark"] [class*="text-emerald-700"] { color: #6ee7b7 !important; }
-
-[data-theme="dark"] [class*="text-amber-900"],
-[data-theme="dark"] [class*="text-amber-800"],
-[data-theme="dark"] [class*="text-amber-700"] { color: #fcd34d !important; }
-
-[data-theme="dark"] [class*="text-red-900"],
-[data-theme="dark"] [class*="text-red-800"],
-[data-theme="dark"] [class*="text-red-700"] { color: #fca5a5 !important; }
-
-[data-theme="dark"] [class*="text-blue-900"],
-[data-theme="dark"] [class*="text-blue-800"],
-[data-theme="dark"] [class*="text-blue-700"] { color: #93c5fd !important; }
-
-[data-theme="dark"] [class*="text-purple-900"],
-[data-theme="dark"] [class*="text-purple-800"],
-[data-theme="dark"] [class*="text-purple-700"] { color: #d8b4fe !important; }
-
-[data-theme="dark"] [class*="text-orange-900"],
-[data-theme="dark"] [class*="text-orange-800"],
-[data-theme="dark"] [class*="text-orange-700"] { color: #fdba74 !important; }
-
-/* Shadows and other tweaks */
-[data-theme="dark"] .shadow-sm,
-[data-theme="dark"] .shadow-md,
-[data-theme="dark"] .shadow-lg,
-[data-theme="dark"] .shadow-2xl,
-[data-theme="dark"] [class*="shadow-2xs"] {
-    box-shadow: none !important;
+html.dark .bg-gray-50:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-gray-50:not([class*="dark:bg-"]) {
+    background-color: #0f172a;
 }
-[data-theme="dark"] input[type="text"],
-[data-theme="dark"] input[type="number"],
-[data-theme="dark"] input[type="date"],
-[data-theme="dark"] select,
-[data-theme="dark"] textarea {
-    background-color: rgba(0, 0, 0, 0.2) !important;
-    color: #f1f5f9 !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
+
+html.dark .bg-gray-100:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-gray-100:not([class*="dark:bg-"]) {
+    background-color: #1e293b;
 }
-[data-theme="dark"] input::placeholder,
-[data-theme="dark"] textarea::placeholder {
-    color: #64748b !important;
+
+html.dark .bg-gray-200:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-gray-200:not([class*="dark:bg-"]) {
+    background-color: #334155;
+}
+
+/* 2. Borders on legacy components (without explicit dark:border-*) */
+html.dark .border-gray-100:not([class*="dark:border-"]),
+html.dark .border-gray-200:not([class*="dark:border-"]),
+html.dark .border-gray-300:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-gray-100:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-gray-200:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-gray-300:not([class*="dark:border-"]) {
+    border-color: #334155;
+}
+
+/* 3. Text Colors on legacy components (without explicit dark:text-*) */
+html.dark .text-gray-900:not([class*="dark:text-"]),
+html.dark .text-gray-800:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-gray-900:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-gray-800:not([class*="dark:text-"]) {
+    color: #f8fafc;
+}
+
+html.dark .text-gray-700:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-gray-700:not([class*="dark:text-"]) {
+    color: #e2e8f0;
+}
+
+html.dark .text-gray-600:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-gray-600:not([class*="dark:text-"]) {
+    color: #cbd5e1;
+}
+
+html.dark .text-gray-500:not([class*="dark:text-"]),
+html.dark .text-gray-400:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-gray-500:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-gray-400:not([class*="dark:text-"]) {
+    color: #94a3b8;
+}
+
+/* 4. Colored Alerts & Badges for legacy components */
+/* Emerald / Green */
+html.dark .bg-green-50:not([class*="dark:bg-"]),
+html.dark .bg-emerald-50:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-green-50:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-emerald-50:not([class*="dark:bg-"]) {
+    background-color: rgba(16, 185, 129, 0.15);
+}
+
+html.dark .border-green-200:not([class*="dark:border-"]),
+html.dark .border-emerald-200:not([class*="dark:border-"]),
+html.dark .border-green-300:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-green-200:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-emerald-200:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-green-300:not([class*="dark:border-"]) {
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+html.dark .text-green-700:not([class*="dark:text-"]),
+html.dark .text-green-800:not([class*="dark:text-"]),
+html.dark .text-green-900:not([class*="dark:text-"]),
+html.dark .text-emerald-700:not([class*="dark:text-"]),
+html.dark .text-emerald-800:not([class*="dark:text-"]),
+html.dark .text-emerald-900:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-green-700:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-green-800:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-green-900:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-emerald-700:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-emerald-800:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-emerald-900:not([class*="dark:text-"]) {
+    color: #6ee7b7;
+}
+
+/* Amber / Yellow */
+html.dark .bg-amber-50:not([class*="dark:bg-"]),
+html.dark .bg-amber-100:not([class*="dark:bg-"]),
+html.dark .bg-yellow-50:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-amber-50:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-amber-100:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-yellow-50:not([class*="dark:bg-"]) {
+    background-color: rgba(245, 158, 11, 0.15);
+}
+
+html.dark .border-amber-200:not([class*="dark:border-"]),
+html.dark .border-amber-300:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-amber-200:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-amber-300:not([class*="dark:border-"]) {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+html.dark .text-amber-700:not([class*="dark:text-"]),
+html.dark .text-amber-800:not([class*="dark:text-"]),
+html.dark .text-amber-900:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-amber-700:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-amber-800:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-amber-900:not([class*="dark:text-"]) {
+    color: #fcd34d;
+}
+
+/* Red / Rose */
+html.dark .bg-red-50:not([class*="dark:bg-"]),
+html.dark .bg-rose-50:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-red-50:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-rose-50:not([class*="dark:bg-"]) {
+    background-color: rgba(239, 68, 68, 0.15);
+}
+
+html.dark .border-red-200:not([class*="dark:border-"]),
+html.dark .border-rose-200:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-red-200:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-rose-200:not([class*="dark:border-"]) {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+html.dark .text-red-700:not([class*="dark:text-"]),
+html.dark .text-red-800:not([class*="dark:text-"]),
+html.dark .text-red-900:not([class*="dark:text-"]),
+html.dark .text-rose-700:not([class*="dark:text-"]),
+html.dark .text-rose-800:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-red-700:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-red-800:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-red-900:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-rose-700:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-rose-800:not([class*="dark:text-"]) {
+    color: #fca5a5;
+}
+
+/* Blue */
+html.dark .bg-blue-50:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-blue-50:not([class*="dark:bg-"]) {
+    background-color: rgba(59, 130, 246, 0.15);
+}
+
+html.dark .border-blue-200:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-blue-200:not([class*="dark:border-"]) {
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+html.dark .text-blue-700:not([class*="dark:text-"]),
+html.dark .text-blue-800:not([class*="dark:text-"]),
+html.dark .text-blue-900:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-blue-700:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-blue-800:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-blue-900:not([class*="dark:text-"]) {
+    color: #93c5fd;
+}
+
+/* Purple */
+html.dark .bg-purple-50:not([class*="dark:bg-"]),
+html[data-theme="dark"] .bg-purple-50:not([class*="dark:bg-"]) {
+    background-color: rgba(168, 85, 247, 0.15);
+}
+
+html.dark .border-purple-200:not([class*="dark:border-"]),
+html[data-theme="dark"] .border-purple-200:not([class*="dark:border-"]) {
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+html.dark .text-purple-700:not([class*="dark:text-"]),
+html.dark .text-purple-800:not([class*="dark:text-"]),
+html.dark .text-purple-900:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-purple-700:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-purple-800:not([class*="dark:text-"]),
+html[data-theme="dark"] .text-purple-900:not([class*="dark:text-"]) {
+    color: #d8b4fe;
+}
+
+/* 5. Form inputs & controls in dark mode */
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html.dark select,
+html.dark textarea,
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+    background-color: #334155;
+    color: #f8fafc;
+    border-color: #475569;
+    color-scheme: dark;
+}
+
+html.dark select option,
+html[data-theme="dark"] select option {
+    background-color: #1e293b;
+    color: #f8fafc;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder,
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+    color: #94a3b8;
+}
+
+/* 6. Form inputs & controls in light mode */
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html:not(.dark) select,
+html:not(.dark) textarea {
+    color-scheme: light;
+}
+
+html:not(.dark) select option {
+    background-color: #ffffff;
+    color: #0f172a;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+    color: #94a3b8;
+}
+
+/* 7. Light mode contrast: prevent washed-out text-gray-400 */
+html:not(.dark) .text-gray-400 {
+    color: #64748b;
+}
+
+/* 8. Modals & Dialogs must ALWAYS be solid and opaque */
+.modal-overlay {
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+}
+
+html.dark .dark\:bg-slate-800,
+html[data-theme="dark"] .dark\:bg-slate-800 {
+    background-color: #1e293b !important;
+}
+
+html.dark .dark\:bg-slate-900,
+html[data-theme="dark"] .dark\:bg-slate-900 {
+    background-color: #0f172a !important;
 }

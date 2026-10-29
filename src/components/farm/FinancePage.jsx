@@ -200,7 +200,9 @@ export default function FinancePage() {
         ? allTransactions
         : activeTab === 'expense'
             ? allTransactions.filter(t => t.category === 'expense' || t.category === 'adjusted')
-            : allTransactions.filter(t => t.category === activeTab);
+            : activeTab === 'services'
+                ? allTransactions.filter(t => t.tx_subtype === 'SERVICE_PAYMENT')
+                : allTransactions.filter(t => t.category === activeTab);
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
@@ -232,7 +234,7 @@ export default function FinancePage() {
             </div>
 
             {/* Crop Selector Toolbar */}
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between flex-wrap gap-3">
+            <div id="demo-finance-crop-filter" className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wide mr-1">
                         Select Crop View:
@@ -283,24 +285,28 @@ export default function FinancePage() {
             {loading ? <Spinner /> : (
                 <>
                     {/* Summary cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <SummaryCard
-                            label={selectedCrop === 'ALL' ? 'Total Income' : `Crop Revenue (${selectedCropLabel})`}
-                            value={displayIncome}
-                            color="border-green-500"
-                            icon="📈"
-                            subtitle={incomeSubtitle}
-                            subColor="text-emerald-700"
-                        />
-                        <SummaryCard
-                            label={selectedCrop === 'ALL' ? 'Total Expenses' : `Direct Costs (${selectedCropLabel})`}
-                            value={displayExpense}
-                            color="border-red-400"
-                            icon="📉"
-                            subtitle={expenseSubtitle}
-                            subColor="text-red-600"
-                        />
-                        <div className={`bg-white rounded-2xl shadow-md p-6 border-l-4 ${displayNet >= 0 ? 'border-blue-500' : 'border-orange-400'} flex flex-col justify-between`}>
+                    <div id="demo-finance-kpis" className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div id="demo-finance-income-card">
+                            <SummaryCard
+                                label={selectedCrop === 'ALL' ? 'Total Income' : `Crop Revenue (${selectedCropLabel})`}
+                                value={displayIncome}
+                                color="border-green-500"
+                                icon="📈"
+                                subtitle={incomeSubtitle}
+                                subColor="text-emerald-700"
+                            />
+                        </div>
+                        <div id="demo-finance-expense-card">
+                            <SummaryCard
+                                label={selectedCrop === 'ALL' ? 'Total Expenses' : `Direct Costs (${selectedCropLabel})`}
+                                value={displayExpense}
+                                color="border-red-400"
+                                icon="📉"
+                                subtitle={expenseSubtitle}
+                                subColor="text-red-600"
+                            />
+                        </div>
+                        <div id="demo-finance-profit-card" className={`bg-white rounded-2xl shadow-md p-6 border-l-4 ${displayNet >= 0 ? 'border-blue-500' : 'border-orange-400'} flex flex-col justify-between`}>
                             <div>
                                 <div className="flex items-center justify-between">
                                     <p className="text-sm text-gray-500 font-medium">
@@ -379,7 +385,7 @@ export default function FinancePage() {
 
                     {/* 🌾 Crop Financial Performance & Profitability Table — Shown in All Crops View */}
                     {selectedCrop === 'ALL' && cropFinances?.crops?.length > 0 && (
-                        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
+                        <div id="demo-finance-crop-table" className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
                             <div className="flex items-start justify-between flex-wrap gap-2">
                                 <div>
                                     <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -569,7 +575,7 @@ export default function FinancePage() {
                         };
 
                         return (
-                            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
+                            <div id="demo-finance-activity-cost" className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 space-y-4">
                                 {/* Header & Active Filter Indicator */}
                                 <div className="flex items-start justify-between flex-wrap gap-2">
                                     <div>
@@ -757,7 +763,7 @@ export default function FinancePage() {
                     )}
 
                     {/* Unified Financial Transactions Ledger */}
-                    <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+                    <div id="demo-finance-ledger" className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
                         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -773,7 +779,7 @@ export default function FinancePage() {
                                 </p>
                             </div>
                             <div className="flex gap-1">
-                                {['all', 'income', 'expense'].map(tab => (
+                                {['all', 'income', 'expense', 'services'].map(tab => (
                                     <button key={tab} onClick={() => setActiveTab(tab)}
                                         className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize transition-all ${
                                             activeTab === tab ? 'bg-green-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
@@ -799,12 +805,14 @@ export default function FinancePage() {
                                                 : tx.category === 'adjusted' ? 'bg-slate-100'
                                                 : tx.tx_subtype === 'MATERIAL_USE' ? 'bg-amber-100'
                                                 : tx.tx_subtype === 'LABOR_WORK' ? 'bg-blue-100'
+                                                : tx.tx_subtype === 'SERVICE_PAYMENT' ? 'bg-teal-100'
                                                 : 'bg-red-100'
                                             }`}>
                                                 {tx.icon || (
                                                     tx.category === 'income' ? '📈'
                                                     : tx.tx_subtype === 'MATERIAL_USE' ? '🌱'
                                                     : tx.tx_subtype === 'LABOR_WORK' ? '👷'
+                                                    : tx.tx_subtype === 'SERVICE_PAYMENT' ? '🧑‍🔧'
                                                     : '📉'
                                                 )}
                                             </div>
@@ -821,6 +829,11 @@ export default function FinancePage() {
                                                     {tx.tx_subtype === 'LABOR_WORK' && (
                                                         <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 font-semibold text-[10px] border border-blue-200 flex items-center gap-1">
                                                             <span>👷</span> Direct Labor
+                                                        </span>
+                                                    )}
+                                                    {tx.tx_subtype === 'SERVICE_PAYMENT' && (
+                                                        <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 font-semibold text-[10px] border border-teal-200 flex items-center gap-1">
+                                                            <span>🧾</span> Service Provider Bill
                                                         </span>
                                                     )}
                                                     {tx.tx_subtype === 'INVENTORY_BUY' && (

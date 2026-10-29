@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SPAuthProvider, useSPAuth } from './contexts/SPAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
@@ -7,15 +8,38 @@ import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
 import ProfileSettings from './components/auth/ProfileSettings';
 import FarmSelector from './components/auth/FarmSelector';
 import InitialSetup from './components/auth/InitialSetup';
+import SPApp from './components/sp/SPApp';
+import SPRegisterPage from './components/sp/SPRegisterPage';
 import App from './App'; // The existing main app
+import { DemoProvider } from './components/demo/DemoContext';
+import FirstTimeDemoPrompt from './components/demo/FirstTimeDemoPrompt';
+import DemoTourOverlay from './components/demo/DemoTourOverlay';
+import DemoFloatingButton from './components/demo/DemoFloatingButton';
+import FeatureDemoModal from './components/demo/FeatureDemoModal';
 
 const AuthenticatedApp = () => {
-    const { isAuthenticated, currentUser, currentFarm, loading, completeFirstLogin } = useAuth();
-    const [authView, setAuthView] = useState('login'); // 'login' | 'register' | 'forgotPassword'
+    const { isAuthenticated, currentUser, currentFarm, loading: farmLoading, completeFirstLogin } = useAuth();
+    const { isSPAuthenticated, loading: spLoading } = useSPAuth();
+
+    const [authView, setAuthView] = useState(() => {
+        if (window.location.pathname === '/sp/register') return 'spRegister';
+        return 'login'; // 'login' | 'register' | 'forgotPassword' | 'spRegister'
+    });
+
     const [showInitialSetup, setShowInitialSetup] = useState(false);
     const [showProfileSettings, setShowProfileSettings] = useState(false);
 
-    if (loading) {
+    useEffect(() => {
+        const handleLocationChange = () => {
+            if (window.location.pathname === '/sp/register') {
+                setAuthView('spRegister');
+            }
+        };
+        window.addEventListener('popstate', handleLocationChange);
+        return () => window.removeEventListener('popstate', handleLocationChange);
+    }, []);
+
+    if (farmLoading || spLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center">
                 <div className="text-center">
@@ -25,21 +49,23 @@ const AuthenticatedApp = () => {
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </div>
-                    <p className="text-gray-600">Loading...</p>
+                    <p className="text-gray-600">Loading FarmSight 360...</p>
                 </div>
             </div>
         );
     }
 
-    // If authenticated and farm selected, show main app
+    // 1. If authenticated as Service Provider, render SP App
+    if (isSPAuthenticated) {
+        return <SPApp />;
+    }
+
+    // 2. If authenticated as Farmer with selected farm, render main App
     if (isAuthenticated && currentFarm) {
-        // Show initial setup if first login and not completed yet
         if (showInitialSetup && currentUser?.isFirstLogin) {
             return (
                 <InitialSetup
-                    onComplete={(financialData) => {
-                        // Save initial financial data to localStorage
-                        // This will be handled by the main App component
+                    onComplete={() => {
                         completeFirstLogin();
                         setShowInitialSetup(false);
                     }}
@@ -61,46 +87,59 @@ const AuthenticatedApp = () => {
         );
     }
 
-    // If authenticated but no farm selected, show farm selector
+    // 3. If authenticated as Farmer but no farm selected
     if (isAuthenticated && !currentFarm) {
         return (
             <FarmSelector
                 onFarmSelected={() => {
-                    // Check if first login
                     if (currentUser?.isFirstLogin) {
                         setShowInitialSetup(true);
                     }
                 }}
                 onAddFarm={() => {
-                    // TODO: Show add farm modal/page
                     alert('Add farm functionality coming soon!');
                 }}
             />
         );
     }
 
-    // Not authenticated - show login or register
+    // 4. Not authenticated - Routing public auth views
     const handleLoginSuccess = (result) => {
         if (result.requiresFarmSelection) {
             setAuthView('farmSelector');
         } else if (result.isFirstLogin) {
             setShowInitialSetup(true);
         }
-        // Otherwise, App will render automatically
     };
 
     const handleRegisterSuccess = (result) => {
         if (result.isFirstLogin) {
             setShowInitialSetup(true);
         }
-        // Otherwise, App will render automatically
     };
 
     if (authView === 'register') {
         return (
             <RegisterPage
                 onRegisterSuccess={handleRegisterSuccess}
-                onNavigateToLogin={() => setAuthView('login')}
+                onNavigateToLogin={() => {
+                    window.history.pushState({}, '', '/');
+                    setAuthView('login');
+                }}
+            />
+        );
+    }
+
+    if (authView === 'spRegister') {
+        return (
+            <SPRegisterPage
+                onNavigateToLogin={() => {
+                    window.history.pushState({}, '', '/');
+                    setAuthView('login');
+                }}
+                onRegisterSuccess={() => {
+                    window.history.pushState({}, '', '/sp/dashboard');
+                }}
             />
         );
     }
@@ -109,9 +148,7 @@ const AuthenticatedApp = () => {
         return (
             <ForgotPasswordPage
                 onBack={() => setAuthView('login')}
-                onSuccess={() => {
-                    setAuthView('login');
-                }}
+                onSuccess={() => setAuthView('login')}
             />
         );
     }
@@ -119,8 +156,18 @@ const AuthenticatedApp = () => {
     return (
         <LoginPage
             onLoginSuccess={handleLoginSuccess}
-            onNavigateToRegister={() => setAuthView('register')}
+            onNavigateToRegister={() => {
+                window.history.pushState({}, '', '/register');
+                setAuthView('register');
+            }}
             onForgotPassword={() => setAuthView('forgotPassword')}
+            onSPLoginSuccess={() => {
+                window.history.pushState({}, '', '/sp/dashboard');
+            }}
+            onNavigateToSPRegister={() => {
+                window.history.pushState({}, '', '/sp/register');
+                setAuthView('spRegister');
+            }}
         />
     );
 };
@@ -129,7 +176,15 @@ const AuthApp = () => {
     return (
         <ThemeProvider>
             <AuthProvider>
-                <AuthenticatedApp />
+                <SPAuthProvider>
+                    <DemoProvider>
+                        <AuthenticatedApp />
+                        <FirstTimeDemoPrompt />
+                        <DemoTourOverlay />
+                        <DemoFloatingButton />
+                        <FeatureDemoModal />
+                    </DemoProvider>
+                </SPAuthProvider>
             </AuthProvider>
         </ThemeProvider>
     );

@@ -1142,11 +1142,15 @@ export default function InventoryPage() {
                     <p className="text-gray-500 mt-1">{currentFarm.name} — stock, supplies & equipment</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={() => setModal('category')}
+                    <button
+                        id="demo-inventory-category-btn"
+                        onClick={() => setModal('category')}
                         className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 text-sm font-medium">
                         + Category
                     </button>
-                    <button onClick={() => setModal('add')}
+                    <button
+                        id="demo-add-inventory-btn"
+                        onClick={() => setModal('add')}
                         className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-lg transition-all">
                         <span className="text-lg">+</span> Add Item
                     </button>
@@ -1154,7 +1158,7 @@ export default function InventoryPage() {
             </div>
 
             {/* Banner redirecting to Fertilisers & Sprays */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-3">
+            <div id="demo-inventory-cropcare-banner" className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                     <span className="text-2xl">🌱</span>
                     <div>
@@ -1170,7 +1174,7 @@ export default function InventoryPage() {
             </div>
 
             {/* View Mode Switcher: Stock vs Usage Tracker & Tagging */}
-            <div className="flex items-center gap-3 border-b pb-3">
+            <div id="demo-inventory-tabs" className="flex items-center gap-3 border-b pb-3">
                 <button
                     onClick={() => setViewMode('stock')}
                     className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
@@ -1246,10 +1250,14 @@ export default function InventoryPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                            {filtered.map(item => {
+                            {filtered.map((item, idx) => {
                                 const isLow = item.current_quantity <= 5;
+                                const isFirst = idx === 0;
                                 return (
-                                    <div key={item.id} className={`bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow p-6 ${isLow ? 'border-l-4 border-orange-400' : ''}`}>
+                                    <div
+                                        key={item.id}
+                                        id={isFirst ? "demo-inventory-card-primary" : undefined}
+                                        className={`bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow p-6 ${isLow ? 'border-l-4 border-orange-400' : ''}`}>
                                         <div className="flex items-start justify-between mb-2">
                                             <div>
                                                 <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
@@ -1270,20 +1278,27 @@ export default function InventoryPage() {
                                         {item.notes && <p className="text-xs text-gray-400 italic mb-3">{item.notes}</p>}
                                         {/* History shortcut — click item name area */}
                                         <button
+                                            id={isFirst ? "demo-inventory-history-btn" : undefined}
                                             onClick={() => setModal({ type: 'history', itemId: item.id })}
                                             className="w-full text-left text-[10px] text-gray-400 hover:text-green-600 transition-colors mb-3 flex items-center gap-1">
                                             <span>📋</span> View full history & usage tracker
                                         </button>
                                         <div className="flex gap-2 pt-3 border-t">
-                                            <button onClick={() => setModal({ type: 'buy', item })}
+                                            <button
+                                                id={isFirst ? "demo-inventory-buy-btn" : undefined}
+                                                onClick={() => setModal({ type: 'buy', item })}
                                                 className="flex-1 py-1.5 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-all">
                                                 🛒 Buy
                                             </button>
-                                            <button onClick={() => setModal({ type: 'use', item })}
+                                            <button
+                                                id={isFirst ? "demo-inventory-use-btn" : undefined}
+                                                onClick={() => setModal({ type: 'use', item })}
                                                 className="flex-1 py-1.5 text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-all">
                                                 🪣 Use
                                             </button>
-                                            <button onClick={() => setModal({ type: 'sell', item })}
+                                            <button
+                                                id={isFirst ? "demo-inventory-sell-btn" : undefined}
+                                                onClick={() => setModal({ type: 'sell', item })}
                                                 className="flex-1 py-1.5 text-xs font-medium bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-all">
                                                 💸 Sell
                                             </button>

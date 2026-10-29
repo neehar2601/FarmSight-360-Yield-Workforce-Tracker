@@ -1114,7 +1114,7 @@ const BuyPlantingMaterialModal = ({ crop, onClose, onSaved }) => {
 };
 
 // ── Crop Card ─────────────────────────────────────────────────────────────────
-const CropCard = ({ crop, onAction, onArchive }) => {
+const CropCard = ({ crop, onAction, onArchive, isFirst }) => {
     const available = Number(crop.total_harvested) - Number(crop.total_sold);
     const hasUnsegregated = Number(crop.inventory?.['Unsegregated'] || 0) > 0;
     const grades = crop.inventory
@@ -1127,7 +1127,7 @@ const CropCard = ({ crop, onAction, onArchive }) => {
     const materialUnit = crop.planting_material?.item_unit || (isPerennial ? 'saplings' : 'kg');
 
     return (
-        <div className="bg-white rounded-2xl border-2 border-gray-100 hover:border-green-300 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col justify-between">
+        <div id={isFirst ? "demo-crop-card-primary" : undefined} className="bg-white rounded-2xl border-2 border-gray-100 hover:border-green-300 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col justify-between">
             {/* Card header */}
             <div className="p-5 pb-3">
                 <div className="flex justify-between items-start mb-2">
@@ -1140,7 +1140,9 @@ const CropCard = ({ crop, onAction, onArchive }) => {
                         </div>
                         {crop.variety && <p className="text-sm text-gray-400 font-medium">{crop.variety}</p>}
                     </div>
-                    <button onClick={() => onAction('history')}
+                    <button
+                        id={isFirst ? "demo-crop-history-btn" : undefined}
+                        onClick={() => onAction('history')}
                         className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1">
                         <span>📜</span> History
                     </button>
@@ -1153,7 +1155,7 @@ const CropCard = ({ crop, onAction, onArchive }) => {
                 </div>
 
                 {/* Crop Produce Inventory panel (Harvest & Sales) */}
-                <div className="bg-green-50/70 border border-green-200/90 rounded-xl p-3.5 mb-3">
+                <div id={isFirst ? "demo-crop-produce-panel" : undefined} className="bg-green-50/70 border border-green-200/90 rounded-xl p-3.5 mb-3">
                     <div className="flex justify-between items-center mb-1">
                         <span className="text-[11px] font-bold text-green-900 uppercase tracking-wider flex items-center gap-1">
                             🌾 Harvested Crop Produce
@@ -1192,19 +1194,25 @@ const CropCard = ({ crop, onAction, onArchive }) => {
                 {/* Primary Produce Actions (Harvest, Sell, Sort) */}
                 <div className="space-y-2 mb-3">
                     <div className="flex gap-2">
-                        <button onClick={() => onAction('harvest')}
+                        <button
+                            id={isFirst ? "demo-crop-harvest-btn" : undefined}
+                            onClick={() => onAction('harvest')}
                             className="flex-1 py-2.5 bg-amber-400 hover:bg-amber-500 text-white rounded-xl font-bold text-sm transition-all shadow-xs active:scale-95 flex items-center justify-center gap-1.5">
                             🌾 Record Harvest
                         </button>
                         {hasUnsegregated && (
-                            <button onClick={() => onAction('segregate')}
+                            <button
+                                id={isFirst ? "demo-crop-segregate-btn" : undefined}
+                                onClick={() => onAction('segregate')}
                                 className="py-2.5 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl font-semibold text-xs transition-all active:scale-95 flex items-center justify-center gap-1">
                                 <span>🗂️</span> Sort Grade
                             </button>
                         )}
                     </div>
                     {available > 0 && (
-                        <button onClick={() => onAction('sell')}
+                        <button
+                            id={isFirst ? "demo-crop-sell-btn" : undefined}
+                            onClick={() => onAction('sell')}
                             className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-sm transition-all shadow-xs active:scale-95 flex items-center justify-center gap-1.5">
                             💰 Sell Crop ({available} in stock)
                         </button>
@@ -1213,7 +1221,7 @@ const CropCard = ({ crop, onAction, onArchive }) => {
             </div>
 
             {/* Bottom Section: Seed & Nursery Material */}
-            <div className="px-5 pb-4 space-y-2">
+            <div id={isFirst ? "demo-crop-seed-panel" : undefined} className="px-5 pb-4 space-y-2">
                 <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3 space-y-2">
                     <div className="flex justify-between items-center">
                         <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
@@ -1312,19 +1320,21 @@ export default function CropsPage() {
     return (
         <div className="space-y-5">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div id="demo-crops-header" className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800">My Crops</h1>
                     <p className="text-gray-400 mt-0.5">{currentFarm.name}</p>
                 </div>
-                <button onClick={() => setModal({ type: 'addCrop' })}
+                <button
+                    id="demo-add-crop-btn"
+                    onClick={() => setModal({ type: 'addCrop' })}
                     className="flex items-center gap-2 px-5 py-3 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-bold shadow-lg transition-all active:scale-95">
                     <span className="text-xl">+</span> Add Crop
                 </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2">
+            <div id="demo-crop-tabs" className="flex gap-2">
                 {[['active', 'My Crops'], ['archived', 'Archived']].map(([t, label]) => (
                     <button key={t} onClick={() => setTab(t)}
                         className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${tab === t ? 'bg-green-500 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
@@ -1343,9 +1353,10 @@ export default function CropsPage() {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filtered.map(crop => (
+                <div id="demo-crops-planning" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filtered.map((crop, idx) => (
                         <CropCard key={crop.id} crop={crop}
+                            isFirst={idx === 0}
                             onAction={(type) => setModal({ type, crop })}
                             onArchive={() => archiveCrop(crop.id, crop.farm_id, !crop.is_archived).then(load)}
                         />

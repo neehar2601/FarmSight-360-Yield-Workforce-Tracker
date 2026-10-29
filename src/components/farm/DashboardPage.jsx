@@ -334,6 +334,42 @@ export default function DashboardPage() {
             </div>
 
             <div style={{ padding: '24px 32px' }}>
+                {/* ─── Agri-Weather & Advisory Widget ───────────────────────── */}
+                <div id="demo-weather-widget" style={{
+                    marginBottom: 24, padding: '16px 20px', borderRadius: 16,
+                    background: isDark ? 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(59,130,246,0.08) 100%)' : 'linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%)',
+                    border: isDark ? '1px solid rgba(16,185,129,0.25)' : '1px solid #d1fae5',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{
+                            width: 46, height: 46, borderRadius: 12,
+                            background: isDark ? 'rgba(16,185,129,0.2)' : '#10b981',
+                            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 22, boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+                        }}>
+                            ⛅
+                        </div>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontWeight: 800, fontSize: 16, color: T.titleColor }}>28°C · Partly Cloudy</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12, background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>
+                                    Ideal Spray Window
+                                </span>
+                            </div>
+                            <p style={{ fontSize: 12, color: T.subColor, marginTop: 2 }}>
+                                Humidity: 62% · Wind: 9 km/h NW · Rain Chance: 12% · No spray drift risk today.
+                            </p>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 12, color: T.mutedColor }}>Agri-Advisory:</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', background: 'rgba(5,150,105,0.1)', padding: '4px 10px', borderRadius: 8 }}>
+                            ✓ Good conditions for fertiliser top-dressing
+                        </span>
+                    </div>
+                </div>
+
                 {error && (
                     <div style={{
                         background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
@@ -344,7 +380,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* ─── KPI Stat Cards ─────────────────────────────────────────── */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+                <div id="demo-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
                     <StatCard icon="💰" title="Total Income" value={fmtCurr(fin.total_income)} accent="#10b981"
                         sub={`Net: ${fmtCurr(fin.net_profit)}`} />
                     <StatCard icon="📉" title="Total Expense" value={fmtCurr(fin.total_expense)} accent="#ef4444"
@@ -364,7 +400,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* ─── Charts Row ──────────────────────────────────────────────── */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+                <div id="demo-charts-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
                     {/* Income vs Expense chart */}
                     <ChartCard title="📊 Income & Expense — Last 6 Months"
                         action={
@@ -599,7 +635,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* ─── Quick Links ─────────────────────────────────────────────── */}
-                <div style={{ marginTop: 20 }}>
+                <div id="demo-quick-actions" style={{ marginTop: 20 }}>
                     <p style={{ color: T.subColor, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Quick Links</p>
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                         {[

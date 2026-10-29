@@ -9,6 +9,9 @@ import CropCarePage from './components/farm/CropCarePage';
 import FinancePage from './components/farm/FinancePage';
 import WorkersPage from './components/farm/WorkersPage';
 import DashboardPage from './components/farm/DashboardPage';
+import BrowseServicesPage from './components/marketplace/BrowseServicesPage';
+import MyBookingsPage from './components/marketplace/MyBookingsPage';
+import DemoHeaderButton from './components/demo/DemoHeaderButton';
 
 // --- MOCK DATA LAYER (DEMO DATA) ---
 const MOCK_CURRENT_DATE = new Date('2025-10-13T12:00:00Z');
@@ -663,6 +666,16 @@ const ExpenseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8
 const ProfitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>;
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>;
 const LoanIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m8-4h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2z" /></svg>;
+const MarketplaceIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+);
+const BookingsIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+);
 
 // --- MODAL COMPONENTS ---
 // Phase 4: YieldModal — uses cropMaster for auto-fill unit; accepts preselectedCrop
@@ -1856,7 +1869,7 @@ const WorkerManagement = () => {
 
 
 // --- LAYOUT & APP ROUTING ---
-const NavLink = ({ to, icon, children, currentPath }) => { const isActive = (currentPath === '/' && to === '/') || (currentPath === to); return (<a href={to} className={`flex items-center px-4 py-3 text-lg rounded-lg ${isActive ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700'}`}>{icon}<span className="ml-4">{children}</span></a>); }
+const NavLink = ({ to, icon, children, currentPath }) => { const isActive = (currentPath === '/' && to === '/') || (currentPath === to) || (to !== '/' && currentPath.startsWith(to)); return (<a href={to} className={`flex items-center px-4 py-3 text-lg rounded-lg ${isActive ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700'}`}>{icon}<span className="ml-4">{children}</span></a>); }
 const Sidebar = ({ isSidebarOpen, currentPath }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -1876,6 +1889,9 @@ const Sidebar = ({ isSidebarOpen, currentPath }) => {
                 <NavLink to="/farm/finance" icon={<FinancialIcon />} currentPath={currentPath}>Finance</NavLink>
                 <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Workforce</p>
                 <NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink>
+                <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Marketplace</p>
+                <NavLink to="/services" icon={<MarketplaceIcon />} currentPath={currentPath}>Service Providers</NavLink>
+                <NavLink to="/bookings" icon={<BookingsIcon />} currentPath={currentPath}>My Bookings</NavLink>
             </nav>
         </aside>
     );
@@ -1912,8 +1928,10 @@ const Header = ({ toggleSidebar }) => {
             <div className="hidden md:block" style={{ fontSize: 20, fontWeight: 700, color: isDark ? '#f1f5f9' : '#374151' }}>
                 Welcome, {currentUser ? currentUser.name : 'Guest'}!
             </div>
-            {currentUser && (
-                <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <DemoHeaderButton />
+                {currentUser && (
+                    <div style={{ position: 'relative' }}>
                     <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 12 }}
                         onClick={() => setShowDropdown(!showDropdown)}>
                         <div style={{ textAlign: 'right' }}>
@@ -1962,6 +1980,7 @@ const Header = ({ toggleSidebar }) => {
                     )}
                 </div>
             )}
+            </div>
         </header>
     );
 };
@@ -1976,6 +1995,9 @@ const routes = {
     '/farm/inventory': InventoryPage,
     '/farm/crop-care': CropCarePage,
     '/farm/finance': FinancePage,
+    // ── Service Provider Marketplace routes ─────────────────
+    '/services': BrowseServicesPage,
+    '/bookings': MyBookingsPage,
 };
 
 class ErrorBoundary extends React.Component {
@@ -2017,7 +2039,19 @@ export default function App() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     useEffect(() => { const onLocationChange = () => setCurrentPath(window.location.pathname); window.addEventListener('popstate', onLocationChange); const handleLinkClick = (e) => { if (e.target.tagName === 'A' && e.target.href.startsWith(window.location.origin) && e.target.target !== '_blank') { e.preventDefault(); window.history.pushState({}, '', e.target.href); onLocationChange(); } }; window.addEventListener('click', handleLinkClick); return () => { window.removeEventListener('popstate', onLocationChange); window.removeEventListener('click', handleLinkClick); }; }, []);
-    const Page = routes[currentPath] || routes['/'];
+
+    let Page = routes[currentPath];
+    let pageProps = {};
+    if (!Page) {
+        if (currentPath.startsWith('/services/')) {
+            const providerId = currentPath.replace('/services/', '').split('/')[0];
+            Page = BrowseServicesPage;
+            pageProps = { selectedProviderId: providerId };
+        } else {
+            Page = routes['/'];
+        }
+    }
+
     return (
         <DataProvider>
             <div style={{ display: 'flex', height: '100vh', background: isDark ? '#0f172a' : '#f3f4f6', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
@@ -2027,7 +2061,7 @@ export default function App() {
                     <main style={{ flex: 1, overflowX: 'hidden', overflowY: 'auto', background: isDark ? '#0f172a' : '#f3f4f6', padding: currentPath === '/' ? 0 : 24 }}>
                         <ErrorBoundary>
                             <Suspense fallback={<Spinner />}>
-                                <Page />
+                                <Page {...pageProps} />
                             </Suspense>
                         </ErrorBoundary>
                     </main>
