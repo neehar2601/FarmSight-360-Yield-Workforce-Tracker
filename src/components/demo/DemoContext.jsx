@@ -120,7 +120,7 @@ export const DemoProvider = ({ children }) => {
     // Quick instant demo login
     const launchInstantFarmerDemo = useCallback(async () => {
         try {
-            const res = await fetch('http://localhost:4000/auth/login', {
+            const res = await fetch(`${import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:4000'}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: 'farmer@example.com', password: 'Tester@123' })

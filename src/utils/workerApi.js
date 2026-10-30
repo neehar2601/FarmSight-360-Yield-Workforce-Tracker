@@ -8,7 +8,7 @@
 
 import { tokenStore } from './apiClient';
 
-const WORKER_SERVICE_URL = 'http://localhost:4002';
+const WORKER_SERVICE_URL = import.meta.env.VITE_WORKER_SERVICE_URL || 'http://localhost:4002';
 
 const headers = () => ({
     'Content-Type': 'application/json',

@@ -35,7 +35,7 @@ export const spTokenStore = {
     },
 };
 
-const BASE_URL = '/api/sp';
+const BASE_URL = `${import.meta.env.VITE_SP_SERVICE_URL || ''}/api/sp`;
 
 let isRefreshingSp = false;
 
