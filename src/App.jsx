@@ -2038,7 +2038,23 @@ export default function App() {
     const [currentPath, setCurrentPath] = useState(window.location.pathname);
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    useEffect(() => { const onLocationChange = () => setCurrentPath(window.location.pathname); window.addEventListener('popstate', onLocationChange); const handleLinkClick = (e) => { if (e.target.tagName === 'A' && e.target.href.startsWith(window.location.origin) && e.target.target !== '_blank') { e.preventDefault(); window.history.pushState({}, '', e.target.href); onLocationChange(); } }; window.addEventListener('click', handleLinkClick); return () => { window.removeEventListener('popstate', onLocationChange); window.removeEventListener('click', handleLinkClick); }; }, []);
+    useEffect(() => {
+        const onLocationChange = () => setCurrentPath(window.location.pathname);
+        window.addEventListener('popstate', onLocationChange);
+        const handleLinkClick = (e) => {
+            const link = e.target.closest('a');
+            if (link && link.href && link.href.startsWith(window.location.origin) && link.target !== '_blank') {
+                e.preventDefault();
+                window.history.pushState({}, '', link.href);
+                onLocationChange();
+            }
+        };
+        window.addEventListener('click', handleLinkClick);
+        return () => {
+            window.removeEventListener('popstate', onLocationChange);
+            window.removeEventListener('click', handleLinkClick);
+        };
+    }, []);
 
     let Page = routes[currentPath];
     let pageProps = {};

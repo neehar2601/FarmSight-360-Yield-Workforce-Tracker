@@ -7,7 +7,13 @@ export default defineConfig({
   server: {
     host: true, // bind 0.0.0.0 (reachable from LAN / containers)
     proxy: {
-      // Service Provider marketplace service (isolated DB + identity)
+      '/auth': 'http://localhost:4000',
+      '/admin': 'http://localhost:4000',
+      '/uploads': 'http://localhost:4000',
+      '/farm': 'http://localhost:4001',
+      '/workers': 'http://localhost:4002',
+      '/attendance': 'http://localhost:4002',
+      '/finance': 'http://localhost:4002',
       '/api/sp': {
         target: 'http://localhost:4003',
         changeOrigin: true,

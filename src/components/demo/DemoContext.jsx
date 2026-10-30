@@ -37,8 +37,8 @@ export const DemoProvider = ({ children }) => {
         return () => window.removeEventListener('popstate', handleLocationChange);
     }, []);
 
-    // Current page guide
-    const currentPageGuide = getGuideForPath(currentPath);
+    // Current page guide (always resolve latest path)
+    const currentPageGuide = getGuideForPath(window.location.pathname) || getGuideForPath(currentPath);
 
     // First-time visit detection per page
     const shouldShowFirstTimePrompt = useCallback((pageId) => {
@@ -104,23 +104,24 @@ export const DemoProvider = ({ children }) => {
 
     const nextTourStep = useCallback(() => {
         const steps = currentPageGuide?.tourSteps || [];
-        if (currentTourStep < steps.length - 1) {
-            setCurrentTourStep(prev => prev + 1);
-        } else {
-            stopTour();
-        }
-    }, [currentPageGuide, currentTourStep, stopTour]);
+        setCurrentTourStep(prev => {
+            if (prev < steps.length - 1) {
+                return prev + 1;
+            } else {
+                stopTour();
+                return 0;
+            }
+        });
+    }, [currentPageGuide, stopTour]);
 
     const prevTourStep = useCallback(() => {
-        if (currentTourStep > 0) {
-            setCurrentTourStep(prev => prev - 1);
-        }
-    }, [currentTourStep]);
+        setCurrentTourStep(prev => Math.max(0, prev - 1));
+    }, []);
 
     // Quick instant demo login
     const launchInstantFarmerDemo = useCallback(async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:4000'}/auth/login`, {
+            const res = await fetch(`${import.meta.env.VITE_AUTH_SERVICE_URL || ''}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: 'farmer@example.com', password: 'Tester@123' })
