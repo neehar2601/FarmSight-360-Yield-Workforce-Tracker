@@ -8,10 +8,11 @@
 
 import { tokenStore } from './apiClient';
 
-const WORKER_SERVICE_URL = import.meta.env.VITE_WORKER_SERVICE_URL || 'http://localhost:4002';
+const WORKER_SERVICE_URL = import.meta.env.VITE_WORKER_SERVICE_URL || '';
 
 const headers = () => ({
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
     Authorization: `Bearer ${tokenStore.getAccess()}`,
 });
 

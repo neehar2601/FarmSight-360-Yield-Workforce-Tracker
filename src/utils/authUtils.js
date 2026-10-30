@@ -204,7 +204,7 @@ export const resetPassword = async (resetToken, newPassword) => {
 
 // ── Avatar upload ─────────────────────────────────────────────────────────────
 
-const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:4000';
+const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || '';
 
 /**
  * Upload a profile picture (File object).

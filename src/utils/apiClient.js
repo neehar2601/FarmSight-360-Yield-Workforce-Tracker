@@ -12,7 +12,7 @@
  *   const data = await api.post('/auth/login', { email, password });
  */
 
-const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:4000';
+const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || '';
 
 // ── Token storage ─────────────────────────────────────────────────────────────
 // NOTE: For production, move the refresh token to an httpOnly cookie to prevent

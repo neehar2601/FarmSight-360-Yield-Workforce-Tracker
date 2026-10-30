@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { uploadAvatar, changePassword } from '../../utils/authUtils';
 
-const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:4000';
+const AUTH_SERVICE_URL = import.meta.env.VITE_AUTH_SERVICE_URL || '';
 
 /**
  * ProfileSettings — slide-in panel (or modal) for:

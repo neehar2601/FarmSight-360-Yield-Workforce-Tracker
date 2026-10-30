@@ -8,10 +8,11 @@
 
 import { tokenStore } from './apiClient';
 
-const FARM_SERVICE_URL = import.meta.env.VITE_FARM_SERVICE_URL || 'http://localhost:4001';
+const FARM_SERVICE_URL = import.meta.env.VITE_FARM_SERVICE_URL || '';
 
 const headers = () => ({
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
     Authorization: `Bearer ${tokenStore.getAccess()}`,
 });
 
