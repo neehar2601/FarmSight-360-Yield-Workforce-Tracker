@@ -148,26 +148,26 @@ const AddInputModal = ({ farmId, existingCategories, onClose, onSaved }) => {
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
              onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-                <div className="flex items-start justify-between border-b pb-3">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-slate-100">
+                <div className="flex items-start justify-between border-b border-gray-100 dark:border-slate-700 pb-3">
                     <div>
-                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                             <span>🌱</span> Add Fertiliser / Spray Input
                         </h3>
-                        <p className="text-xs text-gray-500 mt-0.5">Register a nutrient, chemical, or spray product in your farm catalog</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Register a nutrient, chemical, or spray product in your farm catalog</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 text-xl leading-none">&times;</button>
                 </div>
 
                 {error && (
-                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                    <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-xs">
                         {error}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                             Input / Product Name *
                         </label>
                         <input
@@ -176,32 +176,32 @@ const AddInputModal = ({ farmId, existingCategories, onClose, onSaved }) => {
                             onChange={e => setName(e.target.value)}
                             placeholder="e.g. Urea 46%, Mancozeb 75 WP, Neem Oil 10000 PPM"
                             required
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                                 Category *
                             </label>
                             <select
                                 value={selectedCategoryName}
                                 onChange={e => setSelectedCategoryName(e.target.value)}
-                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                className="w-full border border-gray-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                                 {STANDARD_CATEGORIES.map(c => (
                                     <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>
                                 ))}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                                 Measurement Unit *
                             </label>
                             <select
                                 value={unit}
                                 onChange={e => setUnit(e.target.value)}
-                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                className="w-full border border-gray-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                                 {COMMON_UNITS.map(u => (
                                     <option key={u} value={u}>{u}</option>
                                 ))}
@@ -210,7 +210,7 @@ const AddInputModal = ({ farmId, existingCategories, onClose, onSaved }) => {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                             Notes & Recommended Dosage (Optional)
                         </label>
                         <textarea
@@ -218,15 +218,15 @@ const AddInputModal = ({ farmId, existingCategories, onClose, onSaved }) => {
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
                             placeholder="e.g. Recommended dosage: 2 ml/litre water. Used for foliar spray."
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                         />
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-2 border-t">
+                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-700">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 border rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            className="px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-medium text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700">
                             Cancel
                         </button>
                         <button
@@ -284,25 +284,25 @@ const BuyInputModal = ({ item, farmId, onClose, onSaved }) => {
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
              onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-                <div className="flex items-start justify-between border-b pb-3">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-slate-100">
+                <div className="flex items-start justify-between border-b border-gray-100 dark:border-slate-700 pb-3">
                     <div>
-                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                             <span>🛒</span> Buy / Restock Input
                         </h3>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                            {item.name} · Current Stock: <strong className="text-gray-700">{fmtQty(item.current_quantity)} {item.unit}</strong>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                            {item.name} · Current Stock: <strong className="text-gray-700 dark:text-slate-200">{fmtQty(item.current_quantity)} {item.unit}</strong>
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 text-xl leading-none">&times;</button>
                 </div>
 
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-3 text-xs text-emerald-800 dark:text-emerald-300">
                     💡 This purchase will increment available stock and automatically record an expense under Farm Finance.
                 </div>
 
                 {error && (
-                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                    <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-xs">
                         {error}
                     </div>
                 )}
@@ -310,7 +310,7 @@ const BuyInputModal = ({ item, farmId, onClose, onSaved }) => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                                 Quantity Bought ({item.unit}) *
                             </label>
                             <input
@@ -321,11 +321,11 @@ const BuyInputModal = ({ item, farmId, onClose, onSaved }) => {
                                 onChange={e => setQuantity(e.target.value)}
                                 placeholder="0.00"
                                 required
-                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                                 Price per {item.unit} (₹) *
                             </label>
                             <input
@@ -336,19 +336,19 @@ const BuyInputModal = ({ item, farmId, onClose, onSaved }) => {
                                 onChange={e => setUnitPrice(e.target.value)}
                                 placeholder="₹ 0.00"
                                 required
-                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                             />
                         </div>
                     </div>
 
-                    <div className="bg-gray-50 p-3 rounded-xl flex items-center justify-between border border-gray-200">
-                        <span className="text-xs font-semibold text-gray-600">Total Purchase Amount:</span>
-                        <span className="text-base font-extrabold text-emerald-800">₹{fmt(totalAmount)}</span>
+                    <div className="bg-gray-50 dark:bg-slate-700/50 p-3 rounded-xl flex items-center justify-between border border-gray-200 dark:border-slate-600">
+                        <span className="text-xs font-semibold text-gray-600 dark:text-slate-300">Total Purchase Amount:</span>
+                        <span className="text-base font-extrabold text-emerald-800 dark:text-emerald-400">₹{fmt(totalAmount)}</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                                 Purchase Date *
                             </label>
                             <input
@@ -356,11 +356,11 @@ const BuyInputModal = ({ item, farmId, onClose, onSaved }) => {
                                 value={transactionDate}
                                 onChange={e => setTransactionDate(e.target.value)}
                                 required
-                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                className="w-full border border-gray-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                                 Supplier / Vendor
                             </label>
                             <input
@@ -368,16 +368,16 @@ const BuyInputModal = ({ item, farmId, onClose, onSaved }) => {
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
                                 placeholder="e.g. Kisan Agro Center"
-                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                             />
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-2 border-t">
+                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-700">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 border rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            className="px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-medium text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700">
                             Cancel
                         </button>
                         <button
@@ -392,6 +392,7 @@ const BuyInputModal = ({ item, farmId, onClose, onSaved }) => {
         </div>
     );
 };
+
 
 // ── Modal: Use / Apply Input to Field ────────────────────────────────────────
 const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
@@ -442,25 +443,25 @@ const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
              onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-                <div className="flex items-start justify-between border-b pb-3">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-slate-100">
+                <div className="flex items-start justify-between border-b border-gray-100 dark:border-slate-700 pb-3">
                     <div>
-                        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                             <span>🪣</span> Apply to Crop / Field
                         </h3>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                            {item.name} · Available Stock: <strong className="text-emerald-700">{fmtQty(maxQty)} {item.unit}</strong>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                            {item.name} · Available Stock: <strong className="text-emerald-700 dark:text-emerald-400">{fmtQty(maxQty)} {item.unit}</strong>
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 text-xl leading-none">&times;</button>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300">
                     ⚠️ Decrements available inventory and links consumption cost to the selected crop under Finance.
                 </div>
 
                 {error && (
-                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                    <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-xs">
                         {error}
                     </div>
                 )}
@@ -468,7 +469,7 @@ const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                                 Qty Applied ({item.unit}) *
                             </label>
                             <input
@@ -480,11 +481,11 @@ const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
                                 onChange={e => setQuantity(e.target.value)}
                                 placeholder="0.00"
                                 required
-                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                                className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                            <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                                 Application Date *
                             </label>
                             <input
@@ -492,19 +493,19 @@ const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
                                 value={transactionDate}
                                 onChange={e => setTransactionDate(e.target.value)}
                                 required
-                                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                                className="w-full border border-gray-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                             🌾 Target Crop
                         </label>
                         <select
                             value={cropId}
                             onChange={e => setCropId(e.target.value)}
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            className="w-full border border-gray-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
                             <option value="">General Farm (No specific crop)</option>
                             {crops.map(c => (
                                 <option key={c.id} value={c.id}>
@@ -515,7 +516,7 @@ const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                             📌 Task Type
                         </label>
                         <div className="flex gap-2">
@@ -525,7 +526,7 @@ const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
                                 className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
                                     activityType === 'FERTILISATION'
                                         ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                        : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600'
                                 }`}>
                                 🌱 Fertilisation
                             </button>
@@ -535,7 +536,7 @@ const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
                                 className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
                                     activityType === 'SPRAY'
                                         ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                        : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600'
                                 }`}>
                                 💦 Spraying
                             </button>
@@ -543,7 +544,7 @@ const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                             Dosage / Remarks (Optional)
                         </label>
                         <input
@@ -551,15 +552,15 @@ const UseInputModal = ({ item, farmId, crops = [], onClose, onSaved }) => {
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
                             placeholder="e.g. Applied 2 bags after morning weeding"
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                         />
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-2 border-t">
+                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-700">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 border rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            className="px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-medium text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700">
                             Cancel
                         </button>
                         <button
@@ -609,23 +610,23 @@ const EditInputModal = ({ item, farmId, onClose, onSaved }) => {
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
              onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-                <div className="flex items-start justify-between border-b pb-3">
-                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-slate-100">
+                <div className="flex items-start justify-between border-b border-gray-100 dark:border-slate-700 pb-3">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                         <span>✏️</span> Edit Product Details
                     </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 text-xl leading-none">&times;</button>
                 </div>
 
                 {error && (
-                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                    <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-xs">
                         {error}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                             Product Name *
                         </label>
                         <input
@@ -633,18 +634,18 @@ const EditInputModal = ({ item, farmId, onClose, onSaved }) => {
                             value={name}
                             onChange={e => setName(e.target.value)}
                             required
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                             Measurement Unit *
                         </label>
                         <select
                             value={unit}
                             onChange={e => setUnit(e.target.value)}
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            className="w-full border border-gray-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-slate-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                             {COMMON_UNITS.map(u => (
                                 <option key={u} value={u}>{u}</option>
                             ))}
@@ -652,22 +653,22 @@ const EditInputModal = ({ item, farmId, onClose, onSaved }) => {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide mb-1">
                             Notes / Instructions
                         </label>
                         <textarea
                             rows={2}
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                            className="w-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                         />
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-2 border-t">
+                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-700">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 border rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            className="px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-medium text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700">
                             Cancel
                         </button>
                         <button
@@ -699,8 +700,8 @@ const ItemDetailModal = ({ itemId, farmId, onClose }) => {
 
     if (!item && loading) {
         return (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl p-10 shadow-2xl"><Spinner /></div>
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-10 shadow-2xl border border-gray-100 dark:border-slate-700"><Spinner /></div>
             </div>
         );
     }
@@ -716,54 +717,54 @@ const ItemDetailModal = ({ itemId, farmId, onClose }) => {
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
              onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in duration-150">
+            <div className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in duration-150 text-gray-800 dark:text-slate-100">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 flex items-start justify-between bg-emerald-50/50">
+                <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-start justify-between bg-emerald-50/50 dark:bg-emerald-950/30">
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-2xl">🌱</span>
-                            <h3 className="text-xl font-bold text-gray-800">{item.name}</h3>
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">{item.name}</h3>
                         </div>
-                        <p className="text-xs text-emerald-800 font-semibold mt-1">
+                        <p className="text-xs text-emerald-800 dark:text-emerald-400 font-semibold mt-1">
                             {item.category_name} · Unit: {item.unit}
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 text-2xl leading-none">&times;</button>
                 </div>
 
                 {/* Stock Summary Cards */}
-                <div className="grid grid-cols-3 gap-3 p-6 border-b border-gray-100 bg-white">
-                    <div className="bg-gray-50 p-3.5 rounded-xl text-center">
-                        <p className="text-[11px] font-semibold text-gray-500 uppercase">Available Stock</p>
-                        <p className={`text-xl font-bold mt-1 ${parseFloat(item.current_quantity) <= 5 ? 'text-amber-600' : 'text-emerald-700'}`}>
+                <div className="grid grid-cols-3 gap-3 p-4 sm:p-6 border-b border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+                    <div className="bg-gray-50 dark:bg-slate-700/50 border border-gray-100 dark:border-slate-600 p-3 sm:p-3.5 rounded-xl text-center">
+                        <p className="text-[11px] font-semibold text-gray-500 dark:text-slate-400 uppercase">Available Stock</p>
+                        <p className={`text-lg sm:text-xl font-bold mt-1 ${parseFloat(item.current_quantity) <= 5 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
                             {fmtQty(item.current_quantity)} {item.unit}
                         </p>
                     </div>
-                    <div className="bg-gray-50 p-3.5 rounded-xl text-center">
-                        <p className="text-[11px] font-semibold text-gray-500 uppercase">Total Used</p>
-                        <p className="text-xl font-bold text-gray-800 mt-1">
+                    <div className="bg-gray-50 dark:bg-slate-700/50 border border-gray-100 dark:border-slate-600 p-3 sm:p-3.5 rounded-xl text-center">
+                        <p className="text-[11px] font-semibold text-gray-500 dark:text-slate-400 uppercase">Total Used</p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white mt-1">
                             {fmtQty(totalUsed)} {item.unit}
                         </p>
                     </div>
-                    <div className="bg-gray-50 p-3.5 rounded-xl text-center">
-                        <p className="text-[11px] font-semibold text-gray-500 uppercase">Avg Purchase Rate</p>
-                        <p className="text-xl font-bold text-gray-800 mt-1">
+                    <div className="bg-gray-50 dark:bg-slate-700/50 border border-gray-100 dark:border-slate-600 p-3 sm:p-3.5 rounded-xl text-center">
+                        <p className="text-[11px] font-semibold text-gray-500 dark:text-slate-400 uppercase">Avg Purchase Rate</p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white mt-1">
                             ₹{fmt(avgCost)} / {item.unit}
                         </p>
                     </div>
                 </div>
 
                 {/* Usage Application History Table */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                    <h4 className="text-sm font-bold text-gray-700 dark:text-slate-200 mb-3 flex items-center gap-2">
                         <span>📋</span> Field Application Log ({usages.length})
                     </h4>
                     {usages.length === 0 ? (
-                        <p className="text-xs text-gray-400 italic text-center py-8">No usage records logged for this input yet.</p>
+                        <p className="text-xs text-gray-400 dark:text-slate-400 italic text-center py-8">No usage records logged for this input yet.</p>
                     ) : (
-                        <div className="border border-gray-100 rounded-xl overflow-hidden">
+                        <div className="border border-gray-100 dark:border-slate-700 rounded-xl overflow-hidden">
                             <table className="w-full text-xs text-left">
-                                <thead className="bg-gray-50 text-gray-600 font-semibold border-b">
+                                <thead className="bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 font-semibold border-b border-gray-200 dark:border-slate-700">
                                     <tr>
                                         <th className="p-2.5">Date</th>
                                         <th className="p-2.5">Applied Qty</th>
@@ -772,28 +773,28 @@ const ItemDetailModal = ({ itemId, farmId, onClose }) => {
                                         <th className="p-2.5">Notes</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60">
                                     {usages.map(u => (
-                                        <tr key={u.id} className="hover:bg-gray-50/70">
-                                            <td className="p-2.5 text-gray-600 font-medium">
+                                        <tr key={u.id} className="hover:bg-gray-50/70 dark:hover:bg-slate-700/40">
+                                            <td className="p-2.5 text-gray-600 dark:text-slate-300 font-medium">
                                                 {new Date(u.transaction_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                             </td>
-                                            <td className="p-2.5 font-bold text-gray-800">
+                                            <td className="p-2.5 font-bold text-gray-800 dark:text-white">
                                                 {fmtQty(u.quantity)} {item.unit}
                                             </td>
                                             <td className="p-2.5">
                                                 {u.crop_name ? (
-                                                    <span className="bg-emerald-50 text-emerald-800 font-semibold px-2 py-0.5 rounded-md border border-emerald-200">
+                                                    <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-semibold px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
                                                         🌾 {u.crop_name}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-gray-400 italic">General Farm</span>
+                                                    <span className="text-gray-400 dark:text-slate-400 italic">General Farm</span>
                                                 )}
                                             </td>
-                                            <td className="p-2.5 text-gray-600">
+                                            <td className="p-2.5 text-gray-600 dark:text-slate-300">
                                                 {u.activity_type === 'FERTILISATION' ? '🌱 Fertilisation' : u.activity_type === 'SPRAY' ? '💦 Spraying' : (u.activity_type || '—')}
                                             </td>
-                                            <td className="p-2.5 text-gray-500 italic max-w-[150px] truncate">{u.notes || '—'}</td>
+                                            <td className="p-2.5 text-gray-500 dark:text-slate-400 italic max-w-[150px] truncate">{u.notes || '—'}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -802,8 +803,8 @@ const ItemDetailModal = ({ itemId, farmId, onClose }) => {
                     )}
                 </div>
 
-                <div className="p-4 border-t border-gray-100 flex justify-end bg-gray-50">
-                    <button onClick={onClose} className="px-5 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-bold transition-all">
+                <div className="p-4 border-t border-gray-100 dark:border-slate-700 flex justify-end bg-gray-50 dark:bg-slate-800/80">
+                    <button onClick={onClose} className="px-5 py-2 bg-gray-800 dark:bg-slate-700 hover:bg-gray-900 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition-all">
                         Close
                     </button>
                 </div>
@@ -811,6 +812,7 @@ const ItemDetailModal = ({ itemId, farmId, onClose }) => {
         </div>
     );
 };
+
 
 // ── Main Page Component ──────────────────────────────────────────────────────
 export default function CropCarePage() {
@@ -961,22 +963,22 @@ export default function CropCarePage() {
     }
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto">
+        <div className="space-y-5 sm:space-y-6 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between flex-wrap gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-slate-700/80">
                 <div>
                     <div className="flex items-center gap-2">
-                        <span className="text-3xl">🌱</span>
-                        <h1 className="text-2xl font-extrabold text-gray-800">Fertilisers & Sprays</h1>
+                        <span className="text-2xl sm:text-3xl">🌱</span>
+                        <h1 className="text-xl sm:text-2xl font-extrabold text-gray-800 dark:text-white">Fertilisers &amp; Sprays</h1>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                         {currentFarm.name} · Soil nutrients, chemicals, fungicides, crop sprays, and field applications
                     </p>
                 </div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2 sm:gap-2.5">
                     <button
                         onClick={loadData}
-                        className="px-3.5 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 text-xs font-semibold flex items-center gap-1.5 transition-all">
+                        className="px-3.5 py-2 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/60 text-xs font-semibold flex items-center gap-1.5 transition-all">
                         <span>🔄</span> Refresh
                     </button>
                     <button
@@ -990,71 +992,72 @@ export default function CropCarePage() {
 
             {/* Error notice */}
             {error && (
-                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-xs flex items-center justify-between">
                     <span>{error}</span>
                     <button onClick={loadData} className="underline font-bold">Retry</button>
                 </div>
             )}
 
-            {/* Top Metric Cards */}
-            <div id="demo-cropcare-stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">
+            {/* Top Metric Cards - 2 cols on mobile, 4 on desktop */}
+            <div id="demo-cropcare-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-gray-100 dark:border-slate-700/80 flex items-center gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl sm:text-2xl shrink-0">
                         🧪
                     </div>
-                    <div>
-                        <p className="text-xs text-gray-400 font-semibold uppercase">Active Inputs</p>
-                        <p className="text-2xl font-extrabold text-gray-800 mt-0.5">{totalActiveInputs}</p>
-                        <p className="text-[11px] text-gray-400">Nutrients & chemicals</p>
+                    <div className="min-w-0">
+                        <p className="text-[10px] sm:text-xs text-gray-400 dark:text-slate-400 font-semibold uppercase truncate">Active Inputs</p>
+                        <p className="text-lg sm:text-2xl font-extrabold text-gray-800 dark:text-white mt-0.5">{totalActiveInputs}</p>
+                        <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-slate-400 truncate">Nutrients &amp; chemicals</p>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${lowStockCount > 0 ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'}`}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-gray-100 dark:border-slate-700/80 flex items-center gap-3 sm:gap-4">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0 ${lowStockCount > 0 ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400' : 'bg-green-50 dark:bg-emerald-950/60 text-green-600 dark:text-emerald-400'}`}>
                         {lowStockCount > 0 ? '⚠️' : '✅'}
                     </div>
-                    <div>
-                        <p className="text-xs text-gray-400 font-semibold uppercase">Stock Health</p>
-                        <p className={`text-2xl font-extrabold mt-0.5 ${lowStockCount > 0 ? 'text-amber-600' : 'text-green-700'}`}>
+                    <div className="min-w-0">
+                        <p className="text-[10px] sm:text-xs text-gray-400 dark:text-slate-400 font-semibold uppercase truncate">Stock Health</p>
+                        <p className={`text-lg sm:text-2xl font-extrabold mt-0.5 truncate ${lowStockCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-700 dark:text-emerald-400'}`}>
                             {lowStockCount > 0 ? `${lowStockCount} Low` : 'All Healthy'}
                         </p>
-                        <p className="text-[11px] text-gray-400">{lowStockCount > 0 ? 'Items below 5 units' : 'Sufficient quantities'}</p>
+                        <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-slate-400 truncate">{lowStockCount > 0 ? 'Items below 5 units' : 'Sufficient quantities'}</p>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-gray-100 dark:border-slate-700/80 flex items-center gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl sm:text-2xl shrink-0">
                         📋
                     </div>
-                    <div>
-                        <p className="text-xs text-gray-400 font-semibold uppercase">Applications</p>
-                        <p className="text-2xl font-extrabold text-gray-800 mt-0.5">{totalApplicationsCount}</p>
-                        <p className="text-[11px] text-gray-400">Field spray/fertiliser logs</p>
+                    <div className="min-w-0">
+                        <p className="text-[10px] sm:text-xs text-gray-400 dark:text-slate-400 font-semibold uppercase truncate">Applications</p>
+                        <p className="text-lg sm:text-2xl font-extrabold text-gray-800 dark:text-white mt-0.5">{totalApplicationsCount}</p>
+                        <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-slate-400 truncate">Field spray &amp; fertiliser</p>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl shrink-0">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-xs border border-gray-100 dark:border-slate-700/80 flex items-center gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl sm:text-2xl shrink-0">
                         💰
                     </div>
-                    <div>
-                        <p className="text-xs text-gray-400 font-semibold uppercase">Material Value</p>
-                        <p className="text-2xl font-extrabold text-gray-800 mt-0.5">₹{fmt(totalAttributedCost)}</p>
-                        <p className="text-[11px] text-gray-400">Total applied value</p>
+                    <div className="min-w-0">
+                        <p className="text-[10px] sm:text-xs text-gray-400 dark:text-slate-400 font-semibold uppercase truncate">Material Value</p>
+                        <p className="text-lg sm:text-2xl font-extrabold text-gray-800 dark:text-white mt-0.5">₹{fmt(totalAttributedCost)}</p>
+                        <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-slate-400 truncate">Total applied value</p>
                     </div>
                 </div>
             </div>
 
             {/* Main Content Area with Side Category Tab Bar */}
-            <div id="demo-resources-table" className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+            <div id="demo-resources-table" className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 items-start">
                 {/* ── SIDE TAB / BAR FOR DISPLAY OF DATA ────────────────── */}
-                <div id="demo-cropcare-sidebar" className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2 sticky top-4">
-                    <div className="px-3 pt-2 pb-1">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Input Categories</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5">Filter by input classification</p>
+                {/* On desktop: sticky vertical sidebar; on mobile/tablet: horizontal scrollable pills, never sticky */}
+                <div id="demo-cropcare-sidebar" className="lg:col-span-1 bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-gray-100 dark:border-slate-700/80 p-3 sm:p-4 space-y-2 lg:sticky lg:top-4">
+                    <div className="px-1 lg:px-3 pt-1 pb-1 flex items-center justify-between lg:block">
+                        <p className="text-xs font-bold text-gray-400 dark:text-slate-400 uppercase tracking-wider">Input Categories</p>
+                        <p className="text-[11px] text-gray-400 dark:text-slate-400 hidden lg:block mt-0.5">Filter by input classification</p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="flex lg:flex-col overflow-x-auto no-scrollbar gap-1.5 sm:gap-2 pb-1 lg:pb-0 items-center lg:items-stretch">
                         {CATEGORY_GROUPS.map(g => {
                             const isSelected = selectedGroup === g.key;
                             const count = groupCounts[g.key] || 0;
@@ -1062,17 +1065,17 @@ export default function CropCarePage() {
                                 <button
                                     key={g.key}
                                     onClick={() => setSelectedGroup(g.key)}
-                                    className={`w-full text-left px-3.5 py-3 rounded-xl transition-all flex items-center justify-between ${
+                                    className={`flex-shrink-0 lg:w-full text-left px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl transition-all flex items-center justify-between gap-2.5 whitespace-nowrap ${
                                         isSelected
-                                            ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
-                                            : 'hover:bg-gray-50 text-gray-700 font-medium'
+                                            ? 'bg-emerald-600 text-white font-bold shadow-sm shadow-emerald-600/30'
+                                            : 'bg-gray-50/70 dark:bg-slate-700/40 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 border border-gray-200/50 dark:border-slate-600/30 font-medium'
                                     }`}>
-                                    <div className="flex items-center gap-2.5 min-w-0">
-                                        <span className="text-lg shrink-0">{g.emoji}</span>
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-base sm:text-lg shrink-0">{g.emoji}</span>
                                         <span className="text-xs truncate">{g.label}</span>
                                     </div>
                                     <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${
-                                        isSelected ? 'bg-emerald-700 text-white' : 'bg-gray-100 text-gray-600'
+                                        isSelected ? 'bg-emerald-700 text-white' : 'bg-gray-200/80 dark:bg-slate-800 text-gray-600 dark:text-slate-300'
                                     }`}>
                                         {count}
                                     </span>
@@ -1081,10 +1084,10 @@ export default function CropCarePage() {
                         })}
                     </div>
 
-                    <div className="pt-3 border-t border-gray-100 px-3">
-                        <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-100">
-                            <p className="text-[11px] font-bold text-emerald-800">💡 Unified Farm Ledger</p>
-                            <p className="text-[10px] text-emerald-700 mt-1 leading-relaxed">
+                    <div className="hidden lg:block pt-3 border-t border-gray-100 dark:border-slate-700/80 px-2">
+                        <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
+                            <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">💡 Unified Farm Ledger</p>
+                            <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-1 leading-relaxed">
                                 Purchasing or consuming inputs here updates available stock and reflects in Finance automatically.
                             </p>
                         </div>
@@ -1094,52 +1097,58 @@ export default function CropCarePage() {
                 {/* ── MAIN DISPLAY AREA ────────────────────────────────── */}
                 <div className="lg:col-span-3 space-y-4">
                     {/* View Mode Bar + Search Toolbar */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center justify-between flex-wrap gap-3">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-gray-100 dark:border-slate-700/80 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         {/* View Switcher */}
-                        <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+                        <div className="flex items-center bg-gray-100 dark:bg-slate-900/80 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar">
                             <button
                                 onClick={() => setViewMode('stock')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                    viewMode === 'stock' ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial justify-center ${
+                                    viewMode === 'stock'
+                                        ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 shadow-xs'
+                                        : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 font-medium'
                                 }`}>
                                 <span>📦 Stock Status</span>
-                                <span className="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.2 rounded-full font-semibold">
+                                <span className="text-[10px] bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-semibold">
                                     {filteredItems.length}
                                 </span>
                             </button>
                             <button
                                 onClick={() => setViewMode('usages')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                    viewMode === 'usages' ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial justify-center ${
+                                    viewMode === 'usages'
+                                        ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 shadow-xs'
+                                        : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 font-medium'
                                 }`}>
                                 <span>🌾 Application Log</span>
-                                <span className="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.2 rounded-full font-semibold">
+                                <span className="text-[10px] bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full font-semibold">
                                     {filteredUsages.length}
                                 </span>
                             </button>
                             <button
                                 onClick={() => setViewMode('trends')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                                    viewMode === 'trends' ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial justify-center ${
+                                    viewMode === 'trends'
+                                        ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 shadow-xs'
+                                        : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 font-medium'
                                 }`}>
-                                <span>📊 Trends & Charts</span>
+                                <span>📊 Trends</span>
                             </button>
                         </div>
 
                         {/* Search Input */}
-                        <div className="flex items-center gap-2">
-                            <div className="relative">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-56">
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
                                     placeholder="Search chemical, crop..."
-                                    className="border border-gray-200 rounded-xl px-3 py-1.5 text-xs w-48 sm:w-56 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                                 {searchQuery && (
                                     <button
                                         onClick={() => setSearchQuery('')}
-                                        className="absolute right-2.5 top-1.5 text-gray-400 hover:text-gray-600 text-xs">
+                                        className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 text-xs">
                                         &times;
                                     </button>
                                 )}
@@ -1153,10 +1162,10 @@ export default function CropCarePage() {
                             {loading ? (
                                 <Spinner />
                             ) : filteredItems.length === 0 ? (
-                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
+                                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-gray-100 dark:border-slate-700/80 p-12 text-center">
                                     <p className="text-5xl mb-3">🧪</p>
-                                    <p className="text-gray-600 font-bold text-base">No inputs found in this category</p>
-                                    <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto mb-4">
+                                    <p className="text-gray-600 dark:text-slate-300 font-bold text-base">No inputs found in this category</p>
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 mt-1 max-w-sm mx-auto mb-4">
                                         Click below to add your first fertiliser, pesticide, herbicide or spray input.
                                     </p>
                                     <button
@@ -1175,61 +1184,61 @@ export default function CropCarePage() {
                                             <div
                                                 key={item.id}
                                                 id={isFirst ? "demo-cropcare-card-primary" : undefined}
-                                                className={`bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5 border flex flex-col justify-between ${
-                                                    isLow ? 'border-amber-300 bg-amber-50/20' : 'border-gray-100'
+                                                className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xs hover:shadow-md transition-all p-4 sm:p-5 border flex flex-col justify-between ${
+                                                    isLow ? 'border-amber-300 dark:border-amber-500/50 bg-amber-50/20 dark:bg-amber-950/20' : 'border-gray-100 dark:border-slate-700/80'
                                                 }`}>
                                                 <div>
                                                     <div className="flex items-start justify-between mb-3">
                                                         <div>
-                                                            <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                                                            <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60 inline-flex items-center gap-1">
                                                                 <span>{group.emoji || '🌱'}</span> {item.category_name}
                                                             </span>
-                                                            <h3 className="text-base font-bold text-gray-800 mt-1.5">{item.name}</h3>
+                                                            <h3 className="text-base font-bold text-gray-800 dark:text-slate-100 mt-1.5">{item.name}</h3>
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className={`text-2xl font-extrabold ${isLow ? 'text-amber-600' : 'text-gray-800'}`}>
+                                                            <p className={`text-2xl font-extrabold ${isLow ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-slate-100'}`}>
                                                                 {fmtQty(item.current_quantity)}
                                                             </p>
-                                                            <p className="text-xs text-gray-400 font-medium">{item.unit}</p>
+                                                            <p className="text-xs text-gray-400 dark:text-slate-400 font-medium">{item.unit}</p>
                                                         </div>
                                                     </div>
 
                                                     {isLow && (
-                                                        <div className="mb-3 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-bold flex items-center gap-1.5">
+                                                        <div className="mb-3 px-2.5 py-1.5 rounded-xl bg-amber-100/80 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 text-[11px] font-bold flex items-center gap-1.5">
                                                             <span>⚠️</span> Low Stock Notice — Reorder Recommended
                                                         </div>
                                                     )}
 
                                                     {item.notes && (
-                                                        <p className="text-xs text-gray-500 italic mb-3 line-clamp-2 bg-gray-50 p-2 rounded-lg">
+                                                        <p className="text-xs text-gray-500 dark:text-slate-300 italic mb-3 line-clamp-2 bg-gray-50 dark:bg-slate-900/60 border border-gray-100 dark:border-slate-700/50 p-2 rounded-xl">
                                                             {item.notes}
                                                         </p>
                                                     )}
                                                 </div>
 
                                                 {/* Action Buttons */}
-                                                <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
+                                                <div className="pt-3 border-t border-gray-100 dark:border-slate-700/80 flex items-center gap-2">
                                                     <button
                                                         id={isFirst ? "demo-cropcare-buy-btn" : undefined}
                                                         onClick={() => setModal({ type: 'buy', item })}
-                                                        className="flex-1 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-200 transition-all flex items-center justify-center gap-1">
+                                                        className="flex-1 py-1.5 text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded-xl border border-emerald-200 dark:border-emerald-800/60 transition-all flex items-center justify-center gap-1">
                                                         <span>🛒</span> Buy
                                                     </button>
                                                     <button
                                                         id={isFirst ? "demo-cropcare-use-btn" : undefined}
                                                         onClick={() => setModal({ type: 'use', item })}
-                                                        className="flex-1 py-1.5 text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl border border-amber-200 transition-all flex items-center justify-center gap-1">
+                                                        className="flex-1 py-1.5 text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 rounded-xl border border-amber-200 dark:border-amber-800/60 transition-all flex items-center justify-center gap-1">
                                                         <span>🪣</span> Use
                                                     </button>
                                                     <button
                                                         onClick={() => setModal({ type: 'edit', item })}
-                                                        className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all"
+                                                        className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
                                                         title="Edit Details">
                                                         ✏️
                                                     </button>
                                                     <button
                                                         onClick={() => setModal({ type: 'history', item })}
-                                                        className="p-1.5 text-gray-400 hover:text-emerald-700 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all"
+                                                        className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
                                                         title="View History">
                                                         📋
                                                     </button>
@@ -1244,19 +1253,19 @@ export default function CropCarePage() {
 
                     {/* VIEW 2: Operational Application & Spray Log */}
                     {viewMode === 'usages' && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-gray-100 dark:border-slate-700/80 p-4 sm:p-5 space-y-4">
                             {/* Filter Bar */}
-                            <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-100">
+                            <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-100 dark:border-slate-700/80">
                                 <div>
-                                    <h3 className="text-sm font-bold text-gray-800">Field Application & Spray History</h3>
-                                    <p className="text-xs text-gray-400 mt-0.5">Chronological record of stock applied to crops</p>
+                                    <h3 className="text-sm font-bold text-gray-800 dark:text-slate-100">Field Application &amp; Spray History</h3>
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 mt-0.5">Chronological record of stock applied to crops</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs font-semibold text-gray-500">Filter Crop:</label>
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-slate-400">Filter Crop:</label>
                                     <select
                                         value={selectedCropFilter}
                                         onChange={e => setSelectedCropFilter(e.target.value)}
-                                        className="border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                        className="border border-gray-200 dark:border-slate-600 rounded-xl px-3 py-1.5 text-xs bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                         <option value="ALL">🌾 All Crops</option>
                                         {crops.map(c => (
                                             <option key={c.id} value={c.id}>{c.name}{c.variety ? ` (${c.variety})` : ''}</option>
@@ -1270,15 +1279,15 @@ export default function CropCarePage() {
                             {loading ? (
                                 <Spinner />
                             ) : filteredUsages.length === 0 ? (
-                                <div className="text-center py-12 text-gray-400">
+                                <div className="text-center py-12 text-gray-400 dark:text-slate-400">
                                     <p className="text-3xl mb-1.5">🌾</p>
                                     <p className="text-sm font-semibold">No application records found</p>
-                                    <p className="text-xs text-gray-400 mt-0.5">Applications recorded will show here.</p>
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 mt-0.5">Applications recorded will show here.</p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-xs text-left">
-                                        <thead className="bg-gray-50 text-gray-600 font-semibold border-b">
+                                        <thead className="bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 font-semibold border-b border-gray-200 dark:border-slate-700">
                                             <tr>
                                                 <th className="p-3">Date</th>
                                                 <th className="p-3">Input Name</th>
@@ -1290,41 +1299,41 @@ export default function CropCarePage() {
                                                 <th className="p-3">Field Notes</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-100">
+                                        <tbody className="divide-y divide-gray-100 dark:divide-slate-700/60">
                                             {filteredUsages.map(u => (
-                                                <tr key={u.id} className="hover:bg-gray-50/70 transition-colors">
-                                                    <td className="p-3 text-gray-600 font-medium whitespace-nowrap">
+                                                <tr key={u.id} className="hover:bg-gray-50/70 dark:hover:bg-slate-700/40 transition-colors">
+                                                    <td className="p-3 text-gray-600 dark:text-slate-300 font-medium whitespace-nowrap">
                                                         {new Date(u.transaction_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                     </td>
-                                                    <td className="p-3 font-bold text-gray-800">
+                                                    <td className="p-3 font-bold text-gray-800 dark:text-slate-100">
                                                         {u.item_name}
                                                     </td>
                                                     <td className="p-3">
-                                                        <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-medium text-[11px]">
+                                                        <span className="bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 px-2 py-0.5 rounded-md font-medium text-[11px]">
                                                             {u.category_name}
                                                         </span>
                                                     </td>
-                                                    <td className="p-3 font-extrabold text-emerald-800 whitespace-nowrap">
+                                                    <td className="p-3 font-extrabold text-emerald-800 dark:text-emerald-400 whitespace-nowrap">
                                                         {fmtQty(u.quantity)} {u.item_unit}
                                                     </td>
                                                     <td className="p-3">
                                                         {u.crop_name ? (
-                                                            <span className="bg-emerald-50 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                                            <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
                                                                 🌾 {u.crop_name}
                                                             </span>
                                                         ) : (
-                                                            <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full text-[11px]">
+                                                            <span className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 px-2 py-0.5 rounded-full text-[11px]">
                                                                 General Farm
                                                             </span>
                                                         )}
                                                     </td>
-                                                    <td className="p-3 text-gray-600 whitespace-nowrap">
+                                                    <td className="p-3 text-gray-600 dark:text-slate-300 whitespace-nowrap">
                                                         {u.activity_type === 'FERTILISATION' ? '🌱 Fertilisation' : u.activity_type === 'SPRAY' ? '💦 Spraying' : (u.activity_type || '—')}
                                                     </td>
-                                                    <td className="p-3 text-right font-bold text-gray-800 whitespace-nowrap">
+                                                    <td className="p-3 text-right font-bold text-gray-800 dark:text-slate-100 whitespace-nowrap">
                                                         {u.attributed_cost ? `₹${fmt(u.attributed_cost)}` : '—'}
                                                     </td>
-                                                    <td className="p-3 text-gray-500 italic max-w-[180px] truncate" title={u.notes || ''}>
+                                                    <td className="p-3 text-gray-500 dark:text-slate-400 italic max-w-[180px] truncate" title={u.notes || ''}>
                                                         {u.notes || '—'}
                                                     </td>
                                                 </tr>
@@ -1340,11 +1349,11 @@ export default function CropCarePage() {
                     {viewMode === 'trends' && (
                         <div className="space-y-6">
                             {/* Monthly Expenditure & Applications Bar Chart */}
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                                <h3 className="text-sm font-bold text-gray-800 mb-1">Monthly Applied Value & Consumption</h3>
-                                <p className="text-xs text-gray-400 mb-6">Attributed value of fertilisers and sprays consumed over time</p>
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-gray-100 dark:border-slate-700/80 p-4 sm:p-6">
+                                <h3 className="text-sm font-bold text-gray-800 dark:text-slate-100 mb-1">Monthly Applied Value &amp; Consumption</h3>
+                                <p className="text-xs text-gray-400 dark:text-slate-400 mb-6">Attributed value of fertilisers and sprays consumed over time</p>
                                 {chartDataByMonth.length === 0 ? (
-                                    <div className="text-center py-12 text-gray-400">
+                                    <div className="text-center py-12 text-gray-400 dark:text-slate-400">
                                         <p className="text-3xl mb-1.5">📊</p>
                                         <p className="text-xs">No consumption data recorded to render trends.</p>
                                     </div>
@@ -1352,12 +1361,12 @@ export default function CropCarePage() {
                                     <div className="h-64 w-full">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart data={chartDataByMonth}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                                <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#9ca3af" />
-                                                <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" tickFormatter={v => `₹${v}`} />
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                                                <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                                                <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={v => `₹${v}`} />
                                                 <Tooltip
                                                     formatter={(val, name) => [name === 'cost' ? `₹${fmt(val)}` : val, name === 'cost' ? 'Attributed Spend' : 'Applications']}
-                                                    contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                                                    contentStyle={{ borderRadius: '12px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#f8fafc', fontSize: '12px' }}
                                                 />
                                                 <Bar dataKey="cost" fill="#059669" radius={[6, 6, 0, 0]} name="cost" />
                                             </BarChart>
@@ -1367,23 +1376,23 @@ export default function CropCarePage() {
                             </div>
 
                             {/* Crop Breakdown Grid */}
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                                <h3 className="text-sm font-bold text-gray-800 mb-1">Expenditure by Target Crop</h3>
-                                <p className="text-xs text-gray-400 mb-4">Rupee value of inputs consumed per crop</p>
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-gray-100 dark:border-slate-700/80 p-4 sm:p-6">
+                                <h3 className="text-sm font-bold text-gray-800 dark:text-slate-100 mb-1">Expenditure by Target Crop</h3>
+                                <p className="text-xs text-gray-400 dark:text-slate-400 mb-4">Rupee value of inputs consumed per crop</p>
 
                                 {chartDataByCrop.length === 0 ? (
-                                    <p className="text-xs text-gray-400 italic text-center py-6">No crop-tagged applications recorded yet.</p>
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 italic text-center py-6">No crop-tagged applications recorded yet.</p>
                                 ) : (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                         {chartDataByCrop.map(c => (
-                                            <div key={c.crop} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
-                                                <p className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                            <div key={c.crop} className="border border-gray-100 dark:border-slate-700 rounded-xl p-4 bg-gray-50/50 dark:bg-slate-700/30">
+                                                <p className="text-xs font-bold text-gray-700 dark:text-slate-200 flex items-center gap-1.5">
                                                     <span>🌾</span> {c.crop}
                                                 </p>
-                                                <p className="text-xl font-extrabold text-emerald-800 mt-2">
+                                                <p className="text-xl font-extrabold text-emerald-800 dark:text-emerald-400 mt-2">
                                                     ₹{fmt(c.cost)}
                                                 </p>
-                                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                                <p className="text-[11px] text-gray-400 dark:text-slate-400 mt-0.5">
                                                     {c.count} application{c.count > 1 ? 's' : ''} logged
                                                 </p>
                                             </div>
@@ -1395,6 +1404,7 @@ export default function CropCarePage() {
                     )}
                 </div>
             </div>
+
 
             {/* Modals */}
             {modal === 'add' && (
