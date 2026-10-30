@@ -94,15 +94,13 @@ const StatCard = ({ icon, title, value, sub, accent, trend }) => {
     const { theme } = useTheme();
     const T = getThemeTokens(theme);
     return (
-        <div style={{
-            background: T.statCardBg,
-            border: T.statCardBorder,
-            borderRadius: 16, padding: '20px 24px',
-            backdropFilter: 'blur(8px)',
-            position: 'relative', overflow: 'hidden',
-            boxShadow: T.cardShadow,
-            transition: 'transform 0.2s, box-shadow 0.2s',
-        }}
+        <div
+            className="p-3.5 sm:p-5 lg:p-6 rounded-2xl relative overflow-hidden backdrop-blur-md transition-all duration-200"
+            style={{
+                background: T.statCardBg,
+                border: T.statCardBorder,
+                boxShadow: T.cardShadow,
+            }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = T.hoverShadow; }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = T.cardShadow; }}
         >
@@ -110,26 +108,24 @@ const StatCard = ({ icon, title, value, sub, accent, trend }) => {
                 position: 'absolute', top: -20, right: -20, width: 80, height: 80,
                 borderRadius: '50%', background: accent, opacity: 0.12, filter: 'blur(16px)'
             }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                    <p style={{ fontSize: 12, color: T.subColor, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</p>
-                    <p style={{ fontSize: 26, fontWeight: 800, color: T.titleColor, marginTop: 4, lineHeight: 1.2 }}>{value}</p>
-                    {sub && <p style={{ fontSize: 12, color: T.mutedColor, marginTop: 6 }}>{sub}</p>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                    <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider leading-snug" style={{ color: T.subColor }}>{title}</p>
+                    <p className="text-xl sm:text-2xl lg:text-[24px] font-extrabold mt-1 leading-tight" style={{ color: T.titleColor }}>{value}</p>
+                    {sub && <p className="text-[11px] sm:text-xs mt-1" style={{ color: T.mutedColor }}>{sub}</p>}
                 </div>
-                <div style={{
-                    width: 42, height: 42, borderRadius: 12,
-                    background: `${accent}22`, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    fontSize: 20, flexShrink: 0
-                }}>
+                <div
+                    className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0"
+                    style={{ background: `${accent}22` }}
+                >
                     {icon}
                 </div>
             </div>
             {trend !== undefined && (
                 <div style={{
-                    marginTop: 12, paddingTop: 12,
+                    marginTop: 10, paddingTop: 10,
                     borderTop: `1px solid ${T.divider}`,
-                    fontSize: 12,
+                    fontSize: 11,
                     color: trend >= 0 ? '#4ade80' : '#f87171'
                 }}>
                     {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% vs last month
@@ -156,13 +152,14 @@ const ChartCard = ({ title, children, action }) => {
     const { theme } = useTheme();
     const T = getThemeTokens(theme);
     return (
-        <div style={{
-            background: T.cardBg,
-            border: T.cardBorder,
-            borderRadius: 16, padding: '20px 24px',
-            boxShadow: T.cardShadow,
-            backdropFilter: 'blur(8px)',
-        }}>
+        <div
+            className="p-3.5 sm:p-5 lg:p-6 rounded-2xl backdrop-blur-md overflow-hidden"
+            style={{
+                background: T.cardBg,
+                border: T.cardBorder,
+                boxShadow: T.cardShadow,
+            }}
+        >
             <SectionHeader title={title} action={action} />
             {children}
         </div>
@@ -297,34 +294,36 @@ export default function DashboardPage() {
             `}</style>
 
             {/* ─── Header ─────────────────────────────────────────────────────── */}
-            <div style={{
-                background: T.headerBg,
-                borderBottom: T.headerBorder,
-                padding: '28px 32px 24px',
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+            <div
+                className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7"
+                style={{
+                    background: T.headerBg,
+                    borderBottom: T.headerBorder,
+                }}
+            >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                            <span style={{ fontSize: 28 }}>🌾</span>
-                            <h1 style={{ fontSize: 22, fontWeight: 800, color: T.titleColor, letterSpacing: '-0.02em' }}>
+                        <div className="flex items-center gap-2 sm:gap-2.5 mb-1">
+                            <span className="text-2xl sm:text-3xl">🌾</span>
+                            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight" style={{ color: T.titleColor }}>
                                 Farm Dashboard
                             </h1>
                         </div>
-                        <p style={{ color: T.subColor, fontSize: 13 }}>
+                        <p className="text-xs sm:text-sm" style={{ color: T.subColor }}>
                             {activeFarmLabel}
-                            {lastUpdated && <span style={{ marginLeft: 8, color: T.mutedColor }}>· Updated {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                            {lastUpdated && <span className="ml-2" style={{ color: T.mutedColor }}>· Updated {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
                         </p>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+                    <div className="flex flex-wrap items-center sm:flex-col sm:items-end gap-2 sm:gap-2.5">
                         <FarmSelector farms={farms} selected={selectedFarmIds} onChange={handleFarmChange} />
                         <button
                             onClick={() => fetchDashboard(selectedFarmIds)}
                             disabled={loading}
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
                             style={{
-                                padding: '6px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600,
                                 background: 'rgba(16,185,129,0.15)', color: '#34d399',
                                 border: '1px solid rgba(16,185,129,0.25)', cursor: 'pointer',
-                                opacity: loading ? 0.6 : 1, transition: 'all 0.2s'
+                                opacity: loading ? 0.6 : 1,
                             }}
                         >
                             {loading ? '⟳ Refreshing…' : '⟳ Refresh'}
@@ -333,26 +332,27 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            <div style={{ padding: '24px 32px' }}>
+            <div className="p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
                 {/* ─── Agri-Weather & Advisory Widget ───────────────────────── */}
-                <div id="demo-weather-widget" style={{
-                    marginBottom: 24, padding: '16px 20px', borderRadius: 16,
-                    background: isDark ? 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(59,130,246,0.08) 100%)' : 'linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%)',
-                    border: isDark ? '1px solid rgba(16,185,129,0.25)' : '1px solid #d1fae5',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16
-                }}>
+                <div id="demo-weather-widget"
+                    className="p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4"
+                    style={{
+                        background: isDark ? 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(59,130,246,0.08) 100%)' : 'linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%)',
+                        border: isDark ? '1px solid rgba(16,185,129,0.25)' : '1px solid #d1fae5',
+                    }}
+                >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                         <div style={{
-                            width: 46, height: 46, borderRadius: 12,
+                            width: 44, height: 44, borderRadius: 12,
                             background: isDark ? 'rgba(16,185,129,0.2)' : '#10b981',
                             color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 22, boxShadow: '0 4px 12px rgba(16,185,129,0.25)'
+                            fontSize: 22, boxShadow: '0 4px 12px rgba(16,185,129,0.25)', flexShrink: 0
                         }}>
                             ⛅
                         </div>
                         <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontWeight: 800, fontSize: 16, color: T.titleColor }}>28°C · Partly Cloudy</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 800, fontSize: 15, color: T.titleColor }}>28°C · Partly Cloudy</span>
                                 <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12, background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>
                                     Ideal Spray Window
                                 </span>
@@ -362,7 +362,7 @@ export default function DashboardPage() {
                             </p>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 12, color: T.mutedColor }}>Agri-Advisory:</span>
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', background: 'rgba(5,150,105,0.1)', padding: '4px 10px', borderRadius: 8 }}>
                             ✓ Good conditions for fertiliser top-dressing
@@ -379,8 +379,8 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                {/* ─── KPI Stat Cards ─────────────────────────────────────────── */}
-                <div id="demo-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+                {/* ─── KPI Stat Cards (Responsive Grid: 2 on mobile, 3 on tab, 5 on laptop) ─────────────────── */}
+                <div id="demo-kpi-grid" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                     <StatCard icon="💰" title="Total Income" value={fmtCurr(fin.total_income)} accent="#10b981"
                         sub={`Net: ${fmtCurr(fin.net_profit)}`} />
                     <StatCard icon="📉" title="Total Expense" value={fmtCurr(fin.total_expense)} accent="#ef4444"
@@ -399,8 +399,8 @@ export default function DashboardPage() {
                     />
                 </div>
 
-                {/* ─── Charts Row ──────────────────────────────────────────────── */}
-                <div id="demo-charts-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+                {/* ─── Charts Row (1 col on mobile/tablet for spacious charts, 2 cols on laptop) ────────────────── */}
+                <div id="demo-charts-section" className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
                     {/* Income vs Expense chart */}
                     <ChartCard title="📊 Income & Expense — Last 6 Months"
                         action={
@@ -411,8 +411,8 @@ export default function DashboardPage() {
                         }
                     >
                         {loading ? <Spinner /> : (
-                            <ResponsiveContainer width="100%" height={220}>
-                                <AreaChart data={monthlyTrend} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+                            <ResponsiveContainer width="100%" height={260}>
+                                <AreaChart data={monthlyTrend} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
                                     <defs>
                                         <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
@@ -425,7 +425,7 @@ export default function DashboardPage() {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke={T.gridStroke} />
                                     <XAxis dataKey="label" tick={{ fill: T.labelColor, fontSize: 11 }} axisLine={false} tickLine={false} />
-                                    <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}`} />
+                                    <YAxis width={45} tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}`} />
                                     <Tooltip content={<ChartTooltip currencyMode />} />
                                     <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8', paddingTop: 8 }} />
                                     <Area type="monotone" dataKey="income" name="Income" stroke="#10b981" strokeWidth={2} fill="url(#incomeGrad)" dot={false} />
@@ -445,8 +445,8 @@ export default function DashboardPage() {
                         }
                     >
                         {loading ? <Spinner /> : (
-                            <ResponsiveContainer width="100%" height={220}>
-                                <BarChart data={harvestTrend} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+                            <ResponsiveContainer width="100%" height={260}>
+                                <BarChart data={harvestTrend} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
                                     <defs>
                                         <linearGradient id="harvestGrad" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.9} />
@@ -455,7 +455,7 @@ export default function DashboardPage() {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                                     <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
-                                    <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${v}kg`} />
+                                    <YAxis width={45} tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${v}kg`} />
                                     <Tooltip content={<ChartTooltip />} />
                                     <Bar dataKey="total_kg" name="Harvest (kg)" fill="url(#harvestGrad)" radius={[4, 4, 0, 0]} />
                                 </BarChart>
@@ -464,8 +464,8 @@ export default function DashboardPage() {
                     </ChartCard>
                 </div>
 
-                {/* ─── Bottom Grid ──────────────────────────────────────────────── */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 20, marginBottom: 24 }}>
+                {/* ─── Bottom Grid (Stacked on mobile/tab, 1.4fr 1fr on laptop) ────────────────────────── */}
+                <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4 sm:gap-5">
                     {/* Active Crops Table */}
                     <ChartCard title="🌱 Active Crops"
                         action={
@@ -611,7 +611,7 @@ export default function DashboardPage() {
                             </a>
                         }
                     >
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
                             {activityBreakdown.map(act => {
                                 const meta = ACTIVITY_META[act.activity_type] || ACTIVITY_META.GENERAL;
                                 return (

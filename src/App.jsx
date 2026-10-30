@@ -1869,31 +1869,78 @@ const WorkerManagement = () => {
 
 
 // --- LAYOUT & APP ROUTING ---
-const NavLink = ({ to, icon, children, currentPath }) => { const isActive = (currentPath === '/' && to === '/') || (currentPath === to) || (to !== '/' && currentPath.startsWith(to)); return (<a href={to} className={`flex items-center px-4 py-3 text-lg rounded-lg ${isActive ? 'bg-green-700 text-white' : 'text-green-100 hover:bg-green-700'}`}>{icon}<span className="ml-4">{children}</span></a>); }
-const Sidebar = ({ isSidebarOpen, currentPath }) => {
+const NavLink = ({ to, icon, children, currentPath, onClick }) => {
+    const isActive = (currentPath === '/' && to === '/') || (currentPath === to) || (to !== '/' && currentPath.startsWith(to));
+    return (
+        <a
+            href={to}
+            onClick={onClick}
+            className={`flex items-center px-4 py-3 text-base md:text-lg rounded-xl transition-colors ${
+                isActive ? 'bg-green-700 text-white font-semibold shadow-sm' : 'text-green-100 hover:bg-green-700/60'
+            }`}
+        >
+            <span className="flex-shrink-0">{icon}</span>
+            <span className="ml-3.5 sm:ml-4">{children}</span>
+        </a>
+    );
+};
+
+const Sidebar = ({ isSidebarOpen, onClose, currentPath }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     return (
-        <aside className={`w-64 space-y-1 py-7 px-2 absolute inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 z-30 overflow-y-auto`}
-            style={{ background: isDark ? '#14532d' : '#15803d', color: '#fff' }}>
-            <div className="px-4 mb-6 text-center">
-                <h1 className="text-3xl font-bold">FarmSight 360</h1>
-                <p className="text-sm" style={{ color: isDark ? '#86efac' : '#bbf7d0' }}>Yield &amp; Workforce Tracker</p>
-            </div>
-            <nav>
-                <NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath}>Dashboard</NavLink>
-                <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Farm Service</p>
-                <NavLink to="/farm/crops" icon={<YieldIcon />} currentPath={currentPath}>Crops</NavLink>
-                <NavLink to="/farm/inventory" icon={<InventoryIcon />} currentPath={currentPath}>Inventory</NavLink>
-                <NavLink to="/farm/crop-care" icon={<FertiliserIcon />} currentPath={currentPath}>Fertilisers &amp; Sprays</NavLink>
-                <NavLink to="/farm/finance" icon={<FinancialIcon />} currentPath={currentPath}>Finance</NavLink>
-                <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Workforce</p>
-                <NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath}>Workers</NavLink>
-                <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Marketplace</p>
-                <NavLink to="/services" icon={<MarketplaceIcon />} currentPath={currentPath}>Service Providers</NavLink>
-                <NavLink to="/bookings" icon={<BookingsIcon />} currentPath={currentPath}>My Bookings</NavLink>
-            </nav>
-        </aside>
+        <>
+            {/* Backdrop overlay for mobile & tablet (clicking outside closes the drawer) */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden transition-opacity"
+                    onClick={onClose}
+                    aria-label="Close menu overlay"
+                />
+            )}
+
+            <aside
+                className={`fixed md:relative inset-y-0 left-0 w-72 md:w-64 space-y-1 py-5 px-3 transform ${
+                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                } md:translate-x-0 transition-transform duration-300 ease-in-out z-50 md:z-auto overflow-y-auto shadow-2xl md:shadow-none flex flex-col justify-between`}
+                style={{ background: isDark ? '#14532d' : '#15803d', color: '#fff' }}
+            >
+                <div>
+                    {/* Header with Title and Mobile Close Button */}
+                    <div className="px-3 mb-5 flex items-center justify-between">
+                        <div className="text-left">
+                            <h1 className="text-2xl font-extrabold tracking-tight">FarmSight 360</h1>
+                            <p className="text-xs" style={{ color: isDark ? '#86efac' : '#bbf7d0' }}>Yield &amp; Workforce Tracker</p>
+                        </div>
+                        {/* Close button visible only on mobile/tablet */}
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="md:hidden p-2 rounded-xl text-green-200 hover:text-white hover:bg-green-600/50 transition-colors focus:outline-none"
+                            aria-label="Close menu"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <nav className="space-y-1">
+                        <NavLink to="/" icon={<DashboardIcon />} currentPath={currentPath} onClick={onClose}>Dashboard</NavLink>
+                        <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Farm Service</p>
+                        <NavLink to="/farm/crops" icon={<YieldIcon />} currentPath={currentPath} onClick={onClose}>Crops</NavLink>
+                        <NavLink to="/farm/inventory" icon={<InventoryIcon />} currentPath={currentPath} onClick={onClose}>Inventory</NavLink>
+                        <NavLink to="/farm/crop-care" icon={<FertiliserIcon />} currentPath={currentPath} onClick={onClose}>Fertilisers &amp; Sprays</NavLink>
+                        <NavLink to="/farm/finance" icon={<FinancialIcon />} currentPath={currentPath} onClick={onClose}>Finance</NavLink>
+                        <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Workforce</p>
+                        <NavLink to="/workers" icon={<WorkerIcon />} currentPath={currentPath} onClick={onClose}>Workers</NavLink>
+                        <p className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: isDark ? '#4ade80' : '#86efac' }}>Marketplace</p>
+                        <NavLink to="/services" icon={<MarketplaceIcon />} currentPath={currentPath} onClick={onClose}>Service Providers</NavLink>
+                        <NavLink to="/bookings" icon={<BookingsIcon />} currentPath={currentPath} onClick={onClose}>My Bookings</NavLink>
+                    </nav>
+                </div>
+            </aside>
+        </>
     );
 };
 const Header = ({ toggleSidebar }) => {
@@ -1914,32 +1961,44 @@ const Header = ({ toggleSidebar }) => {
     };
 
     return (
-        <header style={{
-            background: isDark ? '#1e293b' : '#ffffff',
-            borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : '#e5e7eb'}`,
-            padding: '16px 24px', display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', zIndex: 10, boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.06)'
-        }}>
-            <button onClick={toggleSidebar} style={{ color: isDark ? '#94a3b8' : '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }} className="md:hidden">
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-            </button>
-            <div className="hidden md:block" style={{ fontSize: 20, fontWeight: 700, color: isDark ? '#f1f5f9' : '#374151' }}>
-                Welcome, {currentUser ? currentUser.name : 'Guest'}!
+        <header
+            className="px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center z-10 sticky top-0"
+            style={{
+                background: isDark ? '#1e293b' : '#ffffff',
+                borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : '#e5e7eb'}`,
+                boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.06)'
+            }}
+        >
+            <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                    onClick={toggleSidebar}
+                    aria-label="Toggle navigation menu"
+                    className="md:hidden p-2 -ml-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                    style={{ color: isDark ? '#94a3b8' : '#374151', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 6H20M4 12H20M4 18H20" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                </button>
+                <span className="md:hidden text-lg font-extrabold text-green-700 dark:text-green-400 tracking-tight">
+                    FarmSight 360
+                </span>
+                <div className="hidden md:block" style={{ fontSize: 20, fontWeight: 700, color: isDark ? '#f1f5f9' : '#374151' }}>
+                    Welcome, {currentUser ? currentUser.name : 'Guest'}!
+                </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <DemoHeaderButton />
                 {currentUser && (
                     <div style={{ position: 'relative' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 12 }}
+                    <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 10 }}
                         onClick={() => setShowDropdown(!showDropdown)}>
-                        <div style={{ textAlign: 'right' }}>
-                            <p style={{ fontWeight: 600, color: isDark ? '#f1f5f9' : '#111827', fontSize: 14 }}>{currentUser.name}</p>
-                            <p style={{ fontSize: 12, color: isDark ? '#64748b' : '#6b7280' }}>{currentFarm?.name || 'No Farm Selected'}</p>
+                        <div className="hidden sm:block" style={{ textAlign: 'right' }}>
+                            <p style={{ fontWeight: 600, color: isDark ? '#f1f5f9' : '#111827', fontSize: 13 }}>{currentUser.name}</p>
+                            <p style={{ fontSize: 11, color: isDark ? '#64748b' : '#6b7280' }}>{currentFarm?.name || 'No Farm Selected'}</p>
                         </div>
                         <img
-                            style={{ height: 44, width: 44, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${isDark ? '#334155' : '#e5e7eb'}` }}
+                            style={{ height: 40, width: 40, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${isDark ? '#334155' : '#e5e7eb'}` }}
                             src={currentUser.profilePicture || `https://i.pravatar.cc/150?u=${currentUser.name}`}
                             alt="User Avatar"
                         />
@@ -2038,6 +2097,21 @@ export default function App() {
     const [currentPath, setCurrentPath] = useState(window.location.pathname);
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+
+    // Auto-close sidebar on route change
+    useEffect(() => {
+        setSidebarOpen(false);
+    }, [currentPath]);
+
+    // Close on Escape key
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setSidebarOpen(false);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     useEffect(() => {
         const onLocationChange = () => setCurrentPath(window.location.pathname);
         window.addEventListener('popstate', onLocationChange);
@@ -2071,10 +2145,13 @@ export default function App() {
     return (
         <DataProvider>
             <div style={{ display: 'flex', height: '100vh', background: isDark ? '#0f172a' : '#f3f4f6', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-                <Sidebar isSidebarOpen={isSidebarOpen} currentPath={currentPath} />
+                <Sidebar isSidebarOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} currentPath={currentPath} />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                    <Header toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
-                    <main style={{ flex: 1, overflowX: 'hidden', overflowY: 'auto', background: isDark ? '#0f172a' : '#f3f4f6', padding: currentPath === '/' ? 0 : 24 }}>
+                    <Header toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} />
+                    <main
+                        className={currentPath === '/' ? 'p-0' : 'p-3 sm:p-5 lg:p-6'}
+                        style={{ flex: 1, overflowX: 'hidden', overflowY: 'auto', background: isDark ? '#0f172a' : '#f3f4f6' }}
+                    >
                         <ErrorBoundary>
                             <Suspense fallback={<Spinner />}>
                                 <Page {...pageProps} />
