@@ -515,8 +515,7 @@ const AccountSettings = ({ onClose }) => {
                             {activeTab === 'appearance' && (
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-800 mb-2">Appearance</h3>
-                                    <p className="text-sm text-gray-500 mb-6">Choose how FarmSight 360 looks for you. Your preference is saved locally.</p>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {/* Light Mode */}
                                         <button
                                             onClick={() => setTheme('light')}

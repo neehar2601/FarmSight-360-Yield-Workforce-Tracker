@@ -25,6 +25,42 @@ html[data-theme="dark"] .bg-gray-200:not([class*="dark:bg-"]) {
     background-color: #334155;
 }
 
+/* Semi-transparent / Fractional Opacity Masks Overrides */
+html.dark [class*="bg-white/"]:not([class*="dark:bg-"]),
+html[data-theme="dark"] [class*="bg-white/"]:not([class*="dark:bg-"]) {
+    background-color: rgba(30, 41, 59, 0.75);
+}
+
+html.dark [class*="bg-emerald-50/"]:not([class*="dark:bg-"]),
+html.dark [class*="bg-green-50/"]:not([class*="dark:bg-"]),
+html[data-theme="dark"] [class*="bg-emerald-50/"]:not([class*="dark:bg-"]),
+html[data-theme="dark"] [class*="bg-green-50/"]:not([class*="dark:bg-"]) {
+    background-color: rgba(6, 78, 59, 0.35);
+}
+
+html.dark [class*="bg-amber-50/"]:not([class*="dark:bg-"]),
+html.dark [class*="bg-amber-100/"]:not([class*="dark:bg-"]),
+html[data-theme="dark"] [class*="bg-amber-50/"]:not([class*="dark:bg-"]),
+html[data-theme="dark"] [class*="bg-amber-100/"]:not([class*="dark:bg-"]) {
+    background-color: rgba(120, 53, 15, 0.3);
+}
+
+html.dark [class*="bg-gray-50/"]:not([class*="dark:bg-"]),
+html.dark [class*="bg-gray-100/"]:not([class*="dark:bg-"]),
+html[data-theme="dark"] [class*="bg-gray-50/"]:not([class*="dark:bg-"]),
+html[data-theme="dark"] [class*="bg-gray-100/"]:not([class*="dark:bg-"]) {
+    background-color: rgba(15, 23, 42, 0.55);
+}
+
+/* Hover States Dark Overrides to prevent bright white flash/masks on tap/hover */
+html.dark .hover\:bg-gray-50:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-gray-100:hover:not([class*="dark:hover:bg-"]),
+html[data-theme="dark"] .hover\:bg-gray-50:hover:not([class*="dark:hover:bg-"]),
+html[data-theme="dark"] .hover\:bg-gray-100:hover:not([class*="dark:hover:bg-"]) {
+    background-color: #334155;
+    color: #f8fafc;
+}
+
 /* 2. Borders on legacy components (without explicit dark:border-*) */
 html.dark .border-gray-100:not([class*="dark:border-"]),
 html.dark .border-gray-200:not([class*="dark:border-"]),

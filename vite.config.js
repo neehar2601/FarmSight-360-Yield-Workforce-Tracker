@@ -5,7 +5,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true, // bind 0.0.0.0 (reachable from LAN / containers)
+    host: '127.0.0.1', // bind 127.0.0.1 only (internal to host, accessed via Caddy)
+    port: 5173,
     proxy: {
       '/auth': 'http://localhost:4000',
       '/admin': 'http://localhost:4000',
