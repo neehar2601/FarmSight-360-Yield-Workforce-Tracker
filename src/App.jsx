@@ -40,6 +40,7 @@ const mockDatabase = {
         { name: 'Wheat',     defaultUnit: 'kg',   notes: 'Rabi cereal crop' },
         { name: 'Sugarcane', defaultUnit: 'tonnes', notes: 'Cash crop' },
         { name: 'Cotton',    defaultUnit: 'quintals', notes: 'Kharif cash crop' },
+        { name: 'Coconut',   defaultUnit: 'pieces', notes: 'Perennial plantation crop (count/pieces)' },
     ],
     // Phase 2: FIELD sub-division
     fields: [
@@ -1135,6 +1136,8 @@ const CropMasterModal = ({ isOpen, onClose, onSave }) => {
                             <label className="block text-sm font-medium text-gray-700">Default Measurement Unit</label>
                             <select name="defaultUnit" value={formData.defaultUnit} onChange={handleChange} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm">
                                 <option value="kg">kg</option>
+                                <option value="pieces">pieces / count (e.g. Coconuts)</option>
+                                <option value="count">count</option>
                                 <option value="tonnes">tonnes</option>
                                 <option value="quintals">quintals</option>
                                 <option value="bags">bags</option>

@@ -45,6 +45,7 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
     const [cropType, setCropType] = useState('seasonal'); // 'seasonal' | 'perennial'
     const [plantingDate, setPlantingDate] = useState(today);
     const [area, setArea] = useState('');
+    const [harvestUnit, setHarvestUnit] = useState('kg');
     
     // Planting Material state
     const [materialSource, setMaterialSource] = useState('purchased'); // 'purchased' | 'farm_saved' | 'existing_crop' | 'none'
@@ -66,9 +67,18 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
         if (type === 'perennial') {
             setMaterialCategory('Plants/Seedlings');
             setUnit('saplings');
+            if (name.toLowerCase().includes('coconut')) setHarvestUnit('pieces');
         } else {
             setMaterialCategory('Seeds');
             setUnit('kg');
+        }
+    };
+
+    const handleNameChange = (val) => {
+        setName(val);
+        const lower = val.toLowerCase();
+        if (lower.includes('coconut') || lower.includes('nariyal')) {
+            setHarvestUnit('pieces');
         }
     };
 
@@ -141,6 +151,7 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
             name: name.trim(),
             variety: variety.trim() || null,
             crop_type: cropType,
+            harvest_unit: harvestUnit,
             area_planted: area || null,
             area_unit: 'acres',
             planting_date: plantingDate,
@@ -184,16 +195,31 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
                 </div>
 
                 <Field label="Crop Name *">
-                    <Input placeholder="e.g. Arecanut, Wheat, Tomato, Paddy" value={name} onChange={e => setName(e.target.value)} required />
+                    <Input placeholder="e.g. Coconut, Arecanut, Wheat, Tomato, Paddy" value={name} onChange={e => handleNameChange(e.target.value)} required />
                 </Field>
 
                 <Field label="Variety (Optional)">
-                    <Input placeholder="e.g. Mangala Hybrid, Sharbati, Roma" value={variety} onChange={e => setVariety(e.target.value)} />
+                    <Input placeholder="e.g. West Coast Tall, Mangala Hybrid, Sharbati" value={variety} onChange={e => setVariety(e.target.value)} />
                 </Field>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <Field label="Area Planted (acres)">
+                <div className="grid grid-cols-3 gap-2.5">
+                    <Field label="Area (acres)">
                         <Input type="number" step="any" placeholder="e.g. 2.5" value={area} onChange={e => setArea(e.target.value)} />
+                    </Field>
+                    <Field label="Harvest Unit">
+                        <select 
+                            value={harvestUnit} 
+                            onChange={e => setHarvestUnit(e.target.value)}
+                            className="w-full border-2 border-gray-200 focus:border-green-400 rounded-xl p-2.5 text-sm outline-none bg-white font-medium"
+                        >
+                            <option value="kg">kg (Kilograms)</option>
+                            <option value="pieces">pieces / count (e.g. Coconuts)</option>
+                            <option value="quintal">quintal (100 kg)</option>
+                            <option value="ton">ton (Tonnes)</option>
+                            <option value="count">count</option>
+                            <option value="bag">bag</option>
+                            <option value="box">box / crates</option>
+                        </select>
                     </Field>
                     <Field label="Planting Date *">
                         <Input type="date" value={plantingDate} onChange={e => setPlantingDate(e.target.value)} required />
@@ -384,7 +410,7 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
 const HarvestModal = ({ crop, onClose, onSaved }) => {
     const today = new Date().toISOString().split('T')[0];
     const [qty, setQty] = useState('');
-    const [unit, setUnit] = useState('kg');
+    const [unit, setUnit] = useState(crop.harvest_unit || 'kg');
     const [date, setDate] = useState(today);
     const [isSegregated, setIsSegregated] = useState(false);
     const [grade, setGrade] = useState('');
@@ -412,16 +438,19 @@ const HarvestModal = ({ crop, onClose, onSaved }) => {
             {error && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">{error}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                    <Field label="Quantity *">
-                        <Input type="number" placeholder="0" value={qty} onChange={e => setQty(e.target.value)} required />
+                    <Field label={`Quantity (${unit}) *`}>
+                        <Input type="number" step="any" placeholder={unit === 'pieces' || unit === 'count' ? 'e.g. 1000' : '0'} value={qty} onChange={e => setQty(e.target.value)} required />
                     </Field>
                     <Field label="Unit">
                         <select value={unit} onChange={e => setUnit(e.target.value)}
-                            className="w-full border-2 border-gray-200 focus:border-green-400 rounded-xl p-3 text-base outline-none">
-                            <option value="kg">kg</option>
-                            <option value="ton">ton</option>
-                            <option value="quintal">quintal</option>
+                            className="w-full border-2 border-gray-200 focus:border-green-400 rounded-xl p-3 text-base outline-none bg-white">
+                            <option value="pieces">pieces / count (e.g. Coconuts)</option>
+                            <option value="kg">kg (Kilograms)</option>
+                            <option value="quintal">quintal (100 kg)</option>
+                            <option value="ton">ton (Tonnes)</option>
+                            <option value="count">count</option>
                             <option value="bag">bag</option>
+                            <option value="box">box / crates</option>
                         </select>
                     </Field>
                 </div>
@@ -471,7 +500,7 @@ const SellModal = ({ crop, onClose, onSaved }) => {
         : [];
 
     const [qty, setQty] = useState('');
-    const [unit, setUnit] = useState('kg');
+    const [unit, setUnit] = useState(crop.harvest_unit || 'kg');
     const [price, setPrice] = useState('');
     const [grade, setGrade] = useState(availableGrades[0]?.[0] || 'Unsegregated');
     const [buyer, setBuyer] = useState('');
@@ -484,7 +513,7 @@ const SellModal = ({ crop, onClose, onSaved }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!qty || parseFloat(qty) <= 0) { setError('Please enter a valid quantity.'); return; }
-        if (parseFloat(qty) > available) { setError(`Only ${available} is available to sell.`); return; }
+        if (parseFloat(qty) > available) { setError(`Only ${available} ${unit} is available to sell.`); return; }
         if (!price || parseFloat(price) <= 0) { setError('Please enter a price.'); return; }
         setSaving(true);
         const { data, error: err } = await sellCrop(crop.id, {
@@ -501,35 +530,38 @@ const SellModal = ({ crop, onClose, onSaved }) => {
         <Modal onClose={onClose}>
             <h2 className="text-2xl font-bold text-gray-800 mb-1">💰 Sell Crop</h2>
             <p className="text-gray-400 text-sm mb-1">{crop.name}{crop.variety ? ` · ${crop.variety}` : ''}</p>
-            <p className="text-green-700 font-semibold text-sm mb-6">Available to sell: {available}</p>
+            <p className="text-green-700 font-semibold text-sm mb-6">Available to sell: {available} {crop.harvest_unit || unit}</p>
             {error && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">{error}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">
                 {availableGrades.length > 1 && (
                     <Field label="Selling which grade?">
                         <select value={grade} onChange={e => setGrade(e.target.value)}
-                            className="w-full border-2 border-gray-200 focus:border-green-400 rounded-xl p-3 text-base outline-none">
+                            className="w-full border-2 border-gray-200 focus:border-green-400 rounded-xl p-3 text-base outline-none bg-white">
                             {availableGrades.map(([g, q]) => (
-                                <option key={g} value={g}>{g} — {q} available</option>
+                                <option key={g} value={g}>{g} — {q} {crop.harvest_unit || unit} available</option>
                             ))}
                         </select>
                     </Field>
                 )}
                 <div className="grid grid-cols-2 gap-3">
-                    <Field label="Quantity *">
-                        <Input type="number" placeholder="0" value={qty} onChange={e => setQty(e.target.value)} required />
+                    <Field label={`Quantity (${unit}) *`}>
+                        <Input type="number" step="any" placeholder={unit === 'pieces' || unit === 'count' ? 'e.g. 500' : '0'} value={qty} onChange={e => setQty(e.target.value)} required />
                     </Field>
                     <Field label="Unit">
                         <select value={unit} onChange={e => setUnit(e.target.value)}
-                            className="w-full border-2 border-gray-200 focus:border-green-400 rounded-xl p-3 text-base outline-none">
-                            <option value="kg">kg</option>
-                            <option value="ton">ton</option>
-                            <option value="quintal">quintal</option>
+                            className="w-full border-2 border-gray-200 focus:border-green-400 rounded-xl p-3 text-base outline-none bg-white">
+                            <option value="pieces">pieces / count (e.g. Coconuts)</option>
+                            <option value="kg">kg (Kilograms)</option>
+                            <option value="quintal">quintal (100 kg)</option>
+                            <option value="ton">ton (Tonnes)</option>
+                            <option value="count">count</option>
                             <option value="bag">bag</option>
+                            <option value="box">box / crates</option>
                         </select>
                     </Field>
                 </div>
-                <Field label="Price per unit (₹) *">
-                    <Input type="number" placeholder="0" value={price} onChange={e => setPrice(e.target.value)} required />
+                <Field label={`Price per ${unit || 'unit'} (₹) *`}>
+                    <Input type="number" step="any" placeholder="0" value={price} onChange={e => setPrice(e.target.value)} required />
                 </Field>
                 <Field label="Sale Date">
                     <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
@@ -560,7 +592,9 @@ const SellModal = ({ crop, onClose, onSaved }) => {
 const SegregateModal = ({ crop, onClose, onSaved }) => {
     const today = new Date().toISOString().split('T')[0];
     const unsegQty = Number(crop.inventory?.['Unsegregated'] || 0);
+    const harvestUnit = crop.harvest_unit || 'kg';
     const [batches, setBatches] = useState([{ grade: '', quantity: '' }]);
+    const [unit, setUnit] = useState(harvestUnit);
     const [date, setDate] = useState(today);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -572,10 +606,10 @@ const SegregateModal = ({ crop, onClose, onSaved }) => {
         e.preventDefault();
         const valid = batches.filter(b => b.grade.trim() && parseFloat(b.quantity) > 0);
         if (!valid.length) { setError('Add at least one grade.'); return; }
-        if (remaining < 0) { setError(`Total exceeds available ${unsegQty}.`); return; }
+        if (remaining < 0) { setError(`Total exceeds available ${unsegQty} ${unit}.`); return; }
         setSaving(true);
         const { error: err } = await segregateCrop(crop.id, {
-            farm_id: crop.farm_id, date, unit: 'kg',
+            farm_id: crop.farm_id, date, unit,
             batches: valid.map(b => ({ grade: b.grade.trim(), quantity: parseFloat(b.quantity) })),
         });
         setSaving(false);
@@ -587,10 +621,10 @@ const SegregateModal = ({ crop, onClose, onSaved }) => {
     return (
         <Modal onClose={onClose}>
             <h2 className="text-2xl font-bold text-gray-800 mb-1">🗂️ Sort Harvest by Grade</h2>
-            <p className="text-gray-400 text-sm mb-2">{crop.name} — Unsorted stock: <span className="font-bold text-amber-600">{unsegQty}</span></p>
+            <p className="text-gray-400 text-sm mb-2">{crop.name} — Unsorted stock: <span className="font-bold text-amber-600">{unsegQty} {unit}</span></p>
             {remaining >= 0
-                ? <p className="text-green-700 text-sm font-semibold mb-5">Remaining to assign: {remaining}</p>
-                : <p className="text-red-600 text-sm font-semibold mb-5">Over by {Math.abs(remaining)} — reduce quantities</p>
+                ? <p className="text-green-700 text-sm font-semibold mb-5">Remaining to assign: {remaining} {unit}</p>
+                : <p className="text-red-600 text-sm font-semibold mb-5">Over by {Math.abs(remaining)} {unit} — reduce quantities</p>
             }
             {error && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">{error}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -600,10 +634,10 @@ const SegregateModal = ({ crop, onClose, onSaved }) => {
                 <div className="space-y-2">
                     {batches.map((b, i) => (
                         <div key={i} className="flex gap-2">
-                            <Input placeholder="Grade name (e.g. Premium)" value={b.grade}
+                            <Input placeholder="Grade name (e.g. Grade A, Large Coconuts)" value={b.grade}
                                 onChange={e => setBatches(p => p.map((x, j) => j === i ? { ...x, grade: e.target.value } : x))} />
-                            <Input type="number" placeholder="Qty" value={b.quantity}
-                                className="w-24"
+                            <Input type="number" step="any" placeholder={`Qty (${unit})`} value={b.quantity}
+                                className="w-28"
                                 onChange={e => setBatches(p => p.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))} />
                             {batches.length > 1 && (
                                 <button type="button" onClick={() => setBatches(p => p.filter((_, j) => j !== i))}
@@ -1161,14 +1195,14 @@ const CropCard = ({ crop, onAction, onArchive, isFirst }) => {
                             🌾 Harvested Crop Produce
                         </span>
                         <div className="text-right text-[11px] text-green-700 font-medium flex gap-2">
-                            <span>Harvested: <b>{crop.total_harvested}</b></span>
-                            <span>Sold: <b>{crop.total_sold}</b></span>
+                            <span>Harvested: <b>{crop.total_harvested} {crop.harvest_unit || ''}</b></span>
+                            <span>Sold: <b>{crop.total_sold} {crop.harvest_unit || ''}</b></span>
                         </div>
                     </div>
                     <div className="flex justify-between items-baseline mb-2">
                         <div className="flex items-baseline gap-1.5">
                             <span className="text-xs text-green-800 font-semibold">Available for Sale:</span>
-                            <span className="text-xl font-black text-green-900">{available}</span>
+                            <span className="text-xl font-black text-green-900">{available} <span className="text-sm font-bold text-green-700">{crop.harvest_unit || ''}</span></span>
                         </div>
                         {available === 0 && Number(crop.total_harvested) > 0 && (
                             <span className="text-[11px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md font-semibold">
@@ -1180,7 +1214,7 @@ const CropCard = ({ crop, onAction, onArchive, isFirst }) => {
                         <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-green-200/60">
                             {grades.map(([grade, qty]) => (
                                 <span key={grade} className={`text-xs px-2 py-0.5 rounded-lg font-semibold ${grade === 'Unsegregated' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-white text-green-800 border border-green-200 shadow-2xs'}`}>
-                                    {grade}: {qty}
+                                    {grade}: {qty} {crop.harvest_unit || ''}
                                 </span>
                             ))}
                         </div>
@@ -1214,7 +1248,7 @@ const CropCard = ({ crop, onAction, onArchive, isFirst }) => {
                             id={isFirst ? "demo-crop-sell-btn" : undefined}
                             onClick={() => onAction('sell')}
                             className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-sm transition-all shadow-xs active:scale-95 flex items-center justify-center gap-1.5">
-                            💰 Sell Crop ({available} in stock)
+                            💰 Sell Crop ({available} {crop.harvest_unit || 'in stock'})
                         </button>
                     )}
                 </div>
