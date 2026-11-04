@@ -563,6 +563,7 @@ const AllInOneWorkerCard = ({
     const [activityType, setActivityType] = useState(worker.today_activity_type || 'GENERAL');
     const [cropId, setCropId] = useState(worker.today_crop_id || '');
     const todayStr = today();
+    const isTodaySettled = Boolean(worker.last_payout_date && todayStr <= worker.last_payout_date);
 
     // Sync activity/crop if the worker prop changes (e.g., after reload)
     useEffect(() => {
@@ -571,6 +572,7 @@ const AllInOneWorkerCard = ({
     }, [worker.today_activity_type, worker.today_crop_id]);
 
     const handleAttendance = async (status) => {
+        if (isTodaySettled) return;
         setSavingAtt(true);
         const finalActivity = status === 'A' ? 'GENERAL' : activityType;
         const finalCropId = status === 'A' ? null : (cropId || null);
@@ -579,6 +581,7 @@ const AllInOneWorkerCard = ({
     };
 
     const handleActivityChange = async (newActivity) => {
+        if (isTodaySettled) return;
         setActivityType(newActivity);
         // If already marked P or H today, immediately persist the change
         if (worker.today_status && worker.today_status !== 'A') {
@@ -589,6 +592,7 @@ const AllInOneWorkerCard = ({
     };
 
     const handleCropChange = async (newCropId) => {
+        if (isTodaySettled) return;
         setCropId(newCropId);
         // If already marked P or H today, immediately persist the change
         if (worker.today_status && worker.today_status !== 'A') {
@@ -627,8 +631,16 @@ const AllInOneWorkerCard = ({
             {/* Quick Attendance Bar for Today */}
             <div id={isFirst ? "demo-attendance-buttons" : undefined} className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-600 flex items-center gap-1">
-                        📋 Today's Attendance {savingAtt && <span className="text-[10px] text-gray-400 font-normal">(Saving…)</span>}
+                    <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                        📋 Today's Attendance
+                        {savingAtt && <span className="text-[10px] text-gray-400 font-normal">(Saving…)</span>}
+                        {isTodaySettled && (
+                            <span
+                                title={`Salary settled up to ${new Date(worker.last_payout_date + 'T00:00:00').toLocaleDateString('en-IN')} — attendance locked`}
+                                className="text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded-md">
+                                🔒 Settled
+                            </span>
+                        )}
                     </span>
                     <div className="flex gap-1.5">
                         {[
@@ -636,12 +648,16 @@ const AllInOneWorkerCard = ({
                             { s: 'H', label: 'H', name: 'Half Day', activeClass: 'bg-amber-500 text-white border-amber-500' },
                             { s: 'A', label: 'A', name: 'Absent', activeClass: 'bg-rose-600 text-white border-rose-600' },
                         ].map(btn => (
-                            <button key={btn.s} onClick={() => handleAttendance(btn.s)}
+                            <button
+                                key={btn.s}
+                                disabled={isTodaySettled || savingAtt}
+                                title={isTodaySettled ? `Locked — salary settled on ${new Date(worker.last_payout_date + 'T00:00:00').toLocaleDateString('en-IN')}` : btn.name}
+                                onClick={() => handleAttendance(btn.s)}
                                 className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
                                     worker.today_status === btn.s
                                         ? btn.activeClass
                                         : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
-                                }`}>
+                                } ${isTodaySettled ? 'opacity-60 cursor-not-allowed' : ''}`}>
                                 {btn.label}
                             </button>
                         ))}
@@ -659,12 +675,13 @@ const AllInOneWorkerCard = ({
                                     <button
                                         key={act.value}
                                         type="button"
+                                        disabled={isTodaySettled || savingAtt}
                                         onClick={() => handleActivityChange(act.value)}
                                         className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all ${
                                             activityType === act.value
                                                 ? 'bg-green-600 text-white border-green-600'
                                                 : 'bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-700'
-                                        }`}>
+                                        } ${isTodaySettled ? 'opacity-60 cursor-not-allowed' : ''}`}>
                                         {act.emoji} {act.label}
                                     </button>
                                 ))}
@@ -675,9 +692,12 @@ const AllInOneWorkerCard = ({
                             <div className="flex items-center gap-2">
                                 <span className="text-[11px] text-gray-500 font-medium whitespace-nowrap">🌾 Crop:</span>
                                 <select
+                                    disabled={isTodaySettled || savingAtt}
                                     value={cropId || ''}
                                     onChange={e => handleCropChange(e.target.value)}
-                                    className="flex-1 text-[11px] border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:border-green-400 focus:outline-none">
+                                    className={`flex-1 text-[11px] border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:border-green-400 focus:outline-none ${
+                                        isTodaySettled ? 'opacity-60 cursor-not-allowed' : ''
+                                    }`}>
                                     <option value="">No specific crop</option>
                                     {crops.map(c => (
                                         <option key={c.id} value={c.id}>
@@ -880,21 +900,23 @@ const CellEditPopover = ({ worker, date, cell, crops, farmId, onSaved, onClose }
 };
 
 // ─── MonthlyAttendance ────────────────────────────────────────────────────────
-const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
+const MonthlyAttendance = ({ workers, farmId, crops, month: controlledMonth, setMonth: setControlledMonth, onReloadWorkers }) => {
     const now = new Date();
     const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const [month,   setMonth]   = useState(defaultMonth);
+    const [internalMonth, setInternalMonth] = useState(defaultMonth);
+    const month    = controlledMonth !== undefined ? controlledMonth : internalMonth;
+    const setMonth = setControlledMonth || setInternalMonth;
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(false);
     // editing: { worker, date, cell } | null
     const [editing, setEditing] = useState(null);
 
-    const loadRecords = useCallback(() => {
+    const loadRecords = useCallback((silent = false) => {
         if (!farmId || !month) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         getAttendance(farmId, month).then(({ data }) => {
             setRecords(data || []);
-            setLoading(false);
+            if (!silent) setLoading(false);
         });
     }, [farmId, month]);
 
@@ -958,11 +980,12 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                         onChange={e => setMonth(e.target.value)}
                         className="border rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
                 </div>
-                <div className="flex items-center gap-3 text-xs">
+                <div className="flex flex-wrap items-center gap-3 text-xs">
                     <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-emerald-500 inline-block"></span> Present</span>
                     <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-amber-400 inline-block"></span> Half Day</span>
                     <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-rose-400 inline-block"></span> Absent</span>
                     <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-gray-200 inline-block"></span> Not Marked</span>
+                    <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-gray-200 border border-gray-300 opacity-60 inline-flex items-center justify-center text-[9px]">🔒</span> Settled (Locked)</span>
                 </div>
             </div>
 
@@ -1017,28 +1040,44 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                                                 ? crops?.find(c => c.id === cell.cropId)?.name
                                                 : null;
                                             const future = isFutureDay(d);
+                                            const settled = !future && Boolean(w.last_payout_date && dateStr <= w.last_payout_date);
+                                            const locked = future || settled;
+                                            const statusLabel = cell ? (cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent') : 'Not marked';
                                             const tooltip = future
                                                 ? 'Future date — cannot mark attendance'
-                                                : [
-                                                    cell ? (cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent') : 'Not marked',
-                                                    actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
-                                                    cropName ? `🌾 ${cropName}` : null,
-                                                  ].filter(Boolean).join(' · ');
+                                                : settled
+                                                    ? [
+                                                        `🔒 Salary settled (${new Date(w.last_payout_date + 'T00:00:00').toLocaleDateString('en-IN')}) — locked`,
+                                                        statusLabel,
+                                                        actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
+                                                        cropName ? `🌾 ${cropName}` : null,
+                                                      ].filter(Boolean).join(' · ')
+                                                    : [
+                                                        statusLabel,
+                                                        actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
+                                                        cropName ? `🌾 ${cropName}` : null,
+                                                      ].filter(Boolean).join(' · ');
                                             return (
                                                 <td key={d} className="p-0.5 text-center">
                                                     <button
                                                         title={tooltip}
-                                                        disabled={future}
-                                                        onClick={() => { if (!future) setEditing({ worker: w, date: dateStr, cell }); }}
+                                                        disabled={locked}
+                                                        onClick={() => { if (!locked) setEditing({ worker: w, date: dateStr, cell }); }}
                                                         className={`w-6 h-6 rounded-md mx-auto flex items-center justify-center text-[10px] font-bold transition-all ${
                                                             future
                                                                 ? 'bg-gray-50 text-gray-200 cursor-not-allowed'
-                                                                : cell
-                                                                    ? `${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'} hover:ring-2 hover:ring-offset-1 hover:ring-green-400`
-                                                                    : 'bg-gray-100 hover:bg-gray-200 hover:ring-2 hover:ring-offset-1 hover:ring-green-400'
+                                                                : settled
+                                                                    ? cell
+                                                                        ? `${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'} opacity-60 cursor-not-allowed ring-1 ring-inset ring-black/10`
+                                                                        : 'bg-gray-100 text-gray-300 opacity-60 cursor-not-allowed'
+                                                                    : cell
+                                                                        ? `${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'} hover:ring-2 hover:ring-offset-1 hover:ring-green-400`
+                                                                        : 'bg-gray-100 hover:bg-gray-200 hover:ring-2 hover:ring-offset-1 hover:ring-green-400'
                                                         }`}>
                                                         {future ? null : cell ? (
                                                             actInfo ? actInfo.emoji : cell.status
+                                                        ) : settled ? (
+                                                            <span className="text-[8px] text-gray-400">🔒</span>
                                                         ) : (
                                                             <span className="text-gray-300">·</span>
                                                         )}
@@ -1096,11 +1135,11 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                     farmId={farmId}
                     onSaved={() => {
                         setEditing(null);
-                        loadRecords();
-                        // Always reload worker cards so unpaid salary balance updates
-                        // regardless of whether the saved date is today or a past date
+                        loadRecords(true);
+                        // Always reload worker cards silently so unpaid salary balance updates
+                        // without unmounting MonthlyAttendance or resetting the selected month
                         if (typeof onReloadWorkers === 'function') {
-                            onReloadWorkers();
+                            onReloadWorkers(true);
                         }
                     }}
                     onClose={() => setEditing(null)}
@@ -1179,6 +1218,10 @@ export default function WorkersPage() {
     const farmId = currentFarm?.id;
 
     const [tab, setTab]           = useState('workers');     // 'workers' | 'monthly' | 'ledger' | 'inactive'
+    const [attendanceMonth, setAttendanceMonth] = useState(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    });
     const [workers, setWorkers]   = useState([]);
     const [inactive, setInactive] = useState([]);
     const [crops, setCrops]       = useState([]);  // active (growing) crops for attendance crop-tagging
@@ -1191,9 +1234,9 @@ export default function WorkersPage() {
     const [bonusModalWorker, setBonusModalWorker]     = useState(null);
     const [settleModalWorker, setSettleModalWorker]   = useState(null);
 
-    const loadWorkers = useCallback(async () => {
+    const loadWorkers = useCallback(async (silent = false) => {
         if (!farmId) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         const [{ data: active }, { data: arch }, { data: cropList }] = await Promise.all([
             getWorkersOverview(farmId),
             getInactiveWorkers(farmId),
@@ -1202,7 +1245,7 @@ export default function WorkersPage() {
         setWorkers(active || []);
         setInactive(arch || []);
         setCrops((cropList || []));
-        setLoading(false);
+        if (!silent) setLoading(false);
     }, [farmId]);
 
     useEffect(() => { loadWorkers(); }, [loadWorkers]);
@@ -1221,11 +1264,11 @@ export default function WorkersPage() {
             ? { ...w, today_status: status, today_activity_type: finalActivity, today_crop_id: finalCropId }
             : w
         ));
-        loadWorkers();
+        loadWorkers(true);
     };
 
     const handleSaved = (data, isEdit) => {
-        loadWorkers();
+        loadWorkers(true);
         setWorkerModal(null);
     };
 
@@ -1240,7 +1283,7 @@ export default function WorkersPage() {
         const { data, error } = await setWorkerStatus(id, { farm_id: farmId, is_active: true });
         if (!error && data) {
             setInactive(prev => prev.filter(x => x.id !== id));
-            loadWorkers();
+            loadWorkers(true);
         }
     };
 
@@ -1336,7 +1379,14 @@ export default function WorkersPage() {
 
                         {/* Tab 2: Attendance Calendar */}
                         {tab === 'monthly' && (
-                            <MonthlyAttendance workers={workers} farmId={farmId} crops={crops} onReloadWorkers={loadWorkers} />
+                            <MonthlyAttendance
+                                workers={workers}
+                                farmId={farmId}
+                                crops={crops}
+                                month={attendanceMonth}
+                                setMonth={setAttendanceMonth}
+                                onReloadWorkers={loadWorkers}
+                            />
                         )}
 
                         {/* Tab 3: Financial History Ledger */}
@@ -1396,7 +1446,7 @@ export default function WorkersPage() {
                     onClose={() => setPayoutModalWorker(null)}
                     onPaid={() => {
                         setPayoutModalWorker(null);
-                        loadWorkers();
+                        loadWorkers(true);
                     }} />
             )}
             {advanceModalWorker && (
@@ -1406,7 +1456,7 @@ export default function WorkersPage() {
                     onClose={() => setAdvanceModalWorker(null)}
                     onRecorded={() => {
                         setAdvanceModalWorker(null);
-                        loadWorkers();
+                        loadWorkers(true);
                     }} />
             )}
             {bonusModalWorker && (
@@ -1416,7 +1466,7 @@ export default function WorkersPage() {
                     onClose={() => setBonusModalWorker(null)}
                     onRecorded={() => {
                         setBonusModalWorker(null);
-                        loadWorkers();
+                        loadWorkers(true);
                     }} />
             )}
             {settleModalWorker && (
@@ -1426,7 +1476,7 @@ export default function WorkersPage() {
                     onClose={() => setSettleModalWorker(null)}
                     onRecorded={() => {
                         setSettleModalWorker(null);
-                        loadWorkers();
+                        loadWorkers(true);
                     }} />
             )}
         </div>
