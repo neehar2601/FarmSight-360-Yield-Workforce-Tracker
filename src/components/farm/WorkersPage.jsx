@@ -1218,10 +1218,19 @@ export default function WorkersPage() {
     const farmId = currentFarm?.id;
 
     const [tab, setTab]           = useState('workers');     // 'workers' | 'monthly' | 'ledger' | 'inactive'
-    const [attendanceMonth, setAttendanceMonth] = useState(() => {
+    const [attendanceMonth, setAttendanceMonthState] = useState(() => {
+        const saved = sessionStorage.getItem('farm360_attendance_month');
+        if (saved && /^\d{4}-\d{2}$/.test(saved)) return saved;
         const now = new Date();
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     });
+    const setAttendanceMonth = useCallback((val) => {
+        setAttendanceMonthState(prev => {
+            const next = typeof val === 'function' ? val(prev) : val;
+            if (next) sessionStorage.setItem('farm360_attendance_month', next);
+            return next;
+        });
+    }, []);
     const [workers, setWorkers]   = useState([]);
     const [inactive, setInactive] = useState([]);
     const [crops, setCrops]       = useState([]);  // active (growing) crops for attendance crop-tagging
