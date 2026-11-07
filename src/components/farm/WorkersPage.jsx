@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import {
     getWorkersOverview, getInactiveWorkers, createWorker,
+    searchWorkerDirectory, linkWorker,
     updateWorker, setWorkerStatus, upsertAttendance,
     getAttendance, recordAdvance, recordBonus, recordLoanSettlement,
     processPayout, getFinanceTransactions,
@@ -39,76 +40,362 @@ const ACTIVITY_MAP = Object.fromEntries(ACTIVITY_TYPES.map(a => [a.value, a]));
 // ─── WorkerModal ──────────────────────────────────────────────────────────────
 const WorkerModal = ({ worker, farmId, onClose, onSaved }) => {
     const editing = !!worker;
+    const [mode, setMode] = useState('create'); // 'create' | 'directory'
     const [form, setForm] = useState({
         name: worker?.name || '',
         role: worker?.role || '',
         contact: worker?.contact || '',
         per_day_salary: worker?.per_day_salary || '',
+        location: worker?.location || '',
         skills: worker?.skills || '',
     });
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState('');
+    const [dupWorker, setDupWorker] = useState(null); // { id, worker_code, name, archived }
 
-    const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+    // Directory search state
+    const [searchBy, setSearchBy] = useState('phone'); // 'phone' | 'code' | 'location'
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searching, setSearching] = useState(false);
+    const [dirResults, setDirResults] = useState(null);
+    const [selectedDirWorker, setSelectedDirWorker] = useState(null);
+    const [linkRole, setLinkRole] = useState('');
+    const [linkWage, setLinkWage] = useState('');
+
+    const set = (k) => (e) => {
+        setDupWorker(null);
+        setForm(f => ({ ...f, [k]: e.target.value }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.name.trim()) { setErr('Name is required'); return; }
-        setLoading(true); setErr('');
+        setLoading(true); setErr(''); setDupWorker(null);
         const body = {
             ...form, farm_id: farmId,
-            per_day_salary: parseFloat(form.per_day_salary) || 0
+            per_day_salary: parseFloat(form.per_day_salary) || 0,
         };
-        const { data, error } = editing
+        const res = editing
             ? await updateWorker(worker.id, body)
             : await createWorker(body);
         setLoading(false);
+        if (res.error) {
+            if (!editing && res.code === 'WORKER_EXISTS' && res.worker) {
+                setDupWorker(res.worker);
+                return;
+            }
+            setErr(res.error);
+            return;
+        }
+        onSaved(res.data, editing);
+    };
+
+    const handleLinkDuplicate = async () => {
+        if (!dupWorker) return;
+        setLoading(true); setErr('');
+        const { data, error } = await linkWorker({
+            farm_id: farmId,
+            worker_id: dupWorker.id,
+            role: form.role || null,
+            per_day_salary: parseFloat(form.per_day_salary) || 0,
+        });
+        setLoading(false);
+        if (error) { setErr(error); setDupWorker(null); return; }
+        onSaved(data, false);
+    };
+
+    const handleSearchDirectory = async (e) => {
+        e.preventDefault();
+        const q = searchQuery.trim();
+        if (!q) { setErr('Enter a search value'); return; }
+        if (searchBy === 'location' && q.length < 3) {
+            setErr('Enter at least 3 characters for location search');
+            return;
+        }
+        setSearching(true); setErr(''); setSelectedDirWorker(null);
+        const params = {
+            phone: searchBy === 'phone' ? q : undefined,
+            code: searchBy === 'code' ? q.toUpperCase() : undefined,
+            location: searchBy === 'location' ? q : undefined,
+        };
+        const { data, error } = await searchWorkerDirectory(farmId, params);
+        setSearching(false);
         if (error) { setErr(error); return; }
-        onSaved(data, editing);
+        setDirResults(data || []);
+    };
+
+    const handleLinkFromDirectory = async (e) => {
+        e.preventDefault();
+        if (!selectedDirWorker) return;
+        setLoading(true); setErr('');
+        const { data, error } = await linkWorker({
+            farm_id: farmId,
+            worker_id: selectedDirWorker.id,
+            role: linkRole || null,
+            per_day_salary: parseFloat(linkWage) || 0,
+        });
+        setLoading(false);
+        if (error) { setErr(error); return; }
+        onSaved(data, false);
     };
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center px-6 pt-6 pb-4 border-b">
                     <h2 className="text-xl font-bold text-gray-800">
-                        {editing ? '✏️ Edit Worker' : '👷 Add Worker'}
+                        {editing ? '✏️ Edit Worker' : '👷 Add or Link Worker'}
                     </h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {err && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3">{err}</p>}
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                            <label className="block text-sm font-semibold text-gray-600 mb-1">Full Name *</label>
-                            <input value={form.name} onChange={set('name')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g. Ramesh Kumar" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-600 mb-1">Role</label>
-                            <input value={form.role} onChange={set('role')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g. Harvester" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-600 mb-1">Contact</label>
-                            <input value={form.contact} onChange={set('contact')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g. 9876543210" />
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-sm font-semibold text-gray-600 mb-1">Daily Wage (₹)</label>
-                            <input type="number" min="0" step="0.01" value={form.per_day_salary} onChange={set('per_day_salary')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g. 600" />
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-sm font-semibold text-gray-600 mb-1">Skills</label>
-                            <textarea rows={2} value={form.skills} onChange={set('skills')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" placeholder="e.g. Harvesting, Sorting" />
+                {!editing && (
+                    <div className="px-6 pt-4">
+                        <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-xl">
+                            <button
+                                type="button"
+                                onClick={() => { setMode('create'); setErr(''); }}
+                                className={`py-2 rounded-lg text-xs font-bold transition-all ${
+                                    mode === 'create' ? 'bg-white shadow text-green-700' : 'text-gray-500 hover:text-gray-700'
+                                }`}>
+                                ➕ Create New Worker
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setMode('directory'); setErr(''); setDupWorker(null); }}
+                                className={`py-2 rounded-lg text-xs font-bold transition-all ${
+                                    mode === 'directory' ? 'bg-white shadow text-green-700' : 'text-gray-500 hover:text-gray-700'
+                                }`}>
+                                🔗 Find & Link Shared Worker
+                            </button>
                         </div>
                     </div>
+                )}
 
-                    <div className="flex justify-end gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl border text-gray-600 hover:bg-gray-50 font-semibold text-sm">Cancel</button>
-                        <button type="submit" disabled={loading} className="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-colors disabled:opacity-60">
-                            {loading ? 'Saving…' : editing ? 'Save Changes' : 'Add Worker'}
-                        </button>
+                {mode === 'create' ? (
+                    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        {err && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3">{err}</p>}
+
+                        {dupWorker && (
+                            <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 space-y-3">
+                                <div className="flex items-start gap-2.5">
+                                    <span className="text-xl">🔗</span>
+                                    <div className="text-xs text-amber-900 space-y-1">
+                                        <p className="font-bold text-sm">Worker Already Registered</p>
+                                        <p>
+                                            A worker with phone <strong>{form.contact}</strong> already exists in the shared directory:{' '}
+                                            <strong>{dupWorker.name}</strong>{' '}
+                                            <span className="font-mono bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
+                                                {dupWorker.worker_code}
+                                            </span>
+                                        </p>
+                                        <p className="text-amber-800">
+                                            Would you like to link <strong>{dupWorker.name}</strong> to this farm with Role{' '}
+                                            <strong>{form.role || 'General Farm Hand'}</strong> and Daily Wage{' '}
+                                            <strong>₹{parseFloat(form.per_day_salary) || 0}/day</strong>?
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-2 pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDupWorker(null)}
+                                        className="px-3 py-1.5 rounded-lg border border-amber-300 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50">
+                                        Discard / Edit Phone
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={handleLinkDuplicate}
+                                        className="px-4 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-bold shadow-sm disabled:opacity-60">
+                                        {loading ? 'Linking…' : `✓ Link ${dupWorker.name} to Farm`}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <label className="block text-sm font-semibold text-gray-600 mb-1">Full Name *</label>
+                                <input value={form.name} onChange={set('name')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g. Ramesh Kumar" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 mb-1">Role (on this farm)</label>
+                                <input value={form.role} onChange={set('role')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g. Harvester" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 mb-1">Contact (Phone)</label>
+                                <input value={form.contact} onChange={set('contact')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g. 9876543210" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 mb-1">Daily Wage on Farm (₹)</label>
+                                <input type="number" min="0" step="0.01" value={form.per_day_salary} onChange={set('per_day_salary')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g. 600" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 mb-1">Location / Village</label>
+                                <input value={form.location} onChange={set('location')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g. Mysuru" />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-semibold text-gray-600 mb-1">Skills</label>
+                                <textarea rows={2} value={form.skills} onChange={set('skills')} className="w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" placeholder="e.g. Harvesting, Sorting" />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-2">
+                            <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl border text-gray-600 hover:bg-gray-50 font-semibold text-sm">Cancel</button>
+                            <button type="submit" disabled={loading} className="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-colors disabled:opacity-60">
+                                {loading ? 'Saving…' : editing ? 'Save Changes' : 'Add Worker'}
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <div className="p-6 space-y-4">
+                        <p className="text-xs text-gray-500">
+                            Search the shared worker directory by <strong>Phone Number</strong>, <strong>Worker ID</strong> (e.g. <code className="bg-gray-100 px-1 rounded">W-687B3AD3</code>), or <strong>Location</strong> to link an existing worker to this farm with your own daily wage and role.
+                        </p>
+
+                        {err && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3">{err}</p>}
+
+                        <form onSubmit={handleSearchDirectory} className="space-y-3">
+                            <div className="flex gap-1.5">
+                                {[
+                                    { id: 'phone', label: '📞 Phone', placeholder: 'Enter 10-digit phone number…' },
+                                    { id: 'code', label: '🆔 Worker ID', placeholder: 'e.g. W-687B3AD3' },
+                                    { id: 'location', label: '📍 Location', placeholder: 'e.g. Mysuru (min 3 chars)' },
+                                ].map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        type="button"
+                                        onClick={() => { setSearchBy(opt.id); setDirResults(null); setSelectedDirWorker(null); setErr(''); }}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                                            searchBy === opt.id
+                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                                        }`}>
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex gap-2">
+                                <input
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder={
+                                        searchBy === 'phone' ? 'Enter phone number (e.g. 9876543210)…'
+                                        : searchBy === 'code' ? 'Enter Worker ID (e.g. W-687B3AD3)…'
+                                        : 'Enter village / city (e.g. Mysuru)…'
+                                    }
+                                    className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={searching}
+                                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors disabled:opacity-60">
+                                    {searching ? 'Searching…' : '🔍 Search'}
+                                </button>
+                            </div>
+                        </form>
+
+                        {dirResults !== null && (
+                            <div className="space-y-2 max-h-56 overflow-y-auto">
+                                {dirResults.length === 0 ? (
+                                    <div className="text-center py-6 bg-gray-50 rounded-xl border text-xs text-gray-500">
+                                        No matching workers found in directory.
+                                    </div>
+                                ) : (
+                                    dirResults.map(w => {
+                                        const isSelected = selectedDirWorker?.id === w.id;
+                                        return (
+                                            <div
+                                                key={w.id}
+                                                className={`p-3 rounded-xl border flex justify-between items-center transition-all ${
+                                                    isSelected ? 'border-green-500 bg-green-50/50' : 'border-gray-200 hover:border-gray-300'
+                                                }`}>
+                                                <div className="space-y-0.5">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-sm text-gray-800">{w.name}</span>
+                                                        <span className="text-[11px] font-mono bg-gray-100 border border-gray-200 text-gray-700 px-1.5 py-0.5 rounded">
+                                                            {w.worker_code}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500">
+                                                        {w.contact ? `📞 ${w.contact}` : 'No phone'}
+                                                        {w.location ? ` • 📍 ${w.location}` : ''}
+                                                    </p>
+                                                    {w.skills && <p className="text-[11px] text-gray-500">🛠️ {w.skills}</p>}
+                                                </div>
+                                                <div>
+                                                    {w.active_on_farm ? (
+                                                        <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg">
+                                                            ✓ Active Here
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedDirWorker(w)}
+                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                                                isSelected
+                                                                    ? 'bg-green-600 text-white'
+                                                                    : 'border border-green-600 text-green-700 hover:bg-green-50'
+                                                            }`}>
+                                                            {w.linked_to_farm ? 'Re-activate' : isSelected ? 'Selected' : 'Select'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        )}
+
+                        {selectedDirWorker && (
+                            <form onSubmit={handleLinkFromDirectory} className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 space-y-3">
+                                <p className="text-xs font-bold text-emerald-900">
+                                    🔗 Link <span className="underline">{selectedDirWorker.name}</span> ({selectedDirWorker.worker_code}) to this farm
+                                </p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Role on This Farm</label>
+                                        <input
+                                            value={linkRole}
+                                            onChange={(e) => setLinkRole(e.target.value)}
+                                            placeholder="e.g. Harvester"
+                                            className="w-full border bg-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Daily Wage on This Farm (₹)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={linkWage}
+                                            onChange={(e) => setLinkWage(e.target.value)}
+                                            placeholder="e.g. 600"
+                                            className="w-full border bg-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedDirWorker(null)}
+                                        className="px-4 py-2 rounded-xl border bg-white text-gray-600 text-xs font-semibold hover:bg-gray-50">
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="px-5 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-colors disabled:opacity-60">
+                                        {loading ? 'Linking…' : '✓ Link Worker to Farm'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                     </div>
-                </form>
+                )}
             </div>
         </div>
     );
@@ -563,6 +850,7 @@ const AllInOneWorkerCard = ({
     const [activityType, setActivityType] = useState(worker.today_activity_type || 'GENERAL');
     const [cropId, setCropId] = useState(worker.today_crop_id || '');
     const todayStr = today();
+    const isTodaySettled = Boolean(worker.last_payout_date && todayStr <= worker.last_payout_date);
 
     // Sync activity/crop if the worker prop changes (e.g., after reload)
     useEffect(() => {
@@ -571,6 +859,7 @@ const AllInOneWorkerCard = ({
     }, [worker.today_activity_type, worker.today_crop_id]);
 
     const handleAttendance = async (status) => {
+        if (isTodaySettled) return;
         setSavingAtt(true);
         const finalActivity = status === 'A' ? 'GENERAL' : activityType;
         const finalCropId = status === 'A' ? null : (cropId || null);
@@ -579,6 +868,7 @@ const AllInOneWorkerCard = ({
     };
 
     const handleActivityChange = async (newActivity) => {
+        if (isTodaySettled) return;
         setActivityType(newActivity);
         // If already marked P or H today, immediately persist the change
         if (worker.today_status && worker.today_status !== 'A') {
@@ -589,6 +879,7 @@ const AllInOneWorkerCard = ({
     };
 
     const handleCropChange = async (newCropId) => {
+        if (isTodaySettled) return;
         setCropId(newCropId);
         // If already marked P or H today, immediately persist the change
         if (worker.today_status && worker.today_status !== 'A') {
@@ -609,8 +900,21 @@ const AllInOneWorkerCard = ({
                         {worker.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                        <h3 className="font-bold text-gray-800 text-base">{worker.name}</h3>
-                        <p className="text-xs text-gray-500">{worker.role || 'General Farm Hand'} {worker.contact ? `• 📞 ${worker.contact}` : ''}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-bold text-gray-800 text-base">{worker.name}</h3>
+                            {worker.worker_code && (
+                                <span
+                                    title="Shareable Worker ID — other farms can link this worker using this code"
+                                    className="text-[10px] font-mono font-semibold bg-gray-100 border border-gray-200 text-gray-600 px-1.5 py-0.5 rounded">
+                                    {worker.worker_code}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                            {worker.role || 'General Farm Hand'}
+                            {worker.contact ? ` • 📞 ${worker.contact}` : ''}
+                            {worker.location ? ` • 📍 ${worker.location}` : ''}
+                        </p>
                         <p className="text-xs font-semibold text-gray-600 mt-0.5">💰 Daily Wage: {fmtCurr(worker.per_day_salary)}/day</p>
                     </div>
                 </div>
@@ -627,8 +931,16 @@ const AllInOneWorkerCard = ({
             {/* Quick Attendance Bar for Today */}
             <div id={isFirst ? "demo-attendance-buttons" : undefined} className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-600 flex items-center gap-1">
-                        📋 Today's Attendance {savingAtt && <span className="text-[10px] text-gray-400 font-normal">(Saving…)</span>}
+                    <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                        📋 Today's Attendance
+                        {savingAtt && <span className="text-[10px] text-gray-400 font-normal">(Saving…)</span>}
+                        {isTodaySettled && (
+                            <span
+                                title={`Salary settled up to ${new Date(worker.last_payout_date + 'T00:00:00').toLocaleDateString('en-IN')} — attendance locked`}
+                                className="text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded-md">
+                                🔒 Settled
+                            </span>
+                        )}
                     </span>
                     <div className="flex gap-1.5">
                         {[
@@ -636,12 +948,16 @@ const AllInOneWorkerCard = ({
                             { s: 'H', label: 'H', name: 'Half Day', activeClass: 'bg-amber-500 text-white border-amber-500' },
                             { s: 'A', label: 'A', name: 'Absent', activeClass: 'bg-rose-600 text-white border-rose-600' },
                         ].map(btn => (
-                            <button key={btn.s} onClick={() => handleAttendance(btn.s)}
+                            <button
+                                key={btn.s}
+                                disabled={isTodaySettled || savingAtt}
+                                title={isTodaySettled ? `Locked — salary settled on ${new Date(worker.last_payout_date + 'T00:00:00').toLocaleDateString('en-IN')}` : btn.name}
+                                onClick={() => handleAttendance(btn.s)}
                                 className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
                                     worker.today_status === btn.s
                                         ? btn.activeClass
                                         : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
-                                }`}>
+                                } ${isTodaySettled ? 'opacity-60 cursor-not-allowed' : ''}`}>
                                 {btn.label}
                             </button>
                         ))}
@@ -659,12 +975,13 @@ const AllInOneWorkerCard = ({
                                     <button
                                         key={act.value}
                                         type="button"
+                                        disabled={isTodaySettled || savingAtt}
                                         onClick={() => handleActivityChange(act.value)}
                                         className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all ${
                                             activityType === act.value
                                                 ? 'bg-green-600 text-white border-green-600'
                                                 : 'bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-700'
-                                        }`}>
+                                        } ${isTodaySettled ? 'opacity-60 cursor-not-allowed' : ''}`}>
                                         {act.emoji} {act.label}
                                     </button>
                                 ))}
@@ -675,9 +992,12 @@ const AllInOneWorkerCard = ({
                             <div className="flex items-center gap-2">
                                 <span className="text-[11px] text-gray-500 font-medium whitespace-nowrap">🌾 Crop:</span>
                                 <select
+                                    disabled={isTodaySettled || savingAtt}
                                     value={cropId || ''}
                                     onChange={e => handleCropChange(e.target.value)}
-                                    className="flex-1 text-[11px] border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:border-green-400 focus:outline-none">
+                                    className={`flex-1 text-[11px] border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:border-green-400 focus:outline-none ${
+                                        isTodaySettled ? 'opacity-60 cursor-not-allowed' : ''
+                                    }`}>
                                     <option value="">No specific crop</option>
                                     {crops.map(c => (
                                         <option key={c.id} value={c.id}>
@@ -880,21 +1200,23 @@ const CellEditPopover = ({ worker, date, cell, crops, farmId, onSaved, onClose }
 };
 
 // ─── MonthlyAttendance ────────────────────────────────────────────────────────
-const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
+const MonthlyAttendance = ({ workers, farmId, crops, month: controlledMonth, setMonth: setControlledMonth, onReloadWorkers }) => {
     const now = new Date();
     const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const [month,   setMonth]   = useState(defaultMonth);
+    const [internalMonth, setInternalMonth] = useState(defaultMonth);
+    const month    = controlledMonth !== undefined ? controlledMonth : internalMonth;
+    const setMonth = setControlledMonth || setInternalMonth;
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(false);
     // editing: { worker, date, cell } | null
     const [editing, setEditing] = useState(null);
 
-    const loadRecords = useCallback(() => {
+    const loadRecords = useCallback((silent = false) => {
         if (!farmId || !month) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         getAttendance(farmId, month).then(({ data }) => {
             setRecords(data || []);
-            setLoading(false);
+            if (!silent) setLoading(false);
         });
     }, [farmId, month]);
 
@@ -958,11 +1280,12 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                         onChange={e => setMonth(e.target.value)}
                         className="border rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" />
                 </div>
-                <div className="flex items-center gap-3 text-xs">
+                <div className="flex flex-wrap items-center gap-3 text-xs">
                     <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-emerald-500 inline-block"></span> Present</span>
                     <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-amber-400 inline-block"></span> Half Day</span>
                     <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-rose-400 inline-block"></span> Absent</span>
                     <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-gray-200 inline-block"></span> Not Marked</span>
+                    <span className="flex items-center gap-1"><span className="w-4 h-4 rounded bg-gray-200 border border-gray-300 opacity-60 inline-flex items-center justify-center text-[9px]">🔒</span> Settled (Locked)</span>
                 </div>
             </div>
 
@@ -1017,28 +1340,44 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                                                 ? crops?.find(c => c.id === cell.cropId)?.name
                                                 : null;
                                             const future = isFutureDay(d);
+                                            const settled = !future && Boolean(w.last_payout_date && dateStr <= w.last_payout_date);
+                                            const locked = future || settled;
+                                            const statusLabel = cell ? (cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent') : 'Not marked';
                                             const tooltip = future
                                                 ? 'Future date — cannot mark attendance'
-                                                : [
-                                                    cell ? (cell.status === 'P' ? 'Present' : cell.status === 'H' ? 'Half Day' : 'Absent') : 'Not marked',
-                                                    actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
-                                                    cropName ? `🌾 ${cropName}` : null,
-                                                  ].filter(Boolean).join(' · ');
+                                                : settled
+                                                    ? [
+                                                        `🔒 Salary settled (${new Date(w.last_payout_date + 'T00:00:00').toLocaleDateString('en-IN')}) — locked`,
+                                                        statusLabel,
+                                                        actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
+                                                        cropName ? `🌾 ${cropName}` : null,
+                                                      ].filter(Boolean).join(' · ')
+                                                    : [
+                                                        statusLabel,
+                                                        actInfo ? `${actInfo.emoji} ${actInfo.label}` : null,
+                                                        cropName ? `🌾 ${cropName}` : null,
+                                                      ].filter(Boolean).join(' · ');
                                             return (
                                                 <td key={d} className="p-0.5 text-center">
                                                     <button
                                                         title={tooltip}
-                                                        disabled={future}
-                                                        onClick={() => { if (!future) setEditing({ worker: w, date: dateStr, cell }); }}
+                                                        disabled={locked}
+                                                        onClick={() => { if (!locked) setEditing({ worker: w, date: dateStr, cell }); }}
                                                         className={`w-6 h-6 rounded-md mx-auto flex items-center justify-center text-[10px] font-bold transition-all ${
                                                             future
                                                                 ? 'bg-gray-50 text-gray-200 cursor-not-allowed'
-                                                                : cell
-                                                                    ? `${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'} hover:ring-2 hover:ring-offset-1 hover:ring-green-400`
-                                                                    : 'bg-gray-100 hover:bg-gray-200 hover:ring-2 hover:ring-offset-1 hover:ring-green-400'
+                                                                : settled
+                                                                    ? cell
+                                                                        ? `${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'} opacity-60 cursor-not-allowed ring-1 ring-inset ring-black/10`
+                                                                        : 'bg-gray-100 text-gray-300 opacity-60 cursor-not-allowed'
+                                                                    : cell
+                                                                        ? `${STATUS_STYLE[cell.status] || 'bg-gray-200 text-gray-400'} hover:ring-2 hover:ring-offset-1 hover:ring-green-400`
+                                                                        : 'bg-gray-100 hover:bg-gray-200 hover:ring-2 hover:ring-offset-1 hover:ring-green-400'
                                                         }`}>
                                                         {future ? null : cell ? (
                                                             actInfo ? actInfo.emoji : cell.status
+                                                        ) : settled ? (
+                                                            <span className="text-[8px] text-gray-400">🔒</span>
                                                         ) : (
                                                             <span className="text-gray-300">·</span>
                                                         )}
@@ -1096,11 +1435,11 @@ const MonthlyAttendance = ({ workers, farmId, crops, onReloadWorkers }) => {
                     farmId={farmId}
                     onSaved={() => {
                         setEditing(null);
-                        loadRecords();
-                        // Always reload worker cards so unpaid salary balance updates
-                        // regardless of whether the saved date is today or a past date
+                        loadRecords(true);
+                        // Always reload worker cards silently so unpaid salary balance updates
+                        // without unmounting MonthlyAttendance or resetting the selected month
                         if (typeof onReloadWorkers === 'function') {
-                            onReloadWorkers();
+                            onReloadWorkers(true);
                         }
                     }}
                     onClose={() => setEditing(null)}
@@ -1179,6 +1518,19 @@ export default function WorkersPage() {
     const farmId = currentFarm?.id;
 
     const [tab, setTab]           = useState('workers');     // 'workers' | 'monthly' | 'ledger' | 'inactive'
+    const [attendanceMonth, setAttendanceMonthState] = useState(() => {
+        const saved = sessionStorage.getItem('farm360_attendance_month');
+        if (saved && /^\d{4}-\d{2}$/.test(saved)) return saved;
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const setAttendanceMonth = useCallback((val) => {
+        setAttendanceMonthState(prev => {
+            const next = typeof val === 'function' ? val(prev) : val;
+            if (next) sessionStorage.setItem('farm360_attendance_month', next);
+            return next;
+        });
+    }, []);
     const [workers, setWorkers]   = useState([]);
     const [inactive, setInactive] = useState([]);
     const [crops, setCrops]       = useState([]);  // active (growing) crops for attendance crop-tagging
@@ -1191,9 +1543,9 @@ export default function WorkersPage() {
     const [bonusModalWorker, setBonusModalWorker]     = useState(null);
     const [settleModalWorker, setSettleModalWorker]   = useState(null);
 
-    const loadWorkers = useCallback(async () => {
+    const loadWorkers = useCallback(async (silent = false) => {
         if (!farmId) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         const [{ data: active }, { data: arch }, { data: cropList }] = await Promise.all([
             getWorkersOverview(farmId),
             getInactiveWorkers(farmId),
@@ -1202,7 +1554,7 @@ export default function WorkersPage() {
         setWorkers(active || []);
         setInactive(arch || []);
         setCrops((cropList || []));
-        setLoading(false);
+        if (!silent) setLoading(false);
     }, [farmId]);
 
     useEffect(() => { loadWorkers(); }, [loadWorkers]);
@@ -1221,11 +1573,11 @@ export default function WorkersPage() {
             ? { ...w, today_status: status, today_activity_type: finalActivity, today_crop_id: finalCropId }
             : w
         ));
-        loadWorkers();
+        loadWorkers(true);
     };
 
     const handleSaved = (data, isEdit) => {
-        loadWorkers();
+        loadWorkers(true);
         setWorkerModal(null);
     };
 
@@ -1240,7 +1592,7 @@ export default function WorkersPage() {
         const { data, error } = await setWorkerStatus(id, { farm_id: farmId, is_active: true });
         if (!error && data) {
             setInactive(prev => prev.filter(x => x.id !== id));
-            loadWorkers();
+            loadWorkers(true);
         }
     };
 
@@ -1336,7 +1688,14 @@ export default function WorkersPage() {
 
                         {/* Tab 2: Attendance Calendar */}
                         {tab === 'monthly' && (
-                            <MonthlyAttendance workers={workers} farmId={farmId} crops={crops} onReloadWorkers={loadWorkers} />
+                            <MonthlyAttendance
+                                workers={workers}
+                                farmId={farmId}
+                                crops={crops}
+                                month={attendanceMonth}
+                                setMonth={setAttendanceMonth}
+                                onReloadWorkers={loadWorkers}
+                            />
                         )}
 
                         {/* Tab 3: Financial History Ledger */}
@@ -1396,7 +1755,7 @@ export default function WorkersPage() {
                     onClose={() => setPayoutModalWorker(null)}
                     onPaid={() => {
                         setPayoutModalWorker(null);
-                        loadWorkers();
+                        loadWorkers(true);
                     }} />
             )}
             {advanceModalWorker && (
@@ -1406,7 +1765,7 @@ export default function WorkersPage() {
                     onClose={() => setAdvanceModalWorker(null)}
                     onRecorded={() => {
                         setAdvanceModalWorker(null);
-                        loadWorkers();
+                        loadWorkers(true);
                     }} />
             )}
             {bonusModalWorker && (
@@ -1416,7 +1775,7 @@ export default function WorkersPage() {
                     onClose={() => setBonusModalWorker(null)}
                     onRecorded={() => {
                         setBonusModalWorker(null);
-                        loadWorkers();
+                        loadWorkers(true);
                     }} />
             )}
             {settleModalWorker && (
@@ -1426,7 +1785,7 @@ export default function WorkersPage() {
                     onClose={() => setSettleModalWorker(null)}
                     onRecorded={() => {
                         setSettleModalWorker(null);
-                        loadWorkers();
+                        loadWorkers(true);
                     }} />
             )}
         </div>
