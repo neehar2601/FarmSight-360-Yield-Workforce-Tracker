@@ -60,6 +60,8 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
     
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [dup, setDup] = useState(null); // existing crop when a duplicate name is detected
+    const [pendingPayload, setPendingPayload] = useState(null);
 
     // Auto-align defaults when cropType changes
     const handleCropTypeChange = (type) => {
@@ -145,8 +147,7 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
             }
         }
 
-        setSaving(true);
-        const { data, error: err } = await createCrop({
+        const payload = {
             farm_id: farmId,
             name: name.trim(),
             variety: variety.trim() || null,
@@ -156,11 +157,29 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
             area_unit: 'acres',
             planting_date: plantingDate,
             planting_material: planting_material || undefined
-        });
+        };
+        await submitCrop(payload);
+    };
+
+    // Sends the crop; on a duplicate name (case-insensitive) asks the user what to do.
+    const submitCrop = async (payload) => {
+        setSaving(true);
+        const { data, error: err, code, existing } = await createCrop(payload);
         setSaving(false);
+        if (code === 'DUPLICATE_CROP') {
+            setPendingPayload(payload);
+            setDup(existing);
+            return;
+        }
         if (err) { setError(err); return; }
         onSaved(data);
         onClose();
+    };
+
+    const appendToExisting = async () => {
+        const payload = { ...pendingPayload, on_duplicate: 'append' };
+        setDup(null);
+        await submitCrop(payload);
     };
 
     return (
@@ -171,6 +190,36 @@ const AddCropModal = ({ farmId, onClose, onSaved }) => {
             </div>
             <p className="text-gray-400 text-sm mb-4">Record new crop planting & material inventory</p>
             {error && <p className="text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">{error}</p>}
+
+            {/* Duplicate crop prompt */}
+            {dup && (
+                <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" role="dialog" aria-modal="true">
+                        <div className="text-3xl mb-2">⚠️</div>
+                        <h3 className="text-lg font-bold text-gray-800 mb-1">"{dup.name}" already exists</h3>
+                        <p className="text-sm text-gray-500 mb-3">
+                            This farm already has an active crop with this name
+                            {dup.variety ? ` (${dup.variety})` : ''}
+                            {dup.area_planted ? ` · ${parseFloat(dup.area_planted)} ${dup.area_unit}` : ''}.
+                            Do you want to add this planting to it, or discard?
+                        </p>
+                        <ul className="text-xs text-gray-500 bg-gray-50 rounded-xl p-3 mb-4 space-y-1">
+                            <li>• <b>Append</b>: adds the area{pendingPayload?.planting_material ? ' and planting material' : ''} to the existing crop</li>
+                            <li>• <b>Discard</b>: closes this form without saving</li>
+                        </ul>
+                        <div className="flex gap-2">
+                            <button type="button" onClick={onClose}
+                                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50">
+                                Discard
+                            </button>
+                            <button type="button" onClick={appendToExisting} disabled={saving}
+                                className="flex-1 py-2.5 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-60">
+                                {saving ? 'Adding…' : 'Append to existing'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Crop Type Pill Toggle */}

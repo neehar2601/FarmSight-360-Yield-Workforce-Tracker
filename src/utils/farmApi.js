@@ -24,7 +24,7 @@ const call = async (method, path, body) => {
             body: body ? JSON.stringify(body) : undefined,
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return { data: null, error: data.error || `Error ${res.status}` };
+        if (!res.ok) return { data: null, error: data.error || `Error ${res.status}`, code: data.code, existing: data.existing };
         return { data, error: null };
     } catch (err) {
         return { data: null, error: err.message || 'Network error' };

@@ -24,7 +24,15 @@ const call = async (method, path, body) => {
             body: body ? JSON.stringify(body) : undefined,
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) return { data: null, error: data.error || `Error ${res.status}` };
+        if (!res.ok) {
+            return {
+                data: null,
+                error: data.error || `Error ${res.status}`,
+                code: data.code || null,
+                worker: data.worker || null,
+                status: res.status,
+            };
+        }
         return { data, error: null };
     } catch (err) {
         return { data: null, error: err.message || 'Network error' };
@@ -43,12 +51,28 @@ export const getInactiveWorkers = (farmId) =>
 /** Add a new worker */
 export const createWorker = (body) => call('POST', '/workers', body);
 
-/** Update worker name/role/contact/salary/skills */
+/** Search shared worker directory by phone, worker code, or location */
+export const searchWorkerDirectory = (farmId, { phone, code, location } = {}) => {
+    const params = new URLSearchParams({ farm_id: farmId });
+    if (phone) params.append('phone', phone);
+    if (code) params.append('code', code);
+    if (location) params.append('location', location);
+    return call('GET', `/workers/directory?${params}`);
+};
+
+/** Link an existing shared worker to this farm { farm_id, worker_id, worker_code, role, per_day_salary } */
+export const linkWorker = (body) => call('POST', '/workers/link', body);
+
+/** Update worker name/role/contact/salary/skills/location */
 export const updateWorker = (id, body) => call('PUT', `/workers/${id}`, body);
 
-/** Archive (is_active:false) or re-activate (is_active:true) a worker */
+/** Archive (is_active:false) or re-activate (is_active:true) a worker on this farm */
 export const setWorkerStatus = (id, body) =>
     call('PATCH', `/workers/${id}/status`, body);
+
+/** Archive master worker record globally (only allowed when not active on any other farm) */
+export const archiveMasterWorker = (id, farmId) =>
+    call('DELETE', `/workers/${id}?farm_id=${farmId}`);
 
 // ── Attendance ────────────────────────────────────────────────────────────────
 /** Get attendance records.  month = 'YYYY-MM' (optional, defaults to today) */
